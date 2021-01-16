@@ -1,0 +1,6 @@
+*.swp
+*.swo
+*.pyc
+.gitignore
+csscope.out
+.staging_gitignore

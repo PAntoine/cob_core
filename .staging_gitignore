@@ -1,0 +1,9 @@
+*.swp
+*.swo
+*.o
+*.a
+*.pyc
+tags
+project.ipf
+csscope.out
+.gitignore
