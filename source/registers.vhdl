@@ -1,0 +1,61 @@
+-----------------------------------------------------------------------------------
+--					   _____ ____  ____		_____
+--					  / ____/ __ \|  _ \   / ____|
+--					 | |   | |	| | |_) | | |	  ___  _ __ ___
+--					 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
+--					 | |___| |__| | |_) | | |___| (_) | | |  __/
+--					  \_____\____/|____/   \_____\___/|_|  \___|
+--					
+--
+-- Name  : registers
+-- Desc  : This file defines the registers for the cob project.
+--
+-- Author: Peter Antoine
+-- Date  : 22/01/2021
+-----------------------------------------------------------------------------------
+--					   Copyright (c) 2021 Peter Antoine
+--							  All rights Reserved.
+--					  Released Under the Artistic Licence
+-----------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_arith.all;
+
+use work.definitions.all;
+
+entity CC_Registers is
+		port(
+				reset			: in std_logic;									-- reset all the registers.
+				sel				: in std_logic;									-- is the register block selected.
+				rw				: in std_logic;									-- are we reading or writing the register.
+				reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
+
+				data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+		);
+end CC_Registers;
+
+architecture synth of CC_Registers is
+
+		--- Need bus address decoder
+		component AHB_AddressDecoder is
+			port (
+					reset			: in std_logic;									
+					sel				: in std_logic;									
+					rw				: in std_logic;									
+					reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	
+
+					data			: inout std_logic_vector(REG_WIDTH-1 downto 0)
+				);
+		end component;
+
+		---------------------------------------------------------------
+		--- Local Signals
+		---------------------------------------------------------------
+		signal	reset	:		std_logic;
+
+begin
+
+end architecture CC_Registers;
+
+--- vi:nocin:sw=4 ts=4:fdm=marker

@@ -1,0 +1,106 @@
+-----------------------------------------------------------------------------------
+--             _____ ____  ____     _____
+--            / ____/ __ \|  _ \   / ____|
+--           | |   | |  | | |_) | | |     ___  _ __ ___
+--           | |   | |  | |  _ <  | |    / _ \| '__/ _ \
+--           | |___| |__| | |_) | | |___| (_) | | |  __/
+--            \_____\____/|____/   \_____\___/|_|  \___|
+--
+--
+-- Name  : instructions
+-- Desc  : The instructions for the cob core
+--
+-- Author: Peter Antoine
+-- Date  : 22/01/2021
+-----------------------------------------------------------------------------------
+--                     Copyright (c) 2021 Peter Antoine
+--                            All rights Reserved.
+--                    Released Under the Artistic Licence
+-----------------------------------------------------------------------------------
+
+library IEEE;
+use IEEE.std_logic_1164.all;
+
+package instructions is
+
+	------------------------------------------------------------
+	--- General Instruction constants
+	------------------------------------------------------------
+	constant INSTRUCTION_WIDTH :	natural := 32;
+
+	------------------------------------------------------------
+	--- type definitions for the instructions
+	---
+	---           3         2         1         
+	---          10987654321098765432109876543210
+	---          -+---------+---------+----------
+    ---          OOOOOOOOUUUIIxxxxxxxxxxxxxxxxxxx
+    ---        
+    ---          O = Instruction opcde (IO) 8 bits
+    ---          U = Instruction Unit (IU) 3 bits
+    ---          I = Instruction size (IS) 2 bits
+    ---          x = instruction details - 19 bits
+	------------------------------------------------------------
+	subtype instruction is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
+	
+	type INSTR_UNIT		is range 31 downto 29;	-- The instruction units
+	type INSTR_SIZE		is range 28 downto 27;	-- The opcode
+	type INSTR_OPCODE	is range 26 downto 19;	-- The instruction size
+
+	------------------------------------------------------------
+	--- Instruction Unit
+	------------------------------------------------------------
+	constant	IU_LOGIC	:	std_logic_vector(2 downto 0)	:= "000";	--- logic uinit
+	constant	IU_CONTROL	:	std_logic_vector(2 downto 0)	:= "001";	--- control unit
+	constant	IU_ARITH	:	std_logic_vector(2 downto 0)	:= "010";	--- arithmetic unit
+	constant	IU_MEMORY	:	std_logic_vector(2 downto 0)	:= "011";	--- memory unit
+
+	------------------------------------------------------------
+	--- Logic Instructions
+	------------------------------------------------------------
+	constant	LI_AND		:	std_logic_vector(7 downto 0)	:= "00000001";	--- logical and
+	constant	LI_OR		:	std_logic_vector(7 downto 0)	:= "00000010";	--- logical or
+	constant	LI_XOR		:	std_logic_vector(7 downto 0)	:= "00000011";	--- logical xor
+	constant	LI_NOT		:	std_logic_vector(7 downto 0)	:= "00000100";	--- logical not
+	constant	LI_NEG		:	std_logic_vector(7 downto 0)	:= "00000101";	--- logical neg
+	constant	LI_LSL		:	std_logic_vector(7 downto 0)	:= "00000110";	--- logical shift left
+	constant	LI_LSR		:	std_logic_vector(7 downto 0)	:= "00000111";	--- logical shift right
+	constant	LI_ROT		:	std_logic_vector(7 downto 0)	:= "00001000";	--- rotate right
+	constant	LI_ROL		:	std_logic_vector(7 downto 0)	:= "00001001";	--- rotate left
+	
+	------------------------------------------------------------
+	--- Arithmetic Instructions
+	------------------------------------------------------------
+	constant	AI_ADD		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
+	constant	AI_ADC		:	std_logic_vector(7 downto 0)	:= "00000010";	--- add with carry
+	constant	AI_SUB		:	std_logic_vector(7 downto 0)	:= "00000011";	--- subtract
+	constant	AI_SBC		:	std_logic_vector(7 downto 0)	:= "00000100";	--- subtract with carry
+	constant	AI_MUL		:	std_logic_vector(7 downto 0)	:= "00000101";	--- logical not
+	constant	AI_DIV		:	std_logic_vector(7 downto 0)	:= "00000110";	--- logical neg
+	constant	AI_TEST		:	std_logic_vector(7 downto 0)	:= "00000111";	--- logical test
+	
+	------------------------------------------------------------
+	--- Control Instructions
+	------------------------------------------------------------
+	constant	CI_BRANCH		:	std_logic_vector(7 downto 0)	:= "00000001";	--- branch always
+	constant	CI_BRANCH_LE	:	std_logic_vector(7 downto 0)	:= "00000010";	--- branch if less than or equal
+	constant	CI_BRANCH_LT	:	std_logic_vector(7 downto 0)	:= "00000011";	--- branch if less than
+	constant	CI_BRANCH_GE	:	std_logic_vector(7 downto 0)	:= "00000100";	--- branch if greater than or equal
+	constant	CI_BRANCH_GT	:	std_logic_vector(7 downto 0)	:= "00000101";	--- branch if greater then
+	constant	CI_BRANCH_EQ	:	std_logic_vector(7 downto 0)	:= "00000110";	--- branch if equal
+	constant	CI_BRANCH_NE	:	std_logic_vector(7 downto 0)	:= "00000111";	--- branch if not equal
+	constant	CI_CALL			:	std_logic_vector(7 downto 0)	:= "00001000";	--- jump subroutine
+	constant	CI_RETURN		:	std_logic_vector(7 downto 0)	:= "00001001";	--- return from subroutine.
+	constant	CI_INT			:	std_logic_vector(7 downto 0)	:= "00001010";	--- cause interrupt
+	constant	CI_RETI			:	std_logic_vector(7 downto 0)	:= "00001011";	--- return from interrupt
+
+	------------------------------------------------------------
+	--- Memory Instructions
+	------------------------------------------------------------
+	constant	MI_MOVE_MEM		:	std_logic_vector(7 downto 0)	:= "00000001";	--- Memory to memory
+	constant	MI_MOVE_REG		:	std_logic_vector(7 downto 0)	:= "00000010";	--- Memory to register
+	constant	MI_LOAD			:	std_logic_vector(7 downto 0)	:= "00000011";	--- move memory to register
+	constant	MI_STORE		:	std_logic_vector(7 downto 0)	:= "00000100";	--- move register to memory
+
+
+--- vi:nocin:sw=4 ts=4:fdm=marker
