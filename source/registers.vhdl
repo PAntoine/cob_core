@@ -52,10 +52,9 @@ architecture synth of CC_Registers is
 		---------------------------------------------------------------
 		--- Local Signals
 		---------------------------------------------------------------
-		signal	reset	:		std_logic;
 
 begin
 
-end architecture CC_Registers;
+end architecture synth;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker

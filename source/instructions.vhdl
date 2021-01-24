@@ -1,4 +1,4 @@
------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 --             _____ ____  ____     _____
 --            / ____/ __ \|  _ \   / ____|
 --           | |   | |  | | |_) | | |     ___  _ __ ___
@@ -102,5 +102,5 @@ package instructions is
 	constant	MI_LOAD			:	std_logic_vector(7 downto 0)	:= "00000011";	--- move memory to register
 	constant	MI_STORE		:	std_logic_vector(7 downto 0)	:= "00000100";	--- move register to memory
 
-
+end package instructions;
 --- vi:nocin:sw=4 ts=4:fdm=marker

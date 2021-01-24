@@ -43,6 +43,4 @@ package definitions is
 
 end package definitions;
 
-end definitions;
-
 --- vi:nocin:sw=4 ts=4:fdm=marker
