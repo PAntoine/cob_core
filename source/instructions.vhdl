@@ -99,8 +99,9 @@ package instructions is
 	------------------------------------------------------------
 	constant	MI_MOVE_MEM		:	std_logic_vector(7 downto 0)	:= "00000001";	--- Memory to memory
 	constant	MI_MOVE_REG		:	std_logic_vector(7 downto 0)	:= "00000010";	--- Memory to register
-	constant	MI_LOAD			:	std_logic_vector(7 downto 0)	:= "00000011";	--- move memory to register
-	constant	MI_STORE		:	std_logic_vector(7 downto 0)	:= "00000100";	--- move register to memory
+	constant	MI_MOVE_SYS		:	std_logic_vector(7 downto 0)	:= "00000011";	--- Memory to system register
+	constant	MI_LOAD			:	std_logic_vector(7 downto 0)	:= "00000100";	--- move memory to register
+	constant	MI_STORE		:	std_logic_vector(7 downto 0)	:= "00000101";	--- move register to memory
 
-end package instructions;
 --- vi:nocin:sw=4 ts=4:fdm=marker
+end package instructions;

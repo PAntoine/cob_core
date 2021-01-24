@@ -37,23 +37,17 @@ end CC_Registers;
 
 architecture synth of CC_Registers is
 
-		--- Need bus address decoder
-		component AHB_AddressDecoder is
-			port (
-					reset			: in std_logic;									
-					sel				: in std_logic;									
-					rw				: in std_logic;									
-					reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	
-
-					data			: inout std_logic_vector(REG_WIDTH-1 downto 0)
-				);
-		end component;
-
 		---------------------------------------------------------------
 		--- Local Signals
 		---------------------------------------------------------------
-
+		type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
+		signal register_bank : REGISTER_ARRAY;
 begin
+
+	-- handle the reading an writing of data from the registers.
+	data <= register_bank(to_integer(unsigned(reg_address))) when sel='1' and rw=RW_READ and reset '0' else (others => 'Z');
+	register_bank(to_integer(unsigned(reg_address))) <= data when sel='1' and ew=RW_WRITE and reset '0' else (others => 'Z');
+	register_bank(to_integer(unsigned(reg_address))) <= (others => '0') when reset '1' else (others => 'Z');
 
 end architecture synth;
 

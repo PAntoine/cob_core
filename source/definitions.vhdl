@@ -40,6 +40,15 @@ package definitions is
 	constant	REG_WIDTH		: natural := 32;				-- Supporting 64 general purpose registers.
 	constant	REG_ID_WIDTH	: natural := 4;					-- The width of the register id.
 	constant	NUM_REGISTERS	: natural := 2 ** REG_ID_WIDTH;	-- Just to labour the point.
+	
+	------------------------------------------------------------
+	---System Register constants
+	------------------------------------------------------------
+	constant	SR_PROGRAM_COUNTER	:	std_logic_vector(2 downto 0)	:= "001";	-- program counter
+	constant	SR_STACK_POINTER	:	std_logic_vector(2 downto 0)	:= "010";	-- stack pointer
+	constant	SR_INT_TABLE		:	std_logic_vector(2 downto 0)	:= "011";	-- interrupt jump table
+
+	subtype		SYSTEM_REG	is std_logic_vector(2 downto 0);
 
 end package definitions;
 
