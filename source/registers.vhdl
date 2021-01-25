@@ -20,35 +20,47 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_arith.all;
+use ieee.numeric_std.all;
 
 use work.definitions.all;
 
-entity CC_Registers is
+entity GeneralRegisters is
 		port(
 				reset			: in std_logic;									-- reset all the registers.
 				sel				: in std_logic;									-- is the register block selected.
+				clock			: in std_logic;									-- the clock.
 				rw				: in std_logic;									-- are we reading or writing the register.
 				reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
 
 				data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
 		);
-end CC_Registers;
+end GeneralRegisters;
 
-architecture synth of CC_Registers is
+architecture synth of GeneralRegisters is
 
 		---------------------------------------------------------------
-		--- Local Signals
+		--- define the registers.
 		---------------------------------------------------------------
-		type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
+		type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(32-1 downto 0);
 		signal register_bank : REGISTER_ARRAY;
 begin
 
 	-- handle the reading an writing of data from the registers.
-	data <= register_bank(to_integer(unsigned(reg_address))) when sel='1' and rw=RW_READ and reset '0' else (others => 'Z');
-	register_bank(to_integer(unsigned(reg_address))) <= data when sel='1' and ew=RW_WRITE and reset '0' else (others => 'Z');
-	register_bank(to_integer(unsigned(reg_address))) <= (others => '0') when reset '1' else (others => 'Z');
-
+	data <= register_bank(to_integer(unsigned(reg_address))) when sel='1' and rw=RW_READ and reset='0' else (others => 'Z');
+	
+	-- latch the data to the registers on write - rising edge of the sel clock
+	process (rw, reset, clock, sel, data, reg_address)
+	begin
+		if reset = '1'
+		then
+		  	register_bank(to_integer(unsigned(reg_address))) <= (others => '0');
+		
+		elsif clock'event and clock = '1' and sel = '1' and rw=RW_WRITE
+		then
+			register_bank(to_integer(unsigned(reg_address))) <= data;
+		end if;
+	end process;
+	
 end architecture synth;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker

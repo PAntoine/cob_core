@@ -44,6 +44,8 @@ package definitions is
 	------------------------------------------------------------
 	---System Register constants
 	------------------------------------------------------------
+	constant	NUM_SYSTEM_REGISTERS	:	natural := 8;		-- The number of system registers.
+
 	constant	SR_PROGRAM_COUNTER	:	std_logic_vector(2 downto 0)	:= "001";	-- program counter
 	constant	SR_STACK_POINTER	:	std_logic_vector(2 downto 0)	:= "010";	-- stack pointer
 	constant	SR_INT_TABLE		:	std_logic_vector(2 downto 0)	:= "011";	-- interrupt jump table
