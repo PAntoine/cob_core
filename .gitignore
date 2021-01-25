@@ -5,3 +5,4 @@
 *.pyc
 tags
 csscope.out
+cob_core.*

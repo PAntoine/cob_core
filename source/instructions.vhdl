@@ -103,5 +103,6 @@ package instructions is
 	constant	MI_LOAD			:	std_logic_vector(7 downto 0)	:= "00000100";	--- move memory to register
 	constant	MI_STORE		:	std_logic_vector(7 downto 0)	:= "00000101";	--- move register to memory
 
---- vi:nocin:sw=4 ts=4:fdm=marker
 end package instructions;
+--- vi:nocin:sw=4 ts=4:fdm=marker
+

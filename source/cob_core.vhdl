@@ -25,7 +25,8 @@ use ieee.numeric_std.all;
 use work.definitions.all;
 use work.SystemRegisters;
 use work.GeneralRegisters;
-use work.BusCOntroller;
+use work.BusController;
+use work.ControlUnit;
 
 entity COB_Core is
 		port(
@@ -88,23 +89,34 @@ architecture synth of COB_Core is
 					data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
 			);
 		end component;
+
+		component ControlUnit is
+			port(
+				reset			: in std_logic;		-- reset all the registers.
+				clock			: in std_logic;		-- the clock.
+
+				sys_bus			: out SYSTEM_BUS	-- the system bus control signals.
+			);
+		end component ControlUnit;
 		
 		---------------------------------------------------------------
 		--- now the internal signals.
 		---------------------------------------------------------------
-		signal sys_reg_sel :  std_logic;
-		signal gen_reg_sel :  std_logic;
-		signal rw :           std_logic;
-		signal bus_select :   std_logic;
-		
-		signal int_address :  std_logic_vector(ADDR_WIDTH-1 downto 0);
-		signal int_data :     std_logic_vector(DATA_WIDTH-1 downto 0);
+		signal sys_reg_sel	:	std_logic;
+		signal gen_reg_sel	:	std_logic;
+		signal rw :         	std_logic;
+		signal bus_select	: 	std_logic;
+	
+		signal system_bus	:	SYSTEM_BUS;
+		signal int_address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+		signal int_data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
 		            
 begin
 
-	sys_regs: 	SystemRegisters		port map (reset => reset, sel => sys_reg_sel, clock => clock, rw => rw, reg_address => int_address(2 downto 0), data => int_data);
-	gen_regs: 	GeneralRegisters	port map (reset => reset, sel => gen_reg_sel, clock => clock, rw => rw, reg_address => int_address(REG_ID_WIDTH-1 downto 0), data => int_data);
-	bus_ctrl:	BusController		port map (  sel => bus_select,
+	ctrl_unit:	ControlUnit			port map (reset => reset, clock => clock, sys_bus => system_bus);
+	sys_regs: 	SystemRegisters		port map (reset => reset, sel => system_bus.sys_reg_enable, clock => clock, rw => rw, reg_address => int_address(2 downto 0), data => int_data);
+	gen_regs: 	GeneralRegisters	port map (reset => reset, sel => system_bus.gen_reg_enable, clock => clock, rw => rw, reg_address => int_address(REG_ID_WIDTH-1 downto 0), data => int_data);
+	bus_ctrl:	BusController		port map (  sel => system_bus.bus_enable,
 												clock => clock,
 												rw => rw,
 												mem_address => int_address,

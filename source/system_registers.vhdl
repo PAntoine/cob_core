@@ -28,7 +28,7 @@ entity SystemRegisters is
 		port(
 				reset			: in std_logic;		-- reset all the registers.
 				sel				: in std_logic;		-- is the register block selected.
-				clock			: in std_logic;									-- the clock.
+				clock			: in std_logic;		-- the clock.
 				rw				: in std_logic;		-- are we reading or writing the register.
 				reg_address		: in SYSTEM_REG;	-- the address of the register we are writing to.
 

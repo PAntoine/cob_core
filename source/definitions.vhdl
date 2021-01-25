@@ -42,7 +42,7 @@ package definitions is
 	constant	NUM_REGISTERS	: natural := 2 ** REG_ID_WIDTH;	-- Just to labour the point.
 	
 	------------------------------------------------------------
-	---System Register constants
+	--- System Register constants
 	------------------------------------------------------------
 	constant	NUM_SYSTEM_REGISTERS	:	natural := 8;		-- The number of system registers.
 
@@ -51,6 +51,16 @@ package definitions is
 	constant	SR_INT_TABLE		:	std_logic_vector(2 downto 0)	:= "011";	-- interrupt jump table
 
 	subtype		SYSTEM_REG	is std_logic_vector(2 downto 0);
+	
+	------------------------------------------------------------
+	--- System BUS Registers
+	------------------------------------------------------------
+	type SYSTEM_BUS is record
+		bus_enable		: std_logic;	-- BUS Enable
+		sys_reg_enable	: std_logic;	-- System Registers Enable
+		gen_reg_enable	: std_logic;	-- General Registers Enable 
+	end record SYSTEM_BUS;  
+
 
 end package definitions;
 
