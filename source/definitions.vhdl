@@ -62,6 +62,22 @@ package definitions is
 		addr_data		: std_logic;	-- Indirect addressing - output to the data or address bus.
 	end record SYSTEM_BUS;  
 
+	------------------------------------------------------------
+	--- CPU Flags
+	------------------------------------------------------------
+	type CPU_FLAGS is record
+		carry_flag				: std_logic;
+		zero_flag				: std_logic;
+		sign_flag				: std_logic;
+		minus_flag				: std_logic;
+		exception_flag			: std_logic;
+		interrupt_flag			: std_logic;
+		hardware_interrupt		: std_logic;
+		interrupt_waiting		: std_logic;
+		interrupts_masked		: std_logic;
+		non_masked_interrupt	: std_logic;
+		not_used				: std_logic_vector(31 downto non_masked_interrupt'left)
+	end record CPU_FLAGS;  
 
 end package definitions;
 

@@ -25,6 +25,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.definitions.all;
+use work.instructions.all;
 
 entity ControlUnit is
 		port(
@@ -36,6 +37,8 @@ entity ControlUnit is
 end ControlUnit;
 
 architecture synth of ControlUnit is
+	signal status_register : CPU_FLAGS;
+
 begin
 end architecture synth;
 
