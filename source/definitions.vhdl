@@ -59,6 +59,7 @@ package definitions is
 		bus_enable		: std_logic;	-- BUS Enable
 		sys_reg_enable	: std_logic;	-- System Registers Enable
 		gen_reg_enable	: std_logic;	-- General Registers Enable 
+		addr_data		: std_logic;	-- Indirect addressing - output to the data or address bus.
 	end record SYSTEM_BUS;  
 
 

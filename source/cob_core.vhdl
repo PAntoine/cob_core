@@ -13,9 +13,9 @@
 -- Author: Peter Antoine
 -- Date  : 24/01/2021
 -----------------------------------------------------------------------------------
---                     Copyright (c) 2021 Peter Antoine
---                            All rights Reserved.
---                    Released Under the Artistic Licence
+--					   Copyright (c) 2021 Peter Antoine
+--							  All rights Reserved.
+--					  Released Under the Artistic Licence
 -----------------------------------------------------------------------------------
 
 library ieee;
@@ -51,9 +51,11 @@ architecture synth of COB_Core is
 					reset			: in std_logic;		-- reset all the registers.
 					sel				: in std_logic;		-- is the register block selected.
 					clock			: in std_logic;		-- the clock.
+					addr_data		: in std_logic;		-- output to the address bus or data bus.
 					rw				: in std_logic;		-- are we reading or writing the register.
 					reg_address		: in SYSTEM_REG;	-- the address of the register we are writing to.
 
+					addr			: out std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 					data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
 				);
 		end component;
@@ -63,9 +65,11 @@ architecture synth of COB_Core is
 					reset			: in std_logic;									-- reset all the registers.
 					sel				: in std_logic;									-- is the register block selected.
 					clock			: in std_logic;									-- the clock.
+					addr_data		: in std_logic;		-- output to the address bus or data bus.
 					rw				: in std_logic;									-- are we reading or writing the register.
 					reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
 
+					addr			: out std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 					data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
 			);
 		end component;
@@ -102,28 +106,30 @@ architecture synth of COB_Core is
 		---------------------------------------------------------------
 		--- now the internal signals.
 		---------------------------------------------------------------
-		signal sys_reg_sel	:	std_logic;
-		signal gen_reg_sel	:	std_logic;
-		signal rw :         	std_logic;
-		signal bus_select	: 	std_logic;
+		signal rw :				std_logic;
 	
 		signal system_bus	:	SYSTEM_BUS;
 		signal int_address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
 		signal int_data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
-		            
+					
 begin
 
 	ctrl_unit:	ControlUnit			port map (reset => reset, clock => clock, sys_bus => system_bus);
-	sys_regs: 	SystemRegisters		port map (reset => reset, sel => system_bus.sys_reg_enable, clock => clock, rw => rw, reg_address => int_address(2 downto 0), data => int_data);
-	gen_regs: 	GeneralRegisters	port map (reset => reset, sel => system_bus.gen_reg_enable, clock => clock, rw => rw, reg_address => int_address(REG_ID_WIDTH-1 downto 0), data => int_data);
-	bus_ctrl:	BusController		port map (  sel => system_bus.bus_enable,
+	sys_regs:	SystemRegisters		port map (	reset => reset, sel => system_bus.sys_reg_enable, clock => clock,
+												addr_data => system_bus.addr_data, rw => rw, reg_address => int_address(2 downto 0), addr => int_address, data => int_data);
+
+	gen_regs:	GeneralRegisters	port map (	reset => reset, sel => system_bus.gen_reg_enable, clock => clock,
+												addr_data => system_bus.addr_data, rw => rw, reg_address => int_address(REG_ID_WIDTH-1 downto 0), data => int_data);
+	bus_ctrl:	BusController		port map (	sel => system_bus.bus_enable,
 												clock => clock,
 												rw => rw,
 												mem_address => int_address,
 												as => as,
-                                                ds => ds,
-                         						bus_rw => bus_rw,
-                                                bus_address => bus_address,
-                                                da => da,
-                                                data => data);
+												ds => ds,
+												bus_rw => bus_rw,
+												bus_address => bus_address,
+												da => da,
+												data => data);
 end architecture synth;
+--- vi:nocin:sw=4 ts=4:fdm=marker
+

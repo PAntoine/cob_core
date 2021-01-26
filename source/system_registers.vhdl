@@ -29,10 +29,12 @@ entity SystemRegisters is
 				reset			: in std_logic;		-- reset all the registers.
 				sel				: in std_logic;		-- is the register block selected.
 				clock			: in std_logic;		-- the clock.
+				addr_data		: in std_logic;		-- output to the address bus or data bus.
 				rw				: in std_logic;		-- are we reading or writing the register.
 				reg_address		: in SYSTEM_REG;	-- the address of the register we are writing to.
 
-				data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+				addr			: out std_logic_vector(REG_WIDTH-1 downto 0);	-- Output to the address bus.
+				data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data bus.
 		);
 end SystemRegisters;
 
@@ -46,7 +48,8 @@ architecture synth of SystemRegisters is
 begin
 
 	-- handle the reading an writing of data from the registers.
-	data <= register_bank(to_integer(unsigned(reg_address))) when sel='1' and rw=RW_READ and reset='0' else (others => 'Z');
+	data <= register_bank(to_integer(unsigned(reg_address))) when (sel='1' and rw=RW_READ and addr_data = '0' and reset='0') else (others => 'Z');
+	addr <= register_bank(to_integer(unsigned(reg_address))) when (sel='1' and rw=RW_READ and addr_data = '1' and reset='0') else (others => 'Z');
 	
 	-- latch the data to the registers on write - rising edge of the sel clock
 	process (rw, reset, clock, sel, data, reg_address)
