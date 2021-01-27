@@ -32,15 +32,14 @@ entity BusController is
 			-- internal bus signals
 			rw				: in std_logic;		-- the read request
 			mem_address		: in std_logic_vector(ADDR_WIDTH-1 downto 0);		-- the address requested
-			int_data		: inout std_logic_vector(DATA_WIDTH-1 downto 0);	-- the data to be written internally
+			data_clock		: out std_logic;	-- when the data is available on the data bus.
 
 			-- external bus signals
 			as				: out std_logic;	-- address strobe
 			ds				: out std_logic;	-- data strobe
+			da				: in std_logic;		-- data acknowledge - when external data is ready.
 			bus_rw			: out std_logic;	-- set the read/write flag
-			bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
-			da				: in std_logic;									-- data acknowledge - when external data is ready.
-			data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
+			bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0)	-- the address selected.
 		);
 end entity BusController;
 
@@ -56,24 +55,16 @@ begin
 	as <= '1' when (sel = '1') else '0';
 
 	-- manage write cycle.
-	data <= int_data when (rw = RW_WRITE and clock = '1' and sel = '1') else (others => 'Z');
 	bus_address <= mem_address when (rw = RW_WRITE and sel = '1') else (others => 'Z');
 	ds <= '1' when (rw=RW_WRITE and clock = '0' and sel = '1') else '0';
 	
-	-- manage read cycle.
-	process (data, da, rw, sel, clock)
-	begin
-		if rw = RW_READ and da = '1' and sel = '1' and falling_edge(clock)
-		then
-			data_latch <= data;
-		end if;
-	end process;
-
+	-- read cycle
+	-- put the data on the rising edge
+	-- set the data_clock on the falling edge.
 	bus_address <= mem_address when (rw = RW_READ and sel = '1') else (others => 'Z');
-
-    -- TODO: Not sure if this is sane - may need to hold it for half a clock after sel has gone.
-    int_data <= data_latch when (sel = '1') else (others => 'Z');
+	data_clock	<= '1' when (rw = RW_READ and da = '1' and sel = '1' and clock = '0') else '0';
 
 end architecture synth;
 
+--- vi:nocin:sw=4 ts=4:fdm=marker
 

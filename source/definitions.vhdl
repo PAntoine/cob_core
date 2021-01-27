@@ -50,6 +50,9 @@ package definitions is
 	constant	SR_STACK_POINTER	:	std_logic_vector(2 downto 0)	:= "010";	-- stack pointer
 	constant	SR_INT_TABLE		:	std_logic_vector(2 downto 0)	:= "011";	-- interrupt jump table
 
+	constant	SYS_REG_ADDR		:	std_logic	:= '0';		-- system register address mode
+	constant	SYS_REG_DATA		:	std_logic	:= '1';		-- system register data mode
+
 	subtype		SYSTEM_REG	is std_logic_vector(2 downto 0);
 	
 	------------------------------------------------------------
@@ -57,6 +60,7 @@ package definitions is
 	------------------------------------------------------------
 	type SYSTEM_BUS is record
 		bus_enable		: std_logic;	-- BUS Enable
+		bus_rw			: std_logic;	-- BUS read/rw
 		sys_reg_enable	: std_logic;	-- System Registers Enable
 		gen_reg_enable	: std_logic;	-- General Registers Enable 
 		addr_data		: std_logic;	-- Indirect addressing - output to the data or address bus.
@@ -76,7 +80,7 @@ package definitions is
 		interrupt_waiting		: std_logic;
 		interrupts_masked		: std_logic;
 		non_masked_interrupt	: std_logic;
-		not_used				: std_logic_vector(31 downto non_masked_interrupt'left)
+		not_used				: std_logic_vector(31 downto 10);
 	end record CPU_FLAGS;  
 
 end package definitions;

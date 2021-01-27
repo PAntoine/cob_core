@@ -82,15 +82,14 @@ architecture synth of COB_Core is
 					-- internal bus signals
 					rw				: in std_logic;		-- the read request
 					mem_address		: in std_logic_vector(ADDR_WIDTH-1 downto 0);		-- the address requested
-					int_data		: inout std_logic_vector(DATA_WIDTH-1 downto 0);	-- the data to be written internally
+					data_clock		: out std_logic;	-- when the data is available on the data bus.
 
 					-- external bus signals
 					as				: out std_logic;	-- address strobe
 					ds				: out std_logic;	-- data strobe
 					bus_rw			: out std_logic;	-- set the read/write flag
 					bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
-					da				: in std_logic;									-- data acknowledge - when external data is ready.
-					data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
+					da				: in std_logic									-- data acknowledge - when external data is ready.
 			);
 		end component;
 
@@ -99,6 +98,7 @@ architecture synth of COB_Core is
 				reset			: in std_logic;		-- reset all the registers.
 				clock			: in std_logic;		-- the clock.
 
+				data_bus		: in std_logic_vector(DATA_WIDTH-1 downto 0);
 				sys_bus			: out SYSTEM_BUS	-- the system bus control signals.
 			);
 		end component ControlUnit;
@@ -114,22 +114,23 @@ architecture synth of COB_Core is
 					
 begin
 
-	ctrl_unit:	ControlUnit			port map (reset => reset, clock => clock, sys_bus => system_bus);
+	ctrl_unit:	ControlUnit			port map (reset => reset, clock => clock, sys_bus => system_bus, data_bus => int_data);
+	
 	sys_regs:	SystemRegisters		port map (	reset => reset, sel => system_bus.sys_reg_enable, clock => clock,
 												addr_data => system_bus.addr_data, rw => rw, reg_address => int_address(2 downto 0), addr => int_address, data => int_data);
 
 	gen_regs:	GeneralRegisters	port map (	reset => reset, sel => system_bus.gen_reg_enable, clock => clock,
 												addr_data => system_bus.addr_data, rw => rw, reg_address => int_address(REG_ID_WIDTH-1 downto 0), data => int_data);
+	
 	bus_ctrl:	BusController		port map (	sel => system_bus.bus_enable,
 												clock => clock,
-												rw => rw,
+												rw => system_bus.bus_rw,
 												mem_address => int_address,
 												as => as,
 												ds => ds,
 												bus_rw => bus_rw,
 												bus_address => bus_address,
-												da => da,
-												data => data);
+												da => da);
 end architecture synth;
 --- vi:nocin:sw=4 ts=4:fdm=marker
 
