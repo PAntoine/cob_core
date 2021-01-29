@@ -43,9 +43,9 @@ package instructions is
 	------------------------------------------------------------
 	subtype instruction is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
 	
-	type INSTR_UNIT		is range 31 downto 29;	-- The instruction units
-	type INSTR_SIZE		is range 28 downto 27;	-- The opcode
-	type INSTR_OPCODE	is range 26 downto 19;	-- The instruction size
+	subtype INSTR_OPCODE_RANGE	is natural range 31 downto 24;	-- The instruction size
+	subtype INSTR_UNIT_RANGE	is natural range 23 downto 21;	-- The instruction units
+	subtype INSTR_SIZE_RANGE	is natural range 20 downto 19;	-- The opcode
 
 	------------------------------------------------------------
 	--- Instruction Unit

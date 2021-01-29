@@ -124,6 +124,22 @@ begin
 
 		end if;
 	end process;
+	
+	------------------------------------------------------------
+	--- Instruction Decoders
+	------------------------------------------------------------
+	alias iunit  : std_logic_vector(2 downto 0) is instruction_reg(INSTR_UNIT_RANGE);
+	
+	logic_sel  <= '1' when sel = '1' and iunit = IU_LOGIC else '0';
+	cntl_sel   <= '1' when sel = '1' and iunit = IU_CONTROL else '0';
+	arith_sel  <= '1' when sel = '1' and iunit = IU_ARITH else '0';
+	memory_sel <= '1' when sel = '1' and iunit = IU_MEMORY else '0';
+	
+	logic_unit  : LogicDecoder 		port map (sel => logic_sel,	instuctions => instruction_register, sys_bus => sys_bus);
+	cntl_unit   : ControlDecoder 	port map (sel => cntl_sel, 	instuctions => instruction_register, sys_bus => sys_bus);
+	arith_unit  : ArithDecoder 		port map (sel => arith_sel,	instuctions => instruction_register, sys_bus => sys_bus);
+	memory_unit : MemoryDecoder 	port map (sel => memory_sel,instuctions => instruction_register, sys_bus => sys_bus);
+
 
 end architecture synth;
 
