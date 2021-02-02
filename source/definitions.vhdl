@@ -37,10 +37,19 @@ package definitions is
 	------------------------------------------------------------
 	--- Register constants
 	------------------------------------------------------------
-	constant	REG_WIDTH		: natural := 32;				-- Supporting 64 general purpose registers.
-	constant	REG_ID_WIDTH	: natural := 4;					-- The width of the register id.
+	constant	REG_WIDTH		: natural := 32;				-- 32 bit wide.
+	constant	REG_ID_WIDTH	: natural := 5;					-- 32 registers.
 	constant	NUM_REGISTERS	: natural := 2 ** REG_ID_WIDTH;	-- Just to labour the point.
 	
+	------------------------------------------------------------
+	--- CPU Pipeline Stages
+	------------------------------------------------------------
+	constant	CPUS_RESET		: std_logic_vector(3 downto 0)	:= "0000";
+	constant	CPUS_FETCH		: std_logic_vector(3 downto 0)	:= "0001";
+	constant	CPUS_DECODE		: std_logic_vector(3 downto 0)	:= "0010";
+	constant	CPUS_EXECUTE	: std_logic_vector(3 downto 0)	:= "0100";
+	constant	CPUS_WRITE_BACK	: std_logic_vector(3 downto 0)	:= "1000";
+
 	------------------------------------------------------------
 	--- System Register constants
 	------------------------------------------------------------
@@ -64,6 +73,7 @@ package definitions is
 		sys_reg_enable	: std_logic;	-- System Registers Enable
 		gen_reg_enable	: std_logic;	-- General Registers Enable 
 		addr_data		: std_logic;	-- Indirect addressing - output to the data or address bus.
+		busy			: std_logic;	-- An instruction is currently being processed.
 	end record SYSTEM_BUS;  
 
 	------------------------------------------------------------

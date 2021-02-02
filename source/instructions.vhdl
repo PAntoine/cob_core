@@ -34,11 +34,10 @@ package instructions is
 	---           3         2         1         
 	---          10987654321098765432109876543210
 	---          -+---------+---------+----------
-    ---          OOOOOOOOUUUIIxxxxxxxxxxxxxxxxxxx
+    ---          OOOOOOOOUUUxxxxxxxxxxxxxxxxxxxxx
     ---        
     ---          O = Instruction opcde (IO) 8 bits
     ---          U = Instruction Unit (IU) 3 bits
-    ---          I = Instruction size (IS) 2 bits
     ---          x = instruction details - 19 bits
 	------------------------------------------------------------
 	subtype instruction is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
@@ -57,7 +56,32 @@ package instructions is
 
 	------------------------------------------------------------
 	--- Logic Instructions
+	---
+	---           3         2         1         
+	---          10987654321098765432109876543210
+	---          -+---------+---------+----------
+    ---          OOOOOOOOUUURRRxxxxxxxxxxxxxxxxxx
+	---
+	--- R - Register or Memory
+	--- 1 - register Address (5 bits - 32 registers)
+	--- 2 - register Address (5 bits - 32 registers)
+	--- o - register Address (5 bits - 32 registers)
+	--- i - immediate value
+	---
+	---    Code |  a  |  b  | Meaning of X
+	---   ------+--------------------------------------
+	---    000  | reg | reg |  1111122222ooooo000
+	---    001  | mem | reg |  mmmmm22222ooooo000
+	---    010  | reg | mem |  11111mmmmmooooo000
+	---    011  | reg |  -  |  111110000000000000
+	---    100  | reg |imm8 |  11111iiiiiooooo000
+	---
 	------------------------------------------------------------
+	subtype LI_IO_CODE	is natural range 20 downto 18;	-- The import states
+	subtype LI_SOURCE_A	is natural range 17 downto 13;	-- Source for A
+	subtype LI_SOURCE_B	is natural range 12 downto 08;	-- Source for B
+	subtype LI_DEST		is natural range  7 downto  8;	-- destination
+
 	constant	LI_AND		:	std_logic_vector(7 downto 0)	:= "00000001";	--- logical and
 	constant	LI_OR		:	std_logic_vector(7 downto 0)	:= "00000010";	--- logical or
 	constant	LI_XOR		:	std_logic_vector(7 downto 0)	:= "00000011";	--- logical xor
