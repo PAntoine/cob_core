@@ -94,11 +94,9 @@ package definitions is
 		reg_1_en	:	std_logic;
 		reg_1_rw	:	std_logic;
 		reg_1_addr	:	REG_ID;
-		reg_1_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
 		reg_2_en	:	std_logic;
 		reg_2_rw	:	std_logic;
 		reg_2_addr	:	REG_ID;
-		reg_2_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
 	end record REGISTER_BUS;  
 
 	constant FREE_REGISTER_BUS : REGISTER_BUS :=
@@ -106,13 +104,20 @@ package definitions is
 		reg_1_en	=> 'Z',
 		reg_1_rw	=> 'Z',
 		reg_1_addr	=> (others => 'Z'),
-		reg_1_data	=> (others => 'Z'),
 		reg_2_en	=> 'Z',
 		reg_2_rw	=> 'Z',
-		reg_2_addr	=> (others => 'Z'),
-		reg_2_data	=> (others => 'Z')
+		reg_2_addr	=> (others => 'Z')
 	);
-
+	
+	constant INIT_REGISTER_BUS : REGISTER_BUS :=
+	(
+		reg_1_en	=> '0',
+		reg_1_rw	=> '0',
+		reg_1_addr	=> (others => '0'),
+		reg_2_en	=> '0',
+		reg_2_rw	=> '0',
+		reg_2_addr	=> (others => '0')
+	);
 
 	------------------------------------------------------------
 	--- CPU Flags

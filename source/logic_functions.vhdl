@@ -53,11 +53,15 @@ package body LogicFunctions is
 	begin
         if b_in(4) = '1' then
             shft16	:= a_in(15 downto 0) & "0000000000000000";
+		else
+			shft16  := a_in;
         end if;
         
         if b_in(3) = '1'
         then
 			shft08	:= shft16(23 downto 0) & "00000000";
+		else
+			shft08  := shft16;
 		end if;
 		
 		if b_in(2) = '1'
@@ -97,11 +101,15 @@ package body LogicFunctions is
 	begin
         if b_in(4) = '1' then
             shft16	:= "0000000000000000" & a_in(15 downto 0);
+		else
+			shft16  := a_in;
         end if;
         
         if b_in(3) = '1'
         then
 			shft08	:= "00000000" & shft16(23 downto 0);
+		else
+			shft08  := shft08;
 		end if;
 		
 		if b_in(2) = '1'
