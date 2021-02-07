@@ -63,18 +63,18 @@ package instructions is
     ---          OOOOOOOOUUURRRxxxxxxxxxxxxxxxxxx
 	---
 	--- R - Register or Memory
-	--- 1 - register Address (5 bits - 32 registers)
-	--- 2 - register Address (5 bits - 32 registers)
-	--- o - register Address (5 bits - 32 registers)
+	--- 1 - register Address (5 bits - 32 registers) - a
+	--- 2 - register Address (5 bits - 32 registers) - b
+	--- d - register Address (5 bits - 32 registers) - destination reg
 	--- i - immediate value
 	---
-	---    Code |  a  |  b  | Meaning of X
-	---   ------+--------------------------------------
-	---    000  | reg | reg |  1111122222ooooo000
-	---    001  | mem | reg |  mmmmm22222ooooo000
-	---    010  | reg | mem |  11111mmmmmooooo000
-	---    011  | reg |  -  |  111110000000000000
-	---    100  | reg |imm8 |  11111iiiiiooooo000
+	---    Code |  a  |  b  |  d  | Meaning of X
+	---   ------+-----+-----+-----+-------------------
+	---    000  | reg | reg | reg | 1111122222ddddd000
+	---    001  | mem | reg | reg | mmmmm22222ddddd000
+	---    010  | reg | mem | reg | 11111mmmmmddddd000
+	---    011  | reg |  -  | reg | 1111100000ddddd000
+	---    100  | reg |imm8 | reg | 11111iiiiiddddd000
 	---
 	------------------------------------------------------------
 	subtype LI_IO_CODE	is natural range 20 downto 18;	-- The import states

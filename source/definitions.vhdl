@@ -101,6 +101,19 @@ package definitions is
 		reg_2_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
 	end record REGISTER_BUS;  
 
+	constant FREE_REGISTER_BUS : REGISTER_BUS :=
+	(
+		reg_1_en	=> 'Z',
+		reg_1_rw	=> 'Z',
+		reg_1_addr	=> (others => 'Z'),
+		reg_1_data	=> (others => 'Z'),
+		reg_2_en	=> 'Z',
+		reg_2_rw	=> 'Z',
+		reg_2_addr	=> (others => 'Z'),
+		reg_2_data	=> (others => 'Z')
+	);
+
+
 	------------------------------------------------------------
 	--- CPU Flags
 	------------------------------------------------------------
