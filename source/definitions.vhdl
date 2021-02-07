@@ -37,6 +37,7 @@ package definitions is
 	------------------------------------------------------------
 	--- Register constants
 	------------------------------------------------------------
+	subtype		REG_ID			is std_logic_vector(4 downto 0);
 	constant	REG_WIDTH		: natural := 32;				-- 32 bit wide.
 	constant	REG_ID_WIDTH	: natural := 5;					-- 32 registers.
 	constant	NUM_REGISTERS	: natural := 2 ** REG_ID_WIDTH;	-- Just to labour the point.
@@ -70,11 +71,35 @@ package definitions is
 	type SYSTEM_BUS is record
 		bus_enable		: std_logic;	-- BUS Enable
 		bus_rw			: std_logic;	-- BUS read/rw
-		sys_reg_enable	: std_logic;	-- System Registers Enable
 		gen_reg_enable	: std_logic;	-- General Registers Enable 
 		addr_data		: std_logic;	-- Indirect addressing - output to the data or address bus.
 		busy			: std_logic;	-- An instruction is currently being processed.
+		exception		: std_logic;	-- and exception occurred.
 	end record SYSTEM_BUS;  
+	
+	------------------------------------------------------------
+	--- Memory Bus Signals
+	------------------------------------------------------------
+	type MEMORY_BUS is record
+		mem_en		:	std_logic;
+		mem_rw		:	std_logic;
+		mem_addr	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+		mem_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
+	end record MEMORY_BUS;  
+
+	------------------------------------------------------------
+	--- Register Bus Signals
+	------------------------------------------------------------
+	type REGISTER_BUS is record
+		reg_1_en	:	std_logic;
+		reg_1_rw	:	std_logic;
+		reg_1_addr	:	REG_ID;
+		reg_1_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
+		reg_2_en	:	std_logic;
+		reg_2_rw	:	std_logic;
+		reg_2_addr	:	REG_ID;
+		reg_2_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
+	end record REGISTER_BUS;  
 
 	------------------------------------------------------------
 	--- CPU Flags

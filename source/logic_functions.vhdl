@@ -31,7 +31,7 @@ package LogicFunctions is
 									b_in: std_logic_vector(4 downto 0)) return std_logic_vector;
 	
 	function LogicalShiftRight	( 	a_in: std_logic_vector(DATA_WIDTH-1 downto 0);
-									b_in: std_logic_vector(DATA_WIDTH-1 downto 0)) return std_logic_vector;
+									b_in: std_logic_vector(4 downto 0)) return std_logic_vector;
 
 end package LogicFunctions;
 
@@ -86,7 +86,7 @@ package body LogicFunctions is
 	end function;
 
 	function LogicalShiftRight( a_in: std_logic_vector(DATA_WIDTH-1 downto 0);
-								b_in: std_logic_vector(DATA_WIDTH-1 downto 0)) return std_logic_vector is
+								b_in: std_logic_vector(4 downto 0)) return std_logic_vector is
 
 	variable shft16 : std_logic_vector (DATA_WIDTH-1 downto 0);
 	variable shft08 : std_logic_vector (DATA_WIDTH-1 downto 0);

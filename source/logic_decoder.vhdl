@@ -29,8 +29,11 @@ use work.LogicFunctions.all;
 entity LogicDecoder is
 		port(
 			sel				: in std_logic;
+			clock           : in std_logic;
 			instruction_reg	: in std_logic_vector(DATA_WIDTH-1 downto 0);
-			sys_bus			: inout SYSTEM_BUS
+			sys_bus			: inout SYSTEM_BUS;
+			reg_bus			: inout REGISTER_BUS;
+			mem_bus			: inout MEMORY_BUS
 		);
 end LogicDecoder;
 
@@ -48,14 +51,28 @@ architecture synth of LogicDecoder is
 	signal a_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal b_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
-	signal bus_contro	: LOGIC_BUS;
+	signal a_source		: REG_ID;
+	signal b_source		: REG_ID;
+	signal dest			: REG_ID;
+
+	signal 		state		: std_logic_vector(1 downto 0);
+	constant	LI_IDLE		: std_logic_vector(1 downto 0) := "00";
+	constant	LI_EXECUTE	: std_logic_vector(1 downto 0) := "01";
+	constant	LI_WRITE	: std_logic_vector(1 downto 0) := "10";
+	constant	LI_FINISHED	: std_logic_vector(1 downto 0) := "11";
+
+	signal read		: std_logic;
+	signal execute	: std_logic;
+	signal write	: std_logic;
+
+	signal bus_control	: LOGIC_BUS;
 begin
 	------------------------------------------------------------
 	--- Logic Instruction Decoder
 	------------------------------------------------------------
 	op_code <= instruction_reg(INSTR_OPCODE_RANGE);
 
-	process (sel, op_code) is
+	process (sel, a_reg, b_reg, op_code) is
 	begin
 		if sel = '1'
 		then
@@ -70,94 +87,99 @@ begin
 	------------------------------------------------------------
 	--- Decode Instruction Input
 	------------------------------------------------------------
-	io_code		<= instruction_reg(LI_IO_CODE);
 	a_source	<= instruction_reg(LI_SOURCE_A);
 	b_source	<= instruction_reg(LI_SOURCE_B);
 	dest		<= instruction_reg(LI_DEST);
 
-	process (io_code) is
+	process (instruction_reg, a_reg, b_reg, a_source, b_source, reg_bus) is
 	begin
-		case io_code is
+		case instruction_reg(LI_IO_CODE) is
 			when "000" =>
 						-- reg in for a and b,
-						reg_1_addr			<= a_source;
-						reg_2_addr			<= b_source;
-						mem_addr			<= (others => 'X');
-						sys_bus.mem_rw		<= RW_READ;
-						sys_bus.reg_rw		<= RW_READ;
-						sys_bus.reg_1_en	<= '1';
-						sys_bus.reg_2_en	<= '1';
-						sys_bus.mem_en		<= '0';
+						reg_bus.reg_1_addr	<= a_source;
+						reg_bus.reg_2_addr	<= b_source;
+						reg_bus.reg_1_rw	<= RW_READ;
+						reg_bus.reg_2_rw	<= RW_READ;
+						reg_bus.reg_1_en	<= '1';
+						reg_bus.reg_2_en	<= '1';
+						mem_bus.mem_addr	<= (others => 'X');
+						mem_bus.mem_rw		<= RW_READ;
+						mem_bus.mem_en		<= '0';
 						
-						a_reg	<= reg_1_data;
-						b_reg	<= reg_2_data;
+						a_reg	<= reg_bus.reg_1_data;
+						b_reg	<= reg_bus.reg_2_data;
 
 			when "001" =>
 						-- mem read for a, and reg red for b.
-						reg_1_addr			<= (others => 'X');
-						reg_2_addr			<= b_source;
-						mem_addr			<= a_source;
-						sys_bus.reg_rw		<= RW_READ;
-						sys_bus.mem_rw		<= RW_READ;
-						sys_bus.reg_1_en	<= '1';
-						sys_bus.reg_2_en	<= '0';
-						sys_bus.mem_en		<= '1';
+						reg_bus.reg_1_addr	<= (others => 'X');
+						reg_bus.reg_2_addr	<= b_source;
+						reg_bus.reg_1_rw	<= RW_READ;
+						reg_bus.reg_2_rw	<= RW_READ;
+						reg_bus.reg_1_en	<= '1';
+						reg_bus.reg_2_en	<= '0';
+						mem_bus.mem_addr	<= a_reg;
+						mem_bus.mem_rw		<= RW_READ;
+						mem_bus.mem_en		<= '1';
 						
-						a_reg	<= mem_data;
-						b_reg	<= reg_2_data;
+						a_reg	<= mem_bus.mem_data;
+						b_reg	<= reg_bus.reg_2_data;
 
 			when "010" =>
 						-- source a reg, source b mem. 
-						reg_1_addr			<= a_source;
-						reg_2_addr			<= (others => 'X');
-						mem_addr			<= b_source;
-						sys_bus.reg_rw		<= RW_READ;
-						sys_bus.mem_rw		<= RW_READ;
-						sys_bus.reg_1_en	<= '0';
-						sys_bus.reg_2_en	<= '1';
-						sys_bus.mem_en		<= '1';
+						reg_bus.reg_1_addr	<= a_source;
+						reg_bus.reg_2_addr	<= (others => 'X');
+						reg_bus.reg_1_rw	<= RW_READ;
+						reg_bus.reg_2_rw	<= RW_READ;
+						reg_bus.reg_1_en	<= '0';
+						reg_bus.reg_2_en	<= '1';
+						mem_bus.mem_addr	<= b_reg;
+						mem_bus.mem_rw		<= RW_READ;
+						mem_bus.mem_en		<= '1';
 
-						a_reg	<= reg_1_data;
-						b_reg	<= mem_data;
+						a_reg	<= reg_bus.reg_1_data;
+						b_reg	<= mem_bus.mem_data;
 
 			when "011" =>
 						-- Only reg a.
-						reg_1_addr			<= a_source;
-						reg_2_addr			<= (others => 'X');
-						mem_addr			<= (others => 'X');
-						sys_bus.reg_rw		<= RW_READ;
-						sys_bus.mem_rw		<= RW_READ;
-						sys_bus.reg_1_en	<= '1';
-						sys_bus.reg_2_en	<= '0';
-						sys_bus.mem_en		<= '0';
+						reg_bus.reg_1_addr	<= a_source;
+						reg_bus.reg_2_addr	<= (others => 'X');
+						reg_bus.reg_1_rw	<= RW_READ;
+						reg_bus.reg_2_rw	<= RW_READ;
+						reg_bus.reg_1_en	<= '1';
+						reg_bus.reg_2_en	<= '0';
+						mem_bus.mem_addr	<= (others => 'X');
+						mem_bus.mem_rw		<= RW_READ;
+						mem_bus.mem_en		<= '0';
 
-						a_reg	<= reg_1_data;
+						a_reg	<= reg_bus.reg_1_data;
 						b_reg	<= (others => '0');
 
 			when "100" =>
-						-- mem read for a, immidate for b.
-						reg_1_addr			<= a_source;
-						reg_2_addr			<= (others => 'X');
-						mem_addr			<= (others => 'X');
-						sys_bus.reg_rw		<= RW_READ;
-						sys_bus.mem_rw		<= RW_READ;
-						sys_bus.reg_1_en	<= '1';
-						sys_bus.reg_2_en	<= '0';
-						sys_bus.mem_en		<= '0';
+						-- mem read for a, immediate for b.
+						reg_bus.reg_1_addr	<= a_source;
+						reg_bus.reg_2_addr	<= (others => 'X');
+						reg_bus.reg_1_rw	<= RW_READ;
+						reg_bus.reg_2_rw	<= RW_READ;
+						reg_bus.reg_1_en	<= '1';
+						reg_bus.reg_2_en	<= '0';
+						mem_bus.mem_addr	<= (others => 'X');
+						mem_bus.mem_rw		<= RW_READ;
+						mem_bus.mem_en		<= '0';
 						
-						a_reg	<= reg_1_data;
+						a_reg	<= reg_bus.reg_1_data;
 						b_reg	<= ZEROS(31 downto 5) & b_source;
 
 			when others =>
 						sys_bus.exception	<= '1';		-- This is an illegal instruction.
-						reg_1_addr			<= (others => 'X');
-						reg_2_addr			<= (others => 'X');
-						mem_addr			<= (others => 'X');
-						sys_bus.reg_rw		<= RW_READ;
-						sys_bus.mem_rw		<= RW_READ;
-						sys_bus.reg_1_en	<= '0';
-						sys_bus.reg_2_en	<= '0';
-						sys_bus.mem_en		<= '0';
+						reg_bus.reg_1_addr	<= (others => 'X');
+						reg_bus.reg_2_addr	<= (others => 'X');
+						reg_bus.reg_1_rw	<= RW_READ;
+						reg_bus.reg_2_rw	<= RW_READ;
+						reg_bus.reg_1_en	<= '0';
+						reg_bus.reg_2_en	<= '0';
+						mem_bus.mem_addr	<= (others => 'X');
+						mem_bus.mem_rw		<= RW_READ;
+						mem_bus.mem_en		<= '0';
 		end case;
 	end process;
 
@@ -168,21 +190,43 @@ begin
 	begin
 		if sel = '0'
 		then
+			state <= LI_IDLE;
 
-		else
-			case state =>
-				when  X 	=> bus_logic <= "00000000";
+		elsif rising_edge(clock)
+		then
+			case state is
+				when  LI_IDLE	=>
+						read 	<= '1';
+						execute	<= '0';
+						write	<= '0';
+						state	<= LI_EXECUTE;
 
-				when others => u <= "00000000";
+				when LI_EXECUTE =>
+						read 	<= '1';
+						execute	<= '1';
+						write	<= '0';
+						state	<= LI_WRITE;
 
+				when LI_WRITE =>
+						read 	<= '0';
+						execute	<= '0';
+						write	<= '1';
+						state	<= LI_FINISHED;
+
+				when others =>
+						read 	<= '0';
+						execute	<= '0';
+						write	<= '1';
+						state	<= LI_FINISHED;
 			end case;
-
+		end if;
 	end process;
 
 	------------------------------------------------------------
-	--- Logic unit
+	--- Bus Control Drivers
 	------------------------------------------------------------
-
+--	reg_bus.reg_rw <= reg_rw when read = '1' else '0';
+--	mem_bus.mem_rw <= mem_rw when read = '1' else '0';
 
 end architecture synth;
 
