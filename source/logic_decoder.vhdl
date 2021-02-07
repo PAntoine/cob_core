@@ -251,7 +251,7 @@ begin
 
 		elsif write = '1'
 		then
-			reg_bus.reg_1_addr	<= reg_1_addr;
+			reg_bus.reg_1_addr	<= instruction_reg(LI_DEST);
 			reg_bus.reg_2_addr	<= reg_2_addr;
 			reg_bus.reg_1_rw	<= RW_WRITE;		-- TODO: hack - the state machine is wrong.
 			reg_bus.reg_2_rw	<= reg_2_rw;
