@@ -34,7 +34,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 			port(
 				sel				: in std_logic;
 				clock           : in std_logic;
-				instruction_reg	: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				instruction_reg	: in INSTRUCTION_TYPE;
 				data_available	: out std_logic;
 				sys_bus			: inout SYSTEM_BUS;
 				reg_bus			: inout REGISTER_BUS;
@@ -50,7 +50,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal	running			: std_logic := '0';
 	signal	sel				: std_logic := '0';
 	signal	clock			: std_logic := '0';
-	signal	instruction_reg	: INSTRUCTION;
+	signal	instruction_reg	: INSTRUCTION_TYPE;
 	signal	sys_bus			: SYSTEM_BUS := (others => '0');
 	signal	reg_bus			: REGISTER_BUS;
 	signal	mem_bus			: MEMORY_BUS;
@@ -60,6 +60,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal	data_load		: std_logic := '0';
 	
 	signal	data_clock		: std_logic := '0';
+	
 
 	---------------------------------------------------------------
 	--- fake registers

@@ -26,7 +26,8 @@ package instructions is
 	------------------------------------------------------------
 	--- General Instruction constants
 	------------------------------------------------------------
-	constant INSTRUCTION_WIDTH :	natural := 32;
+	constant INSTRUCTION_WIDTH	:	natural := 32;
+	constant OP_CODE_WIDTH 		:	natural := 8;
 
 	------------------------------------------------------------
 	--- type definitions for the instructions
@@ -40,7 +41,7 @@ package instructions is
     ---          U = Instruction Unit (IU) 3 bits
     ---          x = instruction details - 19 bits
 	------------------------------------------------------------
-	subtype instruction is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
+	subtype INSTRUCTION_TYPE is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
 	
 	subtype INSTR_OPCODE_RANGE	is natural range 31 downto 24;	-- The instruction size
 	subtype INSTR_UNIT_RANGE	is natural range 23 downto 21;	-- The instruction units
@@ -82,6 +83,14 @@ package instructions is
 	subtype LI_SOURCE_B	is natural range 12 downto 08;	-- Source for B
 	subtype LI_DEST		is natural range  7 downto  8;	-- destination
 
+	-- data access modes
+	constant	LI_DA_RRR	:	std_logic_vector(2 downto 0)	:= "000";
+	constant	LI_DA_MRR	:	std_logic_vector(2 downto 0)	:= "001";
+	constant	LI_DA_RMR	:	std_logic_vector(2 downto 0)	:= "010";
+	constant	LI_DA_R_R	:	std_logic_vector(2 downto 0)	:= "011";
+	constant	LI_DA_RIR	:	std_logic_vector(2 downto 0)	:= "100";
+
+	-- Commands
 	constant	LI_AND		:	std_logic_vector(7 downto 0)	:= "00000001";	--- logical and
 	constant	LI_OR		:	std_logic_vector(7 downto 0)	:= "00000010";	--- logical or
 	constant	LI_XOR		:	std_logic_vector(7 downto 0)	:= "00000011";	--- logical xor
@@ -89,7 +98,7 @@ package instructions is
 	constant	LI_NEG		:	std_logic_vector(7 downto 0)	:= "00000101";	--- logical neg
 	constant	LI_LSL		:	std_logic_vector(7 downto 0)	:= "00000110";	--- logical shift left
 	constant	LI_LSR		:	std_logic_vector(7 downto 0)	:= "00000111";	--- logical shift right
-	constant	LI_ROT		:	std_logic_vector(7 downto 0)	:= "00001000";	--- rotate right
+	constant	LI_ROR		:	std_logic_vector(7 downto 0)	:= "00001000";	--- rotate right
 	constant	LI_ROL		:	std_logic_vector(7 downto 0)	:= "00001001";	--- rotate left
 	
 	------------------------------------------------------------

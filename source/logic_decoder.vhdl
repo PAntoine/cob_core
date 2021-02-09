@@ -30,7 +30,7 @@ entity LogicDecoder is
 		port(
 			sel				: in std_logic;
 			clock           : in std_logic;
-			instruction_reg	: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			instruction_reg	: in INSRUCTION_TYPE;
 			data_available	: out std_logic;
 			sys_bus			: inout SYSTEM_BUS;
 			reg_bus			: inout REGISTER_BUS;
@@ -91,6 +91,13 @@ begin
 			case instruction_reg(INSTR_OPCODE_RANGE) is
 				when LI_LSL => accumulator <= LogicalShiftLeft(a_reg, b_reg(4 downto 0));
 				when LI_LSR => accumulator <= LogicalShiftRight(a_reg, b_reg(4 downto 0));
+				when I_AND	=> accumulator <= a_reg and b_reg;
+				when I_OR	=> accumulator <= a_reg or b_reg;
+				when I_XOR	=> accumulator <= a_reg xor b_reg;
+				when I_NOT	=> accumulator <= not a_reg;
+				when I_NEG	=> accumulator <= (not a_reg) + 1;
+--				when I_ROR	=> accumulator <= LogicalShiftRight(a_reg, b_reg(4 downto 0));
+--				when I_ROL	=> accumulator <= LogicalShiftRight(a_reg, b_reg(4 downto 0));
 				when others	=> accumulator <= (others => '0');
 			end case;
 		end if;
@@ -246,8 +253,8 @@ begin
 			reg_bus.reg_2_rw	<= reg_2_rw;
 			reg_bus.reg_1_en	<= reg_1_en;
 			reg_bus.reg_2_en	<= reg_2_en;
-			reg_data <= (others => 'Z');
-			reg_data2 <= (others => 'Z');
+			reg_data			<= (others => 'Z');
+			reg_data2			<= (others => 'Z');
 
 		elsif write = '1'
 		then
@@ -281,7 +288,7 @@ begin
 		end if;
 	end process;
 	
-	-- read in register a
+	-- read in register b
 	process (reg_bus, clock, read, reg_data2)
 	begin
 		if falling_edge(clock) and read = '1' and reg_bus.reg_2_rw = '0' and reg_bus.reg_2_en = '1'
@@ -295,4 +302,3 @@ begin
 end architecture synth;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker
-
