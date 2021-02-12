@@ -24,40 +24,25 @@ use ieee.numeric_std.all;
 
 use work.definitions.all;
 use work.instructions.all;
+use work.logic_tb_defines.all;
 
-package LogicUnitTestProcedures is
-	---------------------------------------------------------------
-	--- Test structures
-	---------------------------------------------------------------
-	type TEST_CASE_TYPE is record
-		opcode	:	std_logic_vector(OP_CODE_WIDTH-1 downto 0);
-		a_input	:	std_logic_vector(DATA_WIDTH-1 downto 0);
-		b_input :	std_logic_vector(DATA_WIDTH-1 downto 0);
-		output	:	std_logic_vector(DATA_WIDTH-1 downto 0);
-		flags	:	CPU_FLAGS;
-	end record TEST_CASE_TYPE;
+entity RunLogicTestCase is
+	port (	signal clock		: in	std_logic;
+			signal start		: in	std_logic;
+			signal da			: in	std_logic;
+			signal test_case	: in	TEST_CASE_TYPE;
+			signal reg_1_en		: in	std_logic;
+			signal reg_2_en		: in	std_logic;
+			signal reg_1_rw		: in	std_logic;
+			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			signal sel			: out	std_logic;
+			signal instruction	: out	INSTRUCTION_TYPE;
+			signal result		: out	std_logic;
+			signal complete		: out	std_logic	);
+end entity RunLogicTestCase;
 
-    ----------------------------------------------------
-    --- Test Procedures
-    ----------------------------------------------------
-	procedure RunLogicTestCase( clock		: in	std_logic;
-								start		: in	std_logic;
-								da          : in    std_logic;
-								test_case	: in	TEST_CASE_TYPE;
-								reg_bus		: inout	REGISTER_BUS;
-								reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
-								reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
-								sel			: out	std_logic;
-								result		: out	std_logic;
-								complete	: out	std_logic);
-
-	--procedure RunRegIndexTestCase(	a_reg	: in	REG_ID;
-	--								b_reg	: in	REG_ID;
-	--								output	: in	REG_ID );
-
-end package LogicUnitTestProcedures;
-
-package body LogicUnitTestProcedures is
+architecture behv of RunLogicTestCase is
 	----------------------------------------------------
 	--- RunLogicTestCase
 	---
@@ -66,57 +51,41 @@ package body LogicUnitTestProcedures is
 	--- what is expected. It will only use the same
 	--- registers, this is a pure procedure only test.
 	----------------------------------------------------
-	procedure RunLogicTestCase( clock		: in	std_logic;
-								start		: in	std_logic;
-								da          : in    std_logic;
-								test_case	: in	TEST_CASE_TYPE;
-								reg_bus		: inout	REGISTER_BUS;
-								reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
-								reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
-								sel			: out	std_logic;
-								result		: out	std_logic;
-								complete	: out	std_logic) is
+begin
+	-- let make or state item.
+	instruction <= test_case.opcode & IU_LOGIC & "000" & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
 
-		--- now lets put an instruction in.
-		variable state        : std_logic_vector(5 downto 0);
-        variable instruction : INSTRUCTION_TYPE;
+	sel <= '1' when start = '1' else '0';
 
+	-- handle the first register
+	-- this one should have the result
+	-- TODO: should test for illegal bus
+	--       states.
+	process (start, reg_1_en, reg_1_rw)
 	begin
+		if start = '1' and reg_1_en = '1' and reg_1_rw = RW_READ
+		then
+			reg_1_data <= test_case.a_input;
+		else
+			reg_1_data <= (others => 'Z');
+		end if;
+	end process;
 
-		-- put the instruction on to the command.
-		instruction := test_case.opcode & IU_LOGIC & "000" & "00001" & "00010" & "00011" & "000";
+	-- just output for bus states.
+	process (start, reg_2_en)
+	begin
+		if start = '1' and reg_2_en = '1'
+		then
+			reg_2_data <= test_case.b_input;
+		else
+			reg_2_data <= (others => 'Z');
+		end if;
+	end process;
 
-		-- let make or state item.
-		state := reg_bus.reg_1_rw & reg_bus.reg_2_rw & reg_bus.reg_1_en & reg_bus.reg_2_en & start & da;
+	-- now produce the result.
+	result <= '1' when da = '1' and reg_1_data = test_case.output else '0';
+	complete <= '1' when da = '1' and clock = '0' else '0';
 
-		case state is
-			when "XX0010" =>		-- lets start the instruction
-				sel			:= '1';
-				reg_1_data	:= (others => 'Z');
-				reg_2_data	:= (others => 'Z');
-				complete	:= '0';
-
-			when "001X10" =>		-- start the test
-				sel			:= '1';
-				reg_1_data	:= test_case.a_input;
-				reg_2_data	:= test_case.b_input;
-				complete	:= '0';
-			
-			when "101010" =>		-- we have a write to the output register
-				sel			:= '1';
-				assert reg_1_data /= test_case.output report "logic command: " & std_logic_vector'image(op_code) & " failed " & std_logic_vector'image(reg_1_data) & " != " & std_logic_vector'(test_case.output);
-				complete	:= '0';
-			
-			when "101011" =>		-- data is available - the command has finished.
-				sel			:= '0';
-				assert reg_1_data /= test_case.output report "logic command: " & std_logic_vector'image(op_code) & " failed " & std_logic_vector'image(reg_1_data) & " != " & std_logic_vector'(test_case.output);
-				complete	:= '1';
-
-			when others => report "bad state in test case (LogicUnitTestProcedures)";
-		end case;
-
-	end procedure;
-
-end LogicUnitTestProcedures;
+end architecture;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker

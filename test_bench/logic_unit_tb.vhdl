@@ -24,10 +24,14 @@ use ieee.numeric_std.all;
 
 use work.definitions.all;
 use work.instructions.all;
+
+use work.logic_tb_defines.all;
+
 use work.LogicDecoder;
+use work.RunLogicTestCase;
 
 entity Logic_Unit_Test_Bench is
-end Logic_Unit_Test_Bench ;
+end Logic_Unit_Test_Bench;
 
 architecture simulation of Logic_Unit_Test_Bench is
 	component LogicDecoder is
@@ -36,6 +40,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 				clock           : in std_logic;
 				instruction_reg	: in INSTRUCTION_TYPE;
 				data_available	: out std_logic;
+				flags			: out CPU_FLAGS;
 				sys_bus			: inout SYSTEM_BUS;
 				reg_bus			: inout REGISTER_BUS;
 				reg_data		: inout	std_logic_vector(31 downto 0);
@@ -43,6 +48,22 @@ architecture simulation of Logic_Unit_Test_Bench is
 				mem_bus			: inout MEMORY_BUS
 			);
 	end component LogicDecoder;
+
+	component RunLogicTestCase is
+	port (	signal clock		: in	std_logic;
+			signal start		: in	std_logic;
+			signal da			: in	std_logic;
+			signal test_case	: in	TEST_CASE_TYPE;
+			signal reg_1_en		: in	std_logic;
+			signal reg_2_en		: in	std_logic;
+			signal reg_1_rw		: in	std_logic;
+			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			signal sel			: out	std_logic;
+			signal instruction	: out	INSTRUCTION_TYPE;
+			signal result		: out	std_logic;
+			signal complete		: out	std_logic	);
+	end component RunLogicTestCase;
 
 	---------------------------------------------------------------
 	--- now the internal signals.
@@ -52,7 +73,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal	clock			: std_logic := '0';
 	signal	instruction_reg	: INSTRUCTION_TYPE;
 	signal	sys_bus			: SYSTEM_BUS := (others => '0');
-	signal	reg_bus			: REGISTER_BUS;
+	signal	reg_bus			: REGISTER_BUS := INIT_REGISTER_BUS;
 	signal	mem_bus			: MEMORY_BUS;
 	signal	data_available	: std_logic := '0';
 
@@ -61,6 +82,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 	
 	signal	data_clock		: std_logic := '0';
 	
+	signal	flags			: CPU_FLAGS := INIT_CPU_FLAGS;
 
 	---------------------------------------------------------------
 	--- fake registers
@@ -71,49 +93,51 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal reg_data : std_logic_vector(31 downto 0);
 	signal reg_data2 : std_logic_vector(31 downto 0);
 
+	signal result : std_logic := '0';
+	signal complete : std_logic := '0';
+
+	signal test_case1 : TEST_CASE_TYPE;
+
+	signal start : std_logic := '1';
+
 begin
-	--- Clock generation
+	-- test case
 	clock <= not clock after 1 ns when running = '1' else '0';
-    sel <= '1' after 2 ns, '0' after 10 ns;  	
+	start <= '0', '1' after 1 ns;
 	running <= '1', '0' after 20 ns;
 
-	init_test <= '1' after 1 ns, '0' after 2 ns;
+	--reg_bus.reg_1_en <= 'L';
+	--reg_bus.reg_2_en <= 'L';
+	--sel <= 'L';
 
-	--- now lets put an instruction in.
-	instruction_reg <= LI_LSL & IU_LOGIC & "000" & "00001" & "00010" & "00011" & "000";
-	
-	-- TODO: Need to write a state machine that sets the data for the writes.
-	--- load test data.
-	reg_data <= (others => '1') when init_test = '1' else (others => 'Z');
-	reg_bus.reg_1_addr <= "00001" when init_test = '1' else (others => 'Z');
-	
-	reg_data2 <= "00000000000000000000000000000001"  when init_test = '1' else (others => 'Z');
-	reg_bus.reg_2_addr <= "00010" when init_test = '1' else (others => 'Z');
-	
-	data_load <= '1' when init_test = '1' else '0';
+	test_case1 <= (LI_LSL, "11111111111111111111111111111111", "00000000000000000000000000000001", "11111111111111111111111111111110", INIT_CPU_FLAGS);
 
-	-- register_bank(2) <= "00000000000000000000000000000001" when rising_edge(init_test);
-
-	reg_data  <= register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) when (reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw = RW_READ) else (others => 'Z');
-	reg_data2 <= register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) when (reg_bus.reg_2_en = '1' and reg_bus.reg_2_rw = RW_READ) else (others => 'Z');
-
-    process (data_load, reg_bus.reg_1_addr, data_available)
-    begin
-        if rising_edge(data_load) or rising_edge(data_available)
-        then
-	       register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) := reg_data;
-	    end if;
-	end process;
+	rtl: RunLogicTestCase port map (
+						clock		=> clock,
+						start		=> start,
+						da			=> data_available,
+						test_case	=> test_case1,
+						reg_1_en	=> reg_bus.reg_1_en,
+						reg_2_en	=> reg_bus.reg_2_en,
+						reg_1_rw	=> reg_bus.reg_1_rw,
+						reg_1_data	=> reg_data,
+						reg_2_data	=> reg_data2,
+						sel			=> sel,
+						instruction	=> instruction_reg,
+						result		=> result,
+						complete	=> complete);
 	
-	process (data_load, reg_bus.reg_2_addr, data_available)
-    begin
-        if rising_edge(data_load) or rising_edge(data_available) 
-        then
-	       register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) := reg_data2;
-	    end if;
-	end process;
-	
-	logic_unit:	LogicDecoder	port map (sel, clock, instruction_reg, data_available, sys_bus, reg_bus => reg_bus, reg_data => reg_data, reg_data2 => reg_data2, mem_bus => mem_bus);
+	--- Clock generation
+	logic_unit:	LogicDecoder	port map (	sel => sel,
+											clock => clock,
+											instruction_reg => instruction_reg,
+											data_available => data_available,
+											flags => flags,
+											sys_bus => sys_bus,
+											reg_bus => reg_bus,
+											reg_data => reg_data,
+											reg_data2 => reg_data2,
+											mem_bus => mem_bus);
 
 end architecture simulation;
 
