@@ -5,7 +5,7 @@
 --					 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
 --					 | |___| |__| | |_) | | |___| (_) | | |  __/
 --					  \_____\____/|____/   \_____\___/|_|  \___|
---					
+--
 --
 -- Name  : logic_unit_tb
 -- Desc  : The Logic Unit test bench.
@@ -21,6 +21,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
+use STD.textio.all;
+use ieee.std_logic_textio.all; 
 
 use work.definitions.all;
 use work.instructions.all;
@@ -79,9 +82,9 @@ architecture simulation of Logic_Unit_Test_Bench is
 
 	signal	init_test		: std_logic := '0';
 	signal	data_load		: std_logic := '0';
-	
+
 	signal	data_clock		: std_logic := '0';
-	
+
 	signal	flags			: CPU_FLAGS := INIT_CPU_FLAGS;
 
 	---------------------------------------------------------------
@@ -110,7 +113,55 @@ begin
 	--reg_bus.reg_2_en <= 'L';
 	--sel <= 'L';
 
-	test_case1 <= (LI_LSL, "11111111111111111111111111111111", "00000000000000000000000000000001", "11111111111111111111111111111110", INIT_CPU_FLAGS);
+	process
+		variable iline		: line;
+		variable space		: character;
+		variable op_code	: std_logic_vector(OP_CODE_WIDTH-1 downto 0);
+		variable a_input	: std_logic_vector(DATA_WIDTH-1 downto 0);
+		variable b_input	: std_logic_vector(DATA_WIDTH-1 downto 0);
+		variable output		: std_logic_vector(DATA_WIDTH-1 downto 0);
+		variable c_flags	: CPU_FLAGS;
+
+        variable meh : line;
+	
+		file logic_test_cases : text;
+
+	begin
+		file_open(logic_test_cases, "logic_test_cases.txt", read_mode);
+     
+		while not endfile(logic_test_cases) loop
+			readline(logic_test_cases, iline);
+
+			read(iline, op_code);
+			read(iline, SPACE);		-- read in the space character
+			read(iline, a_input);
+			read(iline, SPACE);		-- read in the space character
+			read(iline, b_input);
+			read(iline, SPACE);		-- read in the space character
+			read(iline, output);
+			read(iline, SPACE);		-- read in the space character
+			-- read(iline, c_flags);
+			
+			-- set the test case
+			test_case1 <= (op_code, a_input, b_input, output, c_flags);
+			start <= '1';
+
+			wait until complete = '1';
+
+			if result = '1'
+			then
+				report "complete" severity warning;
+			end if;
+
+			start <= '0';
+			wait until sel = '0';
+		end loop;
+
+		file_close(logic_test_cases);
+
+		wait;
+	end process;
+
 
 	rtl: RunLogicTestCase port map (
 						clock		=> clock,
@@ -126,7 +177,7 @@ begin
 						instruction	=> instruction_reg,
 						result		=> result,
 						complete	=> complete);
-	
+
 	--- Clock generation
 	logic_unit:	LogicDecoder	port map (	sel => sel,
 											clock => clock,
