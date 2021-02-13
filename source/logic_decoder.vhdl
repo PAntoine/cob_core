@@ -105,6 +105,27 @@ begin
 			end case;
 		end if;
 	end process;
+	
+	------------------------------------------------------------
+	--- Set he flags register.
+	------------------------------------------------------------
+	flags.zero_flag <= 'Z' when sel = '0' else
+	                   '1' when accumulator = ZEROS
+	                   else '0';
+
+    flags.sign_flag <=  'Z' when sel = '0' else
+                        '1' when accumulator(31) = '1'
+                        else '0';
+	
+	-- don't user this, but should be set.
+	flags.carry_flag <= '0' when sel = '1' else 'Z';
+
+	-- non of these flags are set in this block.
+	flags.interrupt_flag		=> 'Z',
+	flags.hardware_interrupt	=> 'Z',
+	flags.interrupt_waiting		=> 'Z',
+	flags.interrupts_masked		=> 'Z',
+	flags.non_masked_interrupt	=> 'Z'
 
 	------------------------------------------------------------
 	--- Decode Instruction Input
@@ -130,6 +151,7 @@ begin
 			mem_bus.mem_addr	<= (others => 'Z');
 			mem_bus.mem_rw		<= 'Z';
 			mem_bus.mem_en		<= 'Z';
+			flags.exception_flag	<= 'Z';
 
 		else
 			case instruction_reg(LI_IO_CODE) is
@@ -144,6 +166,7 @@ begin
 							mem_bus.mem_addr	<= (others => 'X');
 							mem_bus.mem_rw		<= RW_READ;
 							mem_bus.mem_en		<= '0';
+							flags.exception_flag <= '0';
 							
 				when "001" =>
 							-- mem read for a, and reg red for b.
@@ -156,6 +179,7 @@ begin
 							mem_bus.mem_addr	<= a_reg;
 							mem_bus.mem_rw		<= RW_READ;
 							mem_bus.mem_en		<= '1';
+							flags.exception_flag <= '0';
 							
 				when "010" =>
 							-- source a reg, source b mem. 
@@ -168,6 +192,7 @@ begin
 							mem_bus.mem_addr	<= b_reg;
 							mem_bus.mem_rw		<= RW_READ;
 							mem_bus.mem_en		<= '1';
+							flags.exception_flag <= '0';
 
 				when "011" =>
 							-- Only reg a.
@@ -180,6 +205,7 @@ begin
 							mem_bus.mem_addr	<= (others => 'X');
 							mem_bus.mem_rw		<= RW_READ;
 							mem_bus.mem_en		<= '0';
+							flags.exception_flag <= '0';
 
 				when "100" =>
 							-- mem read for a, immediate for b.
@@ -192,13 +218,14 @@ begin
 							mem_bus.mem_addr	<= (others => 'X');
 							mem_bus.mem_rw		<= RW_READ;
 							mem_bus.mem_en		<= '0';
+							flags.exception_flag <= '0';
 
 				when others =>
 							--sys_bus.exception	<= '1';		-- This is an illegal instruction.
-							flags.exception_flag		<= '1';
-							mem_bus.mem_addr	<= (others => 'X');
-							mem_bus.mem_rw		<= RW_READ;
-							mem_bus.mem_en		<= '0';
+							flags.exception_flag	<= '1';
+							mem_bus.mem_addr		<= (others => 'X');
+							mem_bus.mem_rw			<= RW_READ;
+							mem_bus.mem_en			<= '0';
 			end case;
 		end if;
 	end process;

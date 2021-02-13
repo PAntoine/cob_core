@@ -126,14 +126,12 @@ package definitions is
 		carry_flag				: std_logic;
 		zero_flag				: std_logic;
 		sign_flag				: std_logic;
-		minus_flag				: std_logic;
 		exception_flag			: std_logic;
 		interrupt_flag			: std_logic;
 		hardware_interrupt		: std_logic;
 		interrupt_waiting		: std_logic;
 		interrupts_masked		: std_logic;
 		non_masked_interrupt	: std_logic;
-		not_used				: std_logic_vector(31 downto 11);
 	end record CPU_FLAGS;  
 
 	constant INIT_CPU_FLAGS : CPU_FLAGS :=
@@ -141,14 +139,12 @@ package definitions is
 		carry_flag				=> '0',
 		zero_flag				=> '0',
 		sign_flag				=> '0',
-		minus_flag				=> '0',
 		exception_flag			=> '0',
 		interrupt_flag			=> '0',
 		hardware_interrupt		=> '0',
 		interrupt_waiting		=> '0',
 		interrupts_masked		=> '0',
-		non_masked_interrupt	=> '0',
-		not_used				=> (others => '0')
+		non_masked_interrupt	=> '0'
 	);
 
 end package definitions;
