@@ -99,8 +99,8 @@ begin
 				when LI_XOR	=> accumulator <= a_reg xor b_reg;
 				when LI_NOT	=> accumulator <= not a_reg;
 				--when LI_NEG	=> accumulator <= (not a_reg) + 1;
-				when LI_ROR	=> accumulator <= LogicalShiftRight(a_reg, b_reg(4 downto 0));
-				when LI_ROL	=> accumulator <= LogicalShiftRight(a_reg, b_reg(4 downto 0));
+				when LI_ROR	=> accumulator <= RotateRight(a_reg, b_reg(4 downto 0));
+				when LI_ROL	=> accumulator <= RotateLeft(a_reg, b_reg(4 downto 0));
 				when others	=> accumulator <= (others => '0');
 			end case;
 		end if;
