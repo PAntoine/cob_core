@@ -100,35 +100,35 @@ package body LogicFunctions is
 
 	begin
         if b_in(4) = '1' then
-            shft16	:= "0000000000000000" & a_in(15 downto 0);
+            shft16	:= "0000000000000000" & a_in(31 downto 16);
 		else
 			shft16  := a_in;
         end if;
         
         if b_in(3) = '1'
         then
-			shft08	:= "00000000" & shft16(23 downto 0);
+			shft08	:= "00000000" & shft16(31 downto 8);
 		else
-			shft08  := shft08;
+			shft08  := shft16;
 		end if;
 		
 		if b_in(2) = '1'
 		then
-			shft04	:= "0000" & shft08(27 downto 0);
+			shft04	:= "0000" & shft08(31 downto 4);
 		else
 			shft04  := shft08;
 		end if;
 		
 		if b_in(1) = '1'
 		then
-			shft02	:= "00" & shft04(29 downto 0);
+			shft02	:= "00" & shft04(31 downto 2);
 		else
             shft02  := shft04;
 		end if;
 		
 		if b_in(0) = '1'
 		then
-			dout	:= "0" & shft02(30 downto 0);
+			dout	:= "0" & shft02(31 downto 1);
 		else
 			dout	:= shft02;
         end if;

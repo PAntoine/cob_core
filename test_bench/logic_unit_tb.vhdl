@@ -102,63 +102,40 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal test_case1 : TEST_CASE_TYPE;
 
 	signal start : std_logic := '1';
+		
 
 begin
 	-- test case
 	clock <= not clock after 1 ns when running = '1' else '0';
 	start <= '0', '1' after 1 ns;
-	running <= '1', '0' after 20 ns;
+	-- running <= '1', '0' after 20 ns;
 
 	--reg_bus.reg_1_en <= 'L';
 	--reg_bus.reg_2_en <= 'L';
 	--sel <= 'L';
 
 	process
-		variable iline		: line;
-		variable space		: character;
-		variable op_code	: std_logic_vector(OP_CODE_WIDTH-1 downto 0);
-		variable a_input	: std_logic_vector(DATA_WIDTH-1 downto 0);
-		variable b_input	: std_logic_vector(DATA_WIDTH-1 downto 0);
-		variable output		: std_logic_vector(DATA_WIDTH-1 downto 0);
-		variable c_flags	: CPU_FLAGS;
-
-        variable meh : line;
-	
-		file logic_test_cases : text;
-
+	 variable tests :   TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
 	begin
-		file_open(logic_test_cases, "logic_test_cases.txt", read_mode);
-     
-		while not endfile(logic_test_cases) loop
-			readline(logic_test_cases, iline);
-
-			read(iline, op_code);
-			read(iline, SPACE);		-- read in the space character
-			read(iline, a_input);
-			read(iline, SPACE);		-- read in the space character
-			read(iline, b_input);
-			read(iline, SPACE);		-- read in the space character
-			read(iline, output);
-			read(iline, SPACE);		-- read in the space character
-			-- read(iline, c_flags);
-			
-			-- set the test case
-			test_case1 <= (op_code, a_input, b_input, output, c_flags);
+		running <= '1';
+		for index in 0 to tests'length-1
+		loop
 			start <= '1';
+
+			-- set the test case
+			test_case1 <= tests(index);
 
 			wait until complete = '1';
 
-			if result = '1'
+			if result = '0'
 			then
-				report "complete" severity warning;
+				report "failure: test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)  severity warning;
 			end if;
 
 			start <= '0';
 			wait until sel = '0';
 		end loop;
-
-		file_close(logic_test_cases);
-
+		running <= '0';
 		wait;
 	end process;
 
