@@ -121,11 +121,11 @@ begin
 	flags.carry_flag <= '0' when sel = '1' else 'Z';
 
 	-- non of these flags are set in this block.
-	flags.interrupt_flag		=> 'Z',
-	flags.hardware_interrupt	=> 'Z',
-	flags.interrupt_waiting		=> 'Z',
-	flags.interrupts_masked		=> 'Z',
-	flags.non_masked_interrupt	=> 'Z'
+	flags.interrupt_flag		<= 'Z';
+	flags.hardware_interrupt	<= 'Z';
+	flags.interrupt_waiting		<= 'Z';
+	flags.interrupts_masked		<= 'Z';
+	flags.non_masked_interrupt	<= 'Z';
 
 	------------------------------------------------------------
 	--- Decode Instruction Input
