@@ -81,11 +81,21 @@ package definitions is
 	--- Memory Bus Signals
 	------------------------------------------------------------
 	type MEMORY_BUS is record
-		mem_en		:	std_logic;
-		mem_rw		:	std_logic;
-		mem_addr	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
-		mem_data	:	std_logic_vector(DATA_WIDTH-1 downto 0);
+		en			:	std_logic;
+		rw			:	std_logic;
+		complete	:	std_logic;
+		addr		:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+		data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
 	end record MEMORY_BUS;  
+
+	constant FREE_MEMORY_BUS : MEMORY_BUS :=
+	(
+		en			=> 'Z',
+		rw			=> 'Z',
+		complete	=> 'Z',
+		addr		=> (others => 'Z'),
+		data		=> (others => 'Z')
+	);
 
 	------------------------------------------------------------
 	--- Register Bus Signals

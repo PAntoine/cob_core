@@ -58,11 +58,13 @@ architecture synth of LogicDecoder is
 	signal a_source		: REG_ID;
 	signal b_source		: REG_ID;
 
-	signal 		state		: std_logic_vector(1 downto 0);
-	constant	LI_IDLE		: std_logic_vector(1 downto 0) := "00";
-	constant	LI_EXECUTE	: std_logic_vector(1 downto 0) := "01";
-	constant	LI_WRITE	: std_logic_vector(1 downto 0) := "10";
-	constant	LI_FINISHED	: std_logic_vector(1 downto 0) := "11";
+	signal 		state			: std_logic_vector(2 downto 0);
+	constant	LI_IDLE			: std_logic_vector(2 downto 0) := "000";
+	constant	LI_EXECUTE		: std_logic_vector(2 downto 0) := "001";
+	constant	LI_WRITE		: std_logic_vector(2 downto 0) := "010";
+	constant	LI_FINISHED		: std_logic_vector(2 downto 0) := "011";
+	constant	LI_READ_WAIT	: std_logic_vector(2 downto 0) := "100";
+	constant	LI_WRITE_WAIT	: std_logic_vector(2 downto 0) := "101";
 
 	signal read		: std_logic;
 	signal execute	: std_logic;
@@ -75,6 +77,17 @@ architecture synth of LogicDecoder is
 	signal reg_2_rw			: std_logic;
 	signal reg_1_en			: std_logic;
 	signal reg_2_en			: std_logic;
+
+	signal wait_read		: std_logic;
+	signal wait_write		: std_logic;
+
+	signal mem_read_a		: std_logic;
+	signal mem_rw			: std_logic;
+	signal mem_en			: std_logic;
+	signal mem_read			: std_logic;
+	signal mem_write		: std_logic;
+	signal mem_addr			: std_logic_vector(ADDR_WIDTH-1 downto 0);
+
 
 	signal test : std_logic_vector(2 downto 0);
 
@@ -148,9 +161,9 @@ begin
 			reg_2_rw	<= 'Z';
 			reg_1_en	<= 'Z';
 			reg_2_en	<= 'Z';
-			mem_bus.mem_addr	<= (others => 'Z');
-			mem_bus.mem_rw		<= 'Z';
-			mem_bus.mem_en		<= 'Z';
+			mem_addr	<= (others => 'Z');
+			mem_rw		<= 'Z';
+			mem_en		<= 'Z';
 			flags.exception_flag	<= 'Z';
 
 		else
@@ -163,22 +176,26 @@ begin
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
 							reg_2_en	<= '1';
-							mem_bus.mem_addr	<= (others => 'X');
-							mem_bus.mem_rw		<= RW_READ;
-							mem_bus.mem_en		<= '0';
+							mem_read_a	<= '0';
+							mem_read	<= '0';
+							mem_write	<= '0';
+							mem_addr	<= reg_data;
 							flags.exception_flag <= '0';
 							
 				when "001" =>
-							-- mem read for a, and reg red for b.
-							reg_1_addr	<= (others => 'X');
+							-- mem read for a, and mem read for b.
+							-- read reg a then use that as the
+							-- address for the memory read.
+							reg_1_addr	<= a_source;
 							reg_2_addr	<= b_source;
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
 							reg_2_en	<= '0';
-							mem_bus.mem_addr	<= a_reg;
-							mem_bus.mem_rw		<= RW_READ;
-							mem_bus.mem_en		<= '1';
+							mem_read_a	<= '1';
+							mem_read	<= '1';
+							mem_write	<= '0';
+							mem_addr	<= reg_data;
 							flags.exception_flag <= '0';
 							
 				when "010" =>
@@ -189,9 +206,10 @@ begin
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '0';
 							reg_2_en	<= '1';
-							mem_bus.mem_addr	<= b_reg;
-							mem_bus.mem_rw		<= RW_READ;
-							mem_bus.mem_en		<= '1';
+							mem_read_a	<= '0';
+							mem_read	<= '1';
+							mem_write	<= '0';
+							mem_addr	<= (others => 'Z');
 							flags.exception_flag <= '0';
 
 				when "011" =>
@@ -202,30 +220,30 @@ begin
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
 							reg_2_en	<= '0';
-							mem_bus.mem_addr	<= (others => 'X');
-							mem_bus.mem_rw		<= RW_READ;
-							mem_bus.mem_en		<= '0';
+							mem_read	<= '0';
+							mem_write	<= '0';
+							mem_addr	<= (others => 'Z');
 							flags.exception_flag <= '0';
 
 				when "100" =>
-							-- mem read for a, immediate for b.
+							-- reg read for a, immediate for b.
 							reg_1_addr	<= a_source;
-							reg_2_addr	<= (others => 'X');
+							reg_2_addr	<= b_source;
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
-							reg_2_en	<= '0';
-							mem_bus.mem_addr	<= (others => 'X');
-							mem_bus.mem_rw		<= RW_READ;
-							mem_bus.mem_en		<= '0';
+							reg_2_en	<= '1';
+							mem_read	<= '0';
+							mem_write	<= '0';
+							mem_addr	<= (others => 'Z');
 							flags.exception_flag <= '0';
 
 				when others =>
 							--sys_bus.exception	<= '1';		-- This is an illegal instruction.
 							flags.exception_flag	<= '1';
-							mem_bus.mem_addr		<= (others => 'X');
-							mem_bus.mem_rw			<= RW_READ;
-							mem_bus.mem_en			<= '0';
+							mem_addr				<= (others => 'X');
+							mem_rw					<= RW_READ;
+							mem_en					<= '0';
 			end case;
 		end if;
 	end process;
@@ -237,37 +255,74 @@ begin
 	begin
 		if sel = '0'
 		then
-			state <= LI_IDLE;
-			read 	<= '0';
-			execute	<= '0';
-			write	<= '0';
+			state 		<= LI_IDLE;
+			read 		<= '0';
+			wait_read	<= '0';
+			execute		<= '0';
+			write		<= '0';
+			wait_write	<= '0';
 
 		elsif rising_edge(clock)
 		then
 			case state is
 				when  LI_IDLE	=>
-						read 	<= '1';
-						execute	<= '0';
-						write	<= '0';
-						state	<= LI_EXECUTE;
+						read		<= '1';
+						execute		<= '0';
+						write		<= '0';
+						wait_read	<= '0';
+
+						if mem_read = '0'
+						then
+							state	<= LI_EXECUTE;
+						else
+							state	<= LI_READ_WAIT;		-- wait state while waiting for the memory device to do it's work.
+						end if;
+
+				when LI_READ_WAIT =>
+						read		<= '0';
+						execute		<= '0';
+						write		<= '0';
+						wait_read	<= '1';
+						if mem_bus.complete = '1'
+						then
+							state	<= LI_EXECUTE;
+						end if;
 
 				when LI_EXECUTE =>
-						read 	<= '1';
-						execute	<= '1';
-						write	<= '0';
+						read		<= '0';
+						execute		<= '1';
+						write		<= '0';
+						wait_read	<= '0';
 						state	<= LI_WRITE;
 
 				when LI_WRITE =>
-						read 	<= '0';
-						execute	<= '0';
-						write	<= '1';
-						state	<= LI_FINISHED;
+						read		<= '0';
+						execute		<= '0';
+						write		<= '1';
+						wait_read	<= '0';
+						if mem_write = '0'
+						then
+							state	<= LI_WRITE_WAIT;		-- wait until the memory device completes it's write.
+						else
+							state	<= LI_FINISHED;
+						end if;
+				
+				when LI_WRITE_WAIT =>
+						read		<= '0';
+						execute		<= '0';
+						write		<= '0';
+						wait_read	<= '1';
+						if mem_bus.complete = '1'
+						then
+							state	<= LI_FINISHED;
+						end if;
 				
 				when others =>
-						read 	<= '0';
-						execute	<= '0';
-						write	<= '0';
-						state	<= LI_FINISHED;
+						read		<= '0';
+						execute		<= '0';
+						write		<= '0';
+						wait_read	<= '0';
+						state		<= LI_FINISHED;
 			end case;
 		end if;
 	end process;
@@ -290,7 +345,7 @@ begin
 	------------------------------------------------------------
 	--- Bus Control Drivers
 	------------------------------------------------------------
-	process (read, execute)
+	process (read, write, mem_read, execute)
 	begin
 		if read = '1' or execute = '1'
 		then
@@ -302,6 +357,20 @@ begin
 			reg_bus.reg_2_en	<= reg_2_en;
 			reg_data			<= (others => 'Z');
 			reg_data2			<= (others => 'Z');
+			mem_bus				<= FREE_MEMORY_BUS;
+
+		elsif wait_read = '1'
+		then
+			reg_bus				<= FREE_REGISTER_BUS;
+			mem_bus.data		<= (others => 'Z');
+			if mem_read_a = '1'
+			then
+				mem_bus.addr	<= a_reg;
+			else
+				mem_bus.addr	<= b_reg;
+			end if;
+			mem_bus.rw			<= RW_READ;
+			mem_bus.en			<= '1';		-- start the memory read.
 
 		elsif write = '1'
 		then
@@ -313,23 +382,51 @@ begin
 			reg_bus.reg_2_en	<= reg_2_en;
 			reg_data 			<= accumulator;
 			reg_data2 			<= (others => 'Z');
+			mem_bus				<= FREE_MEMORY_BUS;
+		
+		elsif wait_write = '1'
+		then
+			reg_bus				<= FREE_REGISTER_BUS;
+			mem_bus.addr		<= mem_addr;
+			mem_bus.data		<= accumulator;
+			mem_bus.rw			<= RW_WRITE;
+			mem_bus.en			<= '1';		-- start memory write
+		
 		else
-
-			reg_bus.reg_1_addr	<= (others => 'Z');
-			reg_bus.reg_2_addr	<= (others => 'Z');
-			reg_bus.reg_1_rw	<= 'Z';
-			reg_bus.reg_2_rw	<= 'Z';
-			reg_bus.reg_1_en	<= 'Z';
-			reg_bus.reg_2_en	<= 'Z';
 			reg_data 			<= (others => 'Z');
 			reg_data2 			<= (others => 'Z');
+			reg_bus				<= FREE_REGISTER_BUS;
+			mem_bus				<= FREE_MEMORY_BUS;
 		end if;
 	end process;
 		
+	-- read in register memory
+	process (mem_bus ,mem_read_a)
+	begin
+		if mem_read = '0'
+		then
+			a_reg <= (others => 'Z');
+			b_reg <= (others => 'Z');
+
+		elsif mem_read = '1' and rising_edge(mem_bus.complete)
+		then
+			if mem_read_a = '1'
+			then
+				a_reg <= mem_bus.data;
+			else
+				b_reg <= mem_bus.data;
+			end if;
+		end if;
+	end process;
+
 	-- read in register a
 	process (reg_bus, clock, read, reg_data)
 	begin
-		if falling_edge(clock) and read = '1' and reg_bus.reg_1_rw = '0' and reg_bus.reg_1_en = '1'
+		if mem_read = '1'
+		then
+			a_reg <= (others => 'Z');
+
+		elsif falling_edge(clock) and read = '1' and reg_bus.reg_1_rw = '0' and reg_bus.reg_1_en = '1'
 		then
 			a_reg <= reg_data;
 		end if;
@@ -338,7 +435,11 @@ begin
 	-- read in register b
 	process (reg_bus, clock, read, reg_data2)
 	begin
-		if falling_edge(clock) and read = '1' and reg_bus.reg_2_rw = '0' and reg_bus.reg_2_en = '1'
+		if mem_read = '1'
+		then
+			b_reg <= (others => 'Z');
+
+		elsif falling_edge(clock) and read = '1' and reg_bus.reg_2_rw = '0' and reg_bus.reg_2_en = '1'
 		then
 			b_reg <= reg_data2;
 		end if;
