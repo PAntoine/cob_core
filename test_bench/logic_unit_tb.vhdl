@@ -40,7 +40,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 	component LogicDecoder is
 			port(
 				sel				: in std_logic;
-				clock           : in std_logic;
+				clock			: in std_logic;
 				instruction_reg	: in INSTRUCTION_TYPE;
 				data_available	: out std_logic;
 				flags			: out CPU_FLAGS;
@@ -60,6 +60,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 			signal reg_1_en		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
+			signal address_mode : in    std_logic_vector(2 downto 0);
 			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
@@ -93,16 +94,17 @@ architecture simulation of Logic_Unit_Test_Bench is
 	type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(32-1 downto 0);
 	shared variable register_bank : REGISTER_ARRAY := (others => (others => '0'));
 
-	signal reg_data : std_logic_vector(31 downto 0);
-	signal reg_data2 : std_logic_vector(31 downto 0);
+	signal reg_data		: std_logic_vector(31 downto 0);
+	signal reg_data2	: std_logic_vector(31 downto 0);
 
-	signal result : std_logic := '0';
-	signal complete : std_logic := '0';
+	signal result		: std_logic := '0';
+	signal complete		: std_logic := '0';
 
-	signal test_case1 : TEST_CASE_TYPE;
+	signal test_case1	: TEST_CASE_TYPE;
 
-	signal start : std_logic := '1';
-		
+	signal start		: std_logic := '1';
+	
+	signal address_mode : std_logic_vector(2 downto 0);
 
 begin
 	-- test case
@@ -115,25 +117,35 @@ begin
 	--sel <= 'L';
 
 	process
-	 variable tests :   TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
+	 variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
+	 
+	 type test_mode is array(0 to 1) of std_logic_vector(2 downto 0);
+	 variable modes : test_mode := (LI_DA_RRR, LI_DA_MRR);
 	begin
 		running <= '1';
-		for index in 0 to tests'length-1
+		address_mode <= LI_DA_RRR;
+
+		for mode_index in 0 to modes'length-1
 		loop
-			start <= '1';
+			address_mode <= modes(mode_index);
 
-			-- set the test case
-			test_case1 <= tests(index);
+			for index in 0 to tests'length-1
+			loop
+				start <= '1';
 
-			wait until complete = '1';
+				-- set the test case
+				test_case1 <= tests(index);
 
-			if result = '0'
-			then
-				report "failure: test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)  severity warning;
-			end if;
+				wait until complete = '1';
 
-			start <= '0';
-			wait until sel = '0';
+				if result = '0'
+				then
+					report "failure: test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)	severity warning;
+				end if;
+
+				start <= '0';
+				wait until sel = '0';
+			end loop;
 		end loop;
 		running <= '0';
 		wait;
@@ -148,6 +160,7 @@ begin
 						reg_1_en	=> reg_bus.reg_1_en,
 						reg_2_en	=> reg_bus.reg_2_en,
 						reg_1_rw	=> reg_bus.reg_1_rw,
+						address_mode=> address_mode,
 						reg_1_data	=> reg_data,
 						reg_2_data	=> reg_data2,
 						sel			=> sel,

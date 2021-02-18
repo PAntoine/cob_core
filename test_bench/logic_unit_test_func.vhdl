@@ -34,6 +34,7 @@ entity RunLogicTestCase is
 			signal reg_1_en		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
+			signal address_mode	: in	std_logic_vector(2 downto 0);
 			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
@@ -53,7 +54,7 @@ architecture behv of RunLogicTestCase is
 	----------------------------------------------------
 begin
 	-- let make or state item.
-	instruction <= test_case.opcode & IU_LOGIC & "000" & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
+	instruction <= test_case.opcode & IU_LOGIC & address_mode & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
 
 	sel <= '1' when start = '1' else '0';
 
