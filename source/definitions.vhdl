@@ -85,7 +85,6 @@ package definitions is
 		rw			:	std_logic;
 		complete	:	std_logic;
 		addr		:	std_logic_vector(ADDR_WIDTH-1 downto 0);
-		data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
 	end record MEMORY_BUS;  
 
 	constant FREE_MEMORY_BUS : MEMORY_BUS :=
@@ -93,8 +92,15 @@ package definitions is
 		en			=> 'Z',
 		rw			=> 'Z',
 		complete	=> 'Z',
-		addr		=> (others => 'Z'),
-		data		=> (others => 'Z')
+		addr		=> (others => 'Z')
+	);
+	
+	constant INIT_MEMORY_BUS : MEMORY_BUS :=
+	(
+		en			=> '0',
+		rw			=> '0',
+		complete	=> '0',
+		addr		=> (others => '0')
 	);
 
 	------------------------------------------------------------

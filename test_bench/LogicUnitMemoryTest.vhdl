@@ -40,10 +40,13 @@ entity LogicUnitMemoryTest is
 			signal mem_en		: in	std_logic;
 			signal mem_rw		: in	std_logic;
 			signal mem_address	: in	std_logic_vector(DATA_WIDTH-1 downto 0);
+			
+			signal mem_complete	: out	std_logic;
 			signal mem_data		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			
 			-- register collection
 			signal reg_1_en		: in	std_logic;
+			signal reg_1_rw		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -72,9 +75,9 @@ begin
 
 	-- indirect reading of the register for the memory address
 	-- so lets simply return known addresses for the memory.
-	process (start, reg_1_en)
+	process (start, reg_1_en, reg_1_rw)
 	begin
-		if start = '1' and reg_1_en = '1'
+		if start = '1' and reg_1_en = '1' and reg_1_rw = RW_READ
 		then
 			reg_1_data <= x"00000001";	-- always return address 1 for register 1.
 		else
@@ -87,7 +90,7 @@ begin
 	begin
 		if start = '1' and reg_2_en = '1'
 		then
-			reg_2_data <= x"00000002";	-- always return address 2 for register 2.
+			reg_2_data <= test_case.b_input;	-- always return address 2 for register 2.
 		else
 			reg_2_data <= (others => 'Z');
 		end if;
@@ -111,13 +114,35 @@ begin
 				report "failure: invalid memeory address during test - read read from " & to_hstring(mem_address);
 				mem_data <= x"01010101";			-- failure case - we may have 3 - but that should be a write.
 			end if;
+
+			mem_complete <= '1';
 		else
+			mem_complete <= '0';
 			mem_data <= (others => 'Z');
 		end if;
 	end process;
 
+	mem_data <= (others => 'Z');
+
 	-- now produce the result.
-	result <= '1' when (da = '1' and mem_data = test_case.output) else '0';
+	-- TODO: this tests mem,reg -> reg and reg,mem -> reg
+	process (da, reg_1_data)
+	begin
+		if da = '0'
+		then
+			result <= '0';
+
+		elsif rising_edge(da)
+		then
+			if reg_1_data = test_case.output
+			then
+				result <= '1';
+			else
+				result <= '0';
+			end if;
+		end if;
+	end process;
+
 	complete <= '1' when da = '1' and clock = '0' else '0';
 
 end architecture;

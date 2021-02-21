@@ -83,7 +83,23 @@ begin
 	end process;
 
 	-- now produce the result.
-	result <= '1' when da = '1' and reg_1_data = test_case.output else '0';
+	process (da, reg_1_data)
+	begin
+		if da = '0'
+		then
+			result <= '0';
+
+		elsif rising_edge(da)
+		then
+			if reg_1_data = test_case.output
+			then
+				result <= '1';
+			else
+				result <= '0';
+			end if;
+		end if;
+	end process;
+
 	complete <= '1' when da = '1' and clock = '0' else '0';
 
 end architecture;

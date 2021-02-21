@@ -37,7 +37,8 @@ entity LogicDecoder is
 			reg_bus			: inout REGISTER_BUS;
 			reg_data		: inout	std_logic_vector(31 downto 0);
 			reg_data2		: inout	std_logic_vector(31 downto 0);
-			mem_bus			: inout MEMORY_BUS
+			mem_bus			: inout MEMORY_BUS;
+			mem_bus_data	: inout std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 end LogicDecoder;
 
@@ -96,7 +97,7 @@ begin
 	------------------------------------------------------------
 	--- Logic Instruction Decoder
 	------------------------------------------------------------
-	process (sel, clock, execute, a_reg, b_reg, instruction_reg) is
+	process (sel, clock, execute, write, a_reg, b_reg, instruction_reg) is
 	begin
 		if sel = '0'
 		then
@@ -151,7 +152,7 @@ begin
 	
 	test <= instruction_reg(LI_IO_CODE);
 
-	process (sel, instruction_reg, a_reg, b_reg, a_source, b_source) is
+	process (sel, instruction_reg, a_reg, b_reg, a_source, b_source, write, reg_data) is
 	begin
 		if (sel = '0')
 		then
@@ -183,7 +184,7 @@ begin
 							flags.exception_flag <= '0';
 							
 				when "001" =>
-							-- mem read for a, and mem read for b.
+							-- mem read for a, and reg read for b.
 							-- read reg a then use that as the
 							-- address for the memory read.
 							reg_1_addr	<= a_source;
@@ -191,7 +192,7 @@ begin
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
-							reg_2_en	<= '0';
+							reg_2_en	<= '1';
 							mem_read_a	<= '1';
 							mem_read	<= '1';
 							mem_write	<= '0';
@@ -201,7 +202,7 @@ begin
 				when "010" =>
 							-- source a reg, source b mem. 
 							reg_1_addr	<= a_source;
-							reg_2_addr	<= (others => 'X');
+							reg_2_addr	<= b_source;
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '0';
@@ -215,7 +216,7 @@ begin
 				when "011" =>
 							-- Only reg a.
 							reg_1_addr	<= a_source;
-							reg_2_addr	<= (others => 'X');
+							reg_2_addr	<= (others => 'Z');
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
@@ -345,7 +346,7 @@ begin
 	------------------------------------------------------------
 	--- Bus Control Drivers
 	------------------------------------------------------------
-	process (read, write, mem_read, execute)
+	process (read, write, mem_read, execute, reg_1_rw, reg_1_en, reg_1_addr, reg_2_rw, reg_2_en, reg_2_addr, wait_read, wait_write, mem_read_a, a_reg, b_reg, mem_addr, mem_read, accumulator)
 	begin
 		if read = '1' or execute = '1'
 		then
@@ -362,7 +363,7 @@ begin
 		elsif wait_read = '1'
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
-			mem_bus.data		<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
 			if mem_read_a = '1'
 			then
 				mem_bus.addr	<= a_reg;
@@ -388,7 +389,7 @@ begin
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
 			mem_bus.addr		<= mem_addr;
-			mem_bus.data		<= accumulator;
+			mem_bus_data		<= accumulator;
 			mem_bus.rw			<= RW_WRITE;
 			mem_bus.en			<= '1';		-- start memory write
 		
@@ -400,50 +401,37 @@ begin
 		end if;
 	end process;
 		
-	-- read in register memory
-	process (mem_bus ,mem_read_a)
+	-- load a and b internal registers.
+	process (mem_bus, read, mem_bus.complete, mem_read_a, reg_bus, clock, reg_data)
 	begin
-		if mem_read = '0'
+		if falling_edge(clock)
 		then
-			a_reg <= (others => 'Z');
-			b_reg <= (others => 'Z');
-
-		elsif mem_read = '1' and rising_edge(mem_bus.complete)
-		then
-			if mem_read_a = '1'
+ 			if read = '0' and mem_read = '1' and mem_bus.complete = '1' and mem_read_a = '1'
+ 			then
+				a_reg <= mem_bus_data;
+			
+			elsif read = '1' and reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw = RW_READ
 			then
-				a_reg <= mem_bus.data;
-			else
-				b_reg <= mem_bus.data;
+				a_reg <= reg_data;
+			end if;
+		end if;
+	end process;
+	
+	process (mem_bus, read, mem_bus.complete, mem_read_a, reg_bus, clock, reg_data2)
+	begin
+		if falling_edge(clock)
+		then
+ 			if read = '0' and mem_read = '1' and mem_bus.complete = '1' and mem_read_a = '0'
+			then
+				b_reg <= mem_bus_data;
+			
+			elsif read = '1' and reg_bus.reg_2_en = '1' and reg_bus.reg_2_rw = RW_READ
+			then	
+				b_reg <= reg_data2;
 			end if;
 		end if;
 	end process;
 
-	-- read in register a
-	process (reg_bus, clock, read, reg_data)
-	begin
-		if mem_read = '1'
-		then
-			a_reg <= (others => 'Z');
-
-		elsif falling_edge(clock) and read = '1' and reg_bus.reg_1_rw = '0' and reg_bus.reg_1_en = '1'
-		then
-			a_reg <= reg_data;
-		end if;
-	end process;
-	
-	-- read in register b
-	process (reg_bus, clock, read, reg_data2)
-	begin
-		if mem_read = '1'
-		then
-			b_reg <= (others => 'Z');
-
-		elsif falling_edge(clock) and read = '1' and reg_bus.reg_2_rw = '0' and reg_bus.reg_2_en = '1'
-		then
-			b_reg <= reg_data2;
-		end if;
-	end process;
 
 end architecture synth;
 
