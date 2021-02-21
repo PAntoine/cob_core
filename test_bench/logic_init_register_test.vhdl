@@ -26,7 +26,7 @@ use work.definitions.all;
 use work.instructions.all;
 use work.logic_tb_defines.all;
 
-entity RunLogicTestCase is
+entity LogicUnitRegisterTest is
 	port (	signal clock		: in	std_logic;
 			signal start		: in	std_logic;
 			signal da			: in	std_logic;
@@ -34,18 +34,17 @@ entity RunLogicTestCase is
 			signal reg_1_en		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
-			signal address_mode	: in	std_logic_vector(2 downto 0);
 			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
 			signal instruction	: out	INSTRUCTION_TYPE;
 			signal result		: out	std_logic;
 			signal complete		: out	std_logic	);
-end entity RunLogicTestCase;
+end entity LogicUnitRegisterTest;
 
-architecture behv of RunLogicTestCase is
+architecture behv of LogicUnitRegisterTest is
 	----------------------------------------------------
-	--- RunLogicTestCase
+	--- LogicUnitRegisterTest
 	---
 	--- This procedure will run through the test cases
 	--- and make sure the logic of the commands matches
@@ -54,7 +53,7 @@ architecture behv of RunLogicTestCase is
 	----------------------------------------------------
 begin
 	-- let make or state item.
-	instruction <= test_case.opcode & IU_LOGIC & address_mode & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
+	instruction <= test_case.opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
 
 	sel <= '1' when start = '1' else '0';
 

@@ -31,7 +31,8 @@ use work.instructions.all;
 use work.logic_tb_defines.all;
 
 use work.LogicDecoder;
-use work.RunLogicTestCase;
+use work.LogicUnitMemoryTest;
+use work.LogicUnitRegisterTest;
 
 entity Logic_Unit_Test_Bench is
 end Logic_Unit_Test_Bench;
@@ -52,7 +53,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 			);
 	end component LogicDecoder;
 
-	component RunLogicTestCase is
+	component LogicUnitRegisterTest is
 	port (	signal clock		: in	std_logic;
 			signal start		: in	std_logic;
 			signal da			: in	std_logic;
@@ -60,19 +61,40 @@ architecture simulation of Logic_Unit_Test_Bench is
 			signal reg_1_en		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
-			signal address_mode : in    std_logic_vector(2 downto 0);
 			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
 			signal instruction	: out	INSTRUCTION_TYPE;
 			signal result		: out	std_logic;
 			signal complete		: out	std_logic	);
-	end component RunLogicTestCase;
+	end component;
+
+	component LogicUnitMemoryTest is
+		port (	signal clock		: in	std_logic;
+				signal start		: in	std_logic;
+				signal da			: in	std_logic;
+				signal test_case	: in	TEST_CASE_TYPE;
+				signal address_mode	: in	std_logic_vector(2 downto 0);
+				signal mem_en		: in	std_logic;
+				signal mem_rw		: in	std_logic;
+				signal mem_address	: in	std_logic_vector(DATA_WIDTH-1 downto 0);
+				signal mem_data		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+				signal reg_1_en		: in	std_logic;
+				signal reg_2_en		: in	std_logic;
+				signal reg_1_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);
+				signal reg_2_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);
+				signal sel			: out	std_logic;
+				signal instruction	: out	INSTRUCTION_TYPE;
+				signal result		: out	std_logic;
+				signal complete		: out	std_logic	);
+	end component LogicUnitMemoryTest;
 
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
 	signal	running			: std_logic := '0';
+	signal	do_mem			: std_logic := '0';
+	signal	do_reg			: std_logic := '1';
 	signal	sel				: std_logic := '0';
 	signal	clock			: std_logic := '0';
 	signal	instruction_reg	: INSTRUCTION_TYPE;
@@ -100,75 +122,119 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal result		: std_logic := '0';
 	signal complete		: std_logic := '0';
 
-	signal test_case1	: TEST_CASE_TYPE;
+	signal test_case	: TEST_CASE_TYPE;
+	signal reg_test		: TEST_CASE_TYPE;
+	signal mem_test		: TEST_CASE_TYPE;
 
-	signal start		: std_logic := '1';
+	signal reg_start	: std_logic := '0';
+	signal mem_start	: std_logic := '0';
 	
 	signal address_mode : std_logic_vector(2 downto 0);
 
 begin
 	-- test case
 	clock <= not clock after 1 ns when running = '1' else '0';
-	start <= '0', '1' after 1 ns;
-	-- running <= '1', '0' after 20 ns;
-
-	--reg_bus.reg_1_en <= 'L';
-	--reg_bus.reg_2_en <= 'L';
-	--sel <= 'L';
+	reg_start <= '0', '1' after 1 ns;
 
 	process
 	 variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
-	 
 	 type test_mode is array(0 to 1) of std_logic_vector(2 downto 0);
-	 variable modes : test_mode := (LI_DA_RRR, LI_DA_MRR);
+	 variable modes : test_mode := (LI_DA_MRR, LI_DA_RMR);
+	 
 	begin
-		running <= '1';
-		address_mode <= LI_DA_RRR;
+		if do_reg = '1'
+		then
+			running <= '1';
 
-		for mode_index in 0 to modes'length-1
-		loop
-			address_mode <= modes(mode_index);
+				for index in 0 to tests'length-1
+				loop
+					reg_start <= '1';
 
-			for index in 0 to tests'length-1
+					-- set the test case
+					reg_test <= tests(index);
+
+					wait until complete = '1';
+
+					if result = '0'
+					then
+						report "failure: test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)	severity warning;
+					end if;
+
+					reg_start <= '0';
+					wait until sel = '0';
+				end loop;
+				
+			running <= '0';
+			do_reg <= '0';
+			do_mem <= '1';
+
+		elsif do_mem = '1'
+		then
+			running <= '1';
+
+			for mode_index in 0 to modes'length-1
 			loop
-				start <= '1';
+				address_mode <= modes(mode_index);
 
-				-- set the test case
-				test_case1 <= tests(index);
+				for index in 0 to tests'length-1
+				loop
+					mem_start <= '1';
 
-				wait until complete = '1';
+					-- set the test case
+					mem_test <= tests(index);
 
-				if result = '0'
-				then
-					report "failure: test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)	severity warning;
-				end if;
+					wait until complete = '1';
 
-				start <= '0';
-				wait until sel = '0';
+					if result = '0'
+					then
+						report "failure: test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)	severity warning;
+					end if;
+
+					mem_start <= '0';
+					wait until sel = '0';
+				end loop;
 			end loop;
-		end loop;
-		running <= '0';
-		wait;
+			running <= '0';
+		end if;
 	end process;
 
+	-- select the tests that we are running.
+	test_case <= mem_test when do_mem = '1' else reg_test;
 
-	rtl: RunLogicTestCase port map (
+	rlurt: LogicUnitRegisterTest port map (
 						clock		=> clock,
-						start		=> start,
+						start		=> reg_start,
 						da			=> data_available,
-						test_case	=> test_case1,
+						test_case	=> test_case,
 						reg_1_en	=> reg_bus.reg_1_en,
 						reg_2_en	=> reg_bus.reg_2_en,
 						reg_1_rw	=> reg_bus.reg_1_rw,
-						address_mode=> address_mode,
 						reg_1_data	=> reg_data,
 						reg_2_data	=> reg_data2,
 						sel			=> sel,
 						instruction	=> instruction_reg,
 						result		=> result,
 						complete	=> complete);
+	
+--	rlumt: LogicUnitMemoryTest port map (
+--				clock			=> clock,
+--				start			=> mem_start,
+--				da				=> data_available,
+--				test_case		=> test_case,
+--				address_mode	=> address_mode,
+--				mem_en			=> mem_bus.en,
+--				mem_rw			=> mem_bus.rw,
+--				mem_address		=> mem_bus.addr,
+--				mem_data		=> mem_bus.data,
+--				reg_1_en		=> reg_bus.reg_1_en,
+--				reg_2_en		=> reg_bus.reg_2_en,
+--				reg_1_data		=> reg_data,
+--				reg_2_data		=> reg_data2,
+--				sel				=> sel,
+--				instruction		=> instruction_reg,
+--				result			=> result,
+--				complete		=> complete);
 
-	--- Clock generation
 	logic_unit:	LogicDecoder	port map (	sel => sel,
 											clock => clock,
 											instruction_reg => instruction_reg,
