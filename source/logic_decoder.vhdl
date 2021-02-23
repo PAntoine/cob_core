@@ -79,6 +79,8 @@ architecture synth of LogicDecoder is
 	signal reg_1_en			: std_logic;
 	signal reg_2_en			: std_logic;
 
+	signal immediate_8		: std_logic;
+
 	signal wait_read		: std_logic;
 	signal wait_write		: std_logic;
 
@@ -165,11 +167,12 @@ begin
 			mem_addr	<= (others => 'Z');
 			mem_rw		<= 'Z';
 			mem_en		<= 'Z';
+			immediate_8 <= 'Z';
 			flags.exception_flag	<= 'Z';
 
 		else
 			case instruction_reg(LI_IO_CODE) is
-				when "000" =>
+				when LI_DA_RRR =>
 							-- reg in for a and b,
 							reg_1_addr	<= a_source;
 							reg_2_addr	<= b_source;
@@ -181,9 +184,10 @@ begin
 							mem_read	<= '0';
 							mem_write	<= '0';
 							mem_addr	<= reg_data;
+							immediate_8 <= '0';
 							flags.exception_flag <= '0';
 							
-				when "001" =>
+				when LI_DA_MRR =>
 							-- mem read for a, and reg read for b.
 							-- read reg a then use that as the
 							-- address for the memory read.
@@ -197,23 +201,25 @@ begin
 							mem_read	<= '1';
 							mem_write	<= '0';
 							mem_addr	<= reg_data;
+							immediate_8 <= '0';
 							flags.exception_flag <= '0';
 							
-				when "010" =>
+				when LI_DA_RMR =>
 							-- source a reg, source b mem. 
 							reg_1_addr	<= a_source;
 							reg_2_addr	<= b_source;
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
-							reg_1_en	<= '0';
+							reg_1_en	<= '1';
 							reg_2_en	<= '1';
 							mem_read_a	<= '0';
 							mem_read	<= '1';
 							mem_write	<= '0';
 							mem_addr	<= (others => 'Z');
+							immediate_8 <= '0';
 							flags.exception_flag <= '0';
 
-				when "011" =>
+				when LI_DA_R_R =>
 							-- Only reg a.
 							reg_1_addr	<= a_source;
 							reg_2_addr	<= (others => 'Z');
@@ -224,19 +230,21 @@ begin
 							mem_read	<= '0';
 							mem_write	<= '0';
 							mem_addr	<= (others => 'Z');
+							immediate_8 <= '0';
 							flags.exception_flag <= '0';
 
-				when "100" =>
+				when LI_DA_RIR =>
 							-- reg read for a, immediate for b.
 							reg_1_addr	<= a_source;
-							reg_2_addr	<= b_source;
+							reg_2_addr	<= (others => 'Z');
 							reg_1_rw	<= RW_READ;
 							reg_2_rw	<= RW_READ;
 							reg_1_en	<= '1';
-							reg_2_en	<= '1';
+							reg_2_en	<= '0';
 							mem_read	<= '0';
 							mem_write	<= '0';
 							mem_addr	<= (others => 'Z');
+							immediate_8 <= '1';
 							flags.exception_flag <= '0';
 
 				when others =>
@@ -421,7 +429,11 @@ begin
 	begin
 		if falling_edge(clock)
 		then
- 			if read = '0' and mem_read = '1' and mem_bus.complete = '1' and mem_read_a = '0'
+			if immediate_8 = '1'
+			then
+				b_reg <= ZEROS(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
+				
+ 			elsif read = '0' and mem_read = '1' and mem_bus.complete = '1' and mem_read_a = '0'
 			then
 				b_reg <= mem_bus_data;
 			

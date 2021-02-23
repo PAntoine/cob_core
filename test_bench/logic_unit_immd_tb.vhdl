@@ -31,12 +31,12 @@ use work.instructions.all;
 use work.logic_tb_defines.all;
 
 use work.LogicDecoder;
-use work.LogicUnitRegisterTest;
+use work.LogicUnitImmediateTest;
 
-entity Logic_Unit_Test_Bench is
-end Logic_Unit_Test_Bench;
+entity Logic_Unit_Immediate_Test_Bench is
+end Logic_Unit_Immediate_Test_Bench;
 
-architecture simulation of Logic_Unit_Test_Bench is
+architecture simulation of Logic_Unit_Immediate_Test_Bench is
 	component LogicDecoder is
 			port(
 				sel				: in std_logic;
@@ -52,16 +52,14 @@ architecture simulation of Logic_Unit_Test_Bench is
 			);
 	end component LogicDecoder;
 
-	component LogicUnitRegisterTest is
+	component LogicUnitImmediateTest is
 	port (	signal clock		: in	std_logic;
 			signal start		: in	std_logic;
 			signal da			: in	std_logic;
 			signal test_case	: in	TEST_CASE_TYPE;
 			signal reg_1_en		: in	std_logic;
-			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
-			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
-			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			signal reg_1_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
 			signal instruction	: out	INSTRUCTION_TYPE;
 			signal result		: out	std_logic;
@@ -92,9 +90,6 @@ architecture simulation of Logic_Unit_Test_Bench is
 	---------------------------------------------------------------
 	--- fake registers
 	---------------------------------------------------------------
-	type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(32-1 downto 0);
-	shared variable register_bank : REGISTER_ARRAY := (others => (others => '0'));
-
 	signal reg_data		: std_logic_vector(31 downto 0);
 	signal reg_data2	: std_logic_vector(31 downto 0);
 
@@ -103,21 +98,15 @@ architecture simulation of Logic_Unit_Test_Bench is
 
 	signal test_case	: TEST_CASE_TYPE;
 	signal reg_test		: TEST_CASE_TYPE;
-	signal mem_test		: TEST_CASE_TYPE;
 
 	signal reg_start	: std_logic := '0';
-	signal mem_start	: std_logic := '0';
-	
-	signal address_mode : std_logic_vector(2 downto 0);
-
 begin
 	-- test case
 	clock <= not clock after 1 ns when running = '1' else '0';
 	running <= '0', '1' after 1 ns;
 
 	process
-		variable tests    : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
-		variable rr_tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := r_r_test_cases;
+		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
 	begin
 		for index in 0 to tests'length-1
 		loop
@@ -130,27 +119,7 @@ begin
 
 			if result = '0'
 			then
-				report "failure: (REG) test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)	severity warning;
-			end if;
-
-			reg_start <= '0';
-			wait until sel = '0';
-		end loop;
-
-		-- test the single variable opcodes.
-		for index in 0 to rr_tests'length-1
-		loop
-			reg_start <= '1';
-
-			-- set the test case
-			rr_instruction <= '1';
-			reg_test <= rr_tests(index);
-
-			wait until complete = '1';
-
-			if result = '0'
-			then
-				report "failure: (RR REG) test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data)	severity warning;
+				report "failure: (REG) test case(" & integer'image(index) & ") failed. expected " & to_hstring(tests(index).output) & " got " & to_hstring(reg_data) severity warning;
 			end if;
 
 			reg_start <= '0';
@@ -160,16 +129,14 @@ begin
 		assert false report "Simulation Finished" severity failure;
 	end process;
 
-	rlurt: LogicUnitRegisterTest port map (
+	rlurt: LogicUnitImmediateTest port map (
 						clock		=> clock,
 						start		=> reg_start,
 						da			=> data_available,
 						test_case	=> reg_test,
 						reg_1_en	=> reg_bus.reg_1_en,
-						reg_2_en	=> reg_bus.reg_2_en,
 						reg_1_rw	=> reg_bus.reg_1_rw,
 						reg_1_data	=> reg_data,
-						reg_2_data	=> reg_data2,
 						sel			=> sel,
 						instruction	=> instruction_reg,
 						result		=> result,

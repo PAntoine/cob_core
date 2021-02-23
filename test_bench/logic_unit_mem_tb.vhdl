@@ -147,6 +147,7 @@ begin
 				wait until sel = '0';
 			end loop;
 		end loop;
+		assert false report "Simulation Finished" severity failure;
 	end process;
 
 	rlumt: LogicUnitMemoryTest port map (

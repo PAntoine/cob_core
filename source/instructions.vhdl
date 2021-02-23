@@ -75,13 +75,14 @@ package instructions is
 	---    001  | mem | reg | reg | mmmmm22222ddddd000
 	---    010  | reg | mem | reg | 11111mmmmmddddd000
 	---    011  | reg |  -  | reg | 1111100000ddddd000
-	---    100  | reg |imm8 | reg | 11111iiiiiddddd000
+	---    100  | reg |imm8 | reg | 11111dddddiiiiiiii
 	---
 	------------------------------------------------------------
 	subtype LI_IO_CODE	is natural range 20 downto 18;	-- The import states
 	subtype LI_SOURCE_A	is natural range 17 downto 13;	-- Source for A
-	subtype LI_SOURCE_B	is natural range 12 downto 08;	-- Source for B
+	subtype LI_SOURCE_B	is natural range 12 downto 08;	-- Source for B (destination for instructions with Immediate values)
 	subtype LI_DEST		is natural range  7 downto  8;	-- destination
+	subtype LI_IMM8		is natural range  7 downto  0;	-- destination
 
 	-- data access modes
 	constant	LI_DA_RRR	:	std_logic_vector(2 downto 0)	:= "000";

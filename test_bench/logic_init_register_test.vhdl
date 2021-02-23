@@ -34,6 +34,7 @@ entity LogicUnitRegisterTest is
 			signal reg_1_en		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
+			signal rr_instr		: in	std_logic;
 			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
@@ -53,7 +54,12 @@ architecture behv of LogicUnitRegisterTest is
 	----------------------------------------------------
 begin
 	-- let make or state item.
-	instruction <= test_case.opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
+	if rr_instr = '1'
+	then
+		instruction <= test_case.opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
+	else
+		instruction <= test_case.opcode & IU_LOGIC & LI_DA_R_R & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
+	end if;
 
 	sel <= '1' when start = '1' else '0';
 

@@ -67,11 +67,17 @@ architecture behv of LogicUnitMemoryTest is
 	--- what is expected. It will only use the same
 	--- registers, this is a pure procedure only test.
 	----------------------------------------------------
+
+	signal reg_1_value	: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal reg_2_value	: std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
 	-- let make or state item.
 	instruction <= test_case.opcode & IU_LOGIC & address_mode & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
 
 	sel <= '1' when start = '1' else '0';
+
+	reg_1_value <= x"00000001" when address_mode = LI_DA_MRR else test_case.a_input;
+	reg_2_value <= x"00000002" when address_mode = LI_DA_RMR else test_case.b_input;
 
 	-- indirect reading of the register for the memory address
 	-- so lets simply return known addresses for the memory.
@@ -79,7 +85,7 @@ begin
 	begin
 		if start = '1' and reg_1_en = '1' and reg_1_rw = RW_READ
 		then
-			reg_1_data <= x"00000001";	-- always return address 1 for register 1.
+			reg_1_data <= reg_1_value;
 		else
 			reg_1_data <= (others => 'Z');
 		end if;
@@ -90,7 +96,7 @@ begin
 	begin
 		if start = '1' and reg_2_en = '1'
 		then
-			reg_2_data <= test_case.b_input;	-- always return address 2 for register 2.
+			reg_2_data <= reg_2_value;
 		else
 			reg_2_data <= (others => 'Z');
 		end if;
