@@ -27,6 +27,7 @@ use work.instructions.all;
 use work.LogicFunctions.all;
 
 use work.AddressModeDecoder;
+use work.CPUStateMachine;
 
 entity LogicDecoder is
 		port(
@@ -37,8 +38,8 @@ entity LogicDecoder is
 			flags			: out CPU_FLAGS;
 			sys_bus			: inout SYSTEM_BUS;
 			reg_bus			: inout REGISTER_BUS;
-			reg_data		: inout	std_logic_vector(31 downto 0);
-			reg_data2		: inout	std_logic_vector(31 downto 0);
+			reg_data		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			reg_data2		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			mem_bus			: inout MEMORY_BUS;
 			mem_bus_data	: inout std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
@@ -65,6 +66,22 @@ architecture synth of LogicDecoder is
 		);
 	end component;
 
+	component CPUStateMachine is
+		port(
+			reset			: in std_logic;
+			enable			: in std_logic;
+			clock			: in std_logic;
+			mem_read		: in std_logic;
+			mem_write		: in std_logic;
+			mem_complete	: in std_logic;
+			read			: out std_logic;
+			wait_read		: out std_logic;
+			execute			: out std_logic;
+			write			: out std_logic;
+			wait_write		: out std_logic
+		);
+	end component;
+
 	---------------------------------------------------------------
 	--- The connecting signals
 	---------------------------------------------------------------
@@ -73,14 +90,6 @@ architecture synth of LogicDecoder is
 	signal accumulator 	: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal a_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal b_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
-
-	signal 		state			: std_logic_vector(2 downto 0);
-	constant	LI_IDLE			: std_logic_vector(2 downto 0) := "000";
-	constant	LI_EXECUTE		: std_logic_vector(2 downto 0) := "001";
-	constant	LI_WRITE		: std_logic_vector(2 downto 0) := "010";
-	constant	LI_FINISHED		: std_logic_vector(2 downto 0) := "011";
-	constant	LI_READ_WAIT	: std_logic_vector(2 downto 0) := "100";
-	constant	LI_WRITE_WAIT	: std_logic_vector(2 downto 0) := "101";
 
 	signal read		: std_logic;
 	signal execute	: std_logic;
@@ -108,11 +117,7 @@ begin
 	------------------------------------------------------------
 	process (sel, clock, execute, write, a_reg, b_reg, instruction_reg) is
 	begin
-		if sel = '0'
-		then
-			accumulator <= (others => '0');
-
-		elsif sel ='1' and (execute = '1' or write = '1')
+		if sel ='1' and (execute = '1' or write = '1')
 		then
 			case instruction_reg(INSTR_OPCODE_RANGE) is
 				when LI_LSL => accumulator <= LogicalShiftLeft(a_reg, b_reg(4 downto 0));
@@ -126,6 +131,8 @@ begin
 				when LI_ROL	=> accumulator <= RotateLeft(a_reg, b_reg(4 downto 0));
 				when others	=> accumulator <= (others => '0');
 			end case;
+		else
+			accumulator <= (others => '0');
 		end if;
 	end process;
 	
@@ -171,81 +178,17 @@ begin
 	------------------------------------------------------------
 	--- Logic state machine
 	------------------------------------------------------------
-	process (sel, state, clock)
-	begin
-		if sel = '0'
-		then
-			state 		<= LI_IDLE;
-			read 		<= '0';
-			wait_read	<= '0';
-			execute		<= '0';
-			write		<= '0';
-			wait_write	<= '0';
-
-		elsif rising_edge(clock)
-		then
-			case state is
-				when  LI_IDLE	=>
-						read		<= '1';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '0';
-
-						if mem_read = '0'
-						then
-							state	<= LI_EXECUTE;
-						else
-							state	<= LI_READ_WAIT;		-- wait state while waiting for the memory device to do it's work.
-						end if;
-
-				when LI_READ_WAIT =>
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '1';
-						if mem_bus.complete = '1'
-						then
-							state	<= LI_EXECUTE;
-						end if;
-
-				when LI_EXECUTE =>
-						read		<= '0';
-						execute		<= '1';
-						write		<= '0';
-						wait_read	<= '0';
-						state	<= LI_WRITE;
-
-				when LI_WRITE =>
-						read		<= '0';
-						execute		<= '0';
-						write		<= '1';
-						wait_read	<= '0';
-						if mem_write = '0'
-						then
-							state	<= LI_WRITE_WAIT;		-- wait until the memory device completes it's write.
-						else
-							state	<= LI_FINISHED;
-						end if;
-				
-				when LI_WRITE_WAIT =>
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '1';
-						if mem_bus.complete = '1'
-						then
-							state	<= LI_FINISHED;
-						end if;
-				
-				when others =>
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '0';
-						state		<= LI_FINISHED;
-			end case;
-		end if;
-	end process;
+	csm: CPUStateMachine port map ( reset			=> '0',
+									enable			=> sel,
+									clock			=> clock,
+									mem_read		=> mem_read,
+									mem_write		=> mem_write,
+									mem_complete	=> mem_bus.complete,
+									read			=> read,
+									wait_read		=> wait_read,
+									execute			=> execute,
+									write			=> write,
+									wait_write		=> wait_write);
 	
 	------------------------------------------------------------
 	--- Output Driver
@@ -277,6 +220,7 @@ begin
 			reg_bus.reg_2_en	<= reg_2_en;
 			reg_data			<= (others => 'Z');
 			reg_data2			<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
 			mem_bus				<= FREE_MEMORY_BUS;
 
 		elsif wait_read = '1'
@@ -291,6 +235,9 @@ begin
 			end if;
 			mem_bus.rw			<= RW_READ;
 			mem_bus.en			<= '1';		-- start the memory read.
+			mem_bus_data		<= (others => 'Z');
+			reg_data			<= (others => 'Z');
+			reg_data2			<= (others => 'Z');
 
 		elsif write = '1'
 		then
@@ -302,19 +249,23 @@ begin
 			reg_bus.reg_2_en	<= reg_2_en;
 			reg_data 			<= accumulator;
 			reg_data2 			<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
 			mem_bus				<= FREE_MEMORY_BUS;
 		
 		elsif wait_write = '1'
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
-			mem_bus.addr		<= mem_addr;
+			mem_bus.addr		<= a_reg;
 			mem_bus_data		<= accumulator;
 			mem_bus.rw			<= RW_WRITE;
 			mem_bus.en			<= '1';		-- start memory write
+			reg_data			<= (others => 'Z');
+			reg_data2			<= (others => 'Z');
 		
 		else
 			reg_data 			<= (others => 'Z');
 			reg_data2 			<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
 			reg_bus				<= FREE_REGISTER_BUS;
 			mem_bus				<= FREE_MEMORY_BUS;
 		end if;
@@ -329,7 +280,7 @@ begin
  			then
 				a_reg <= mem_bus_data;
 			
-			elsif read = '1' and reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw = RW_READ
+			elsif read = '1' and reg_1_en = '1' and reg_1_rw = RW_READ
 			then
 				a_reg <= reg_data;
 			end if;
@@ -348,7 +299,7 @@ begin
 			then
 				b_reg <= mem_bus_data;
 			
-			elsif read = '1' and reg_bus.reg_2_en = '1' and reg_bus.reg_2_rw = RW_READ
+			elsif read = '1' and reg_2_en = '1' and reg_2_rw = RW_READ
 			then	
 				b_reg <= reg_data2;
 			end if;

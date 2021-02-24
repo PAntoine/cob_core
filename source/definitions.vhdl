@@ -45,11 +45,15 @@ package definitions is
 	------------------------------------------------------------
 	--- CPU Pipeline Stages
 	------------------------------------------------------------
-	constant	CPUS_RESET		: std_logic_vector(3 downto 0)	:= "0000";
-	constant	CPUS_FETCH		: std_logic_vector(3 downto 0)	:= "0001";
-	constant	CPUS_DECODE		: std_logic_vector(3 downto 0)	:= "0010";
-	constant	CPUS_EXECUTE	: std_logic_vector(3 downto 0)	:= "0100";
-	constant	CPUS_WRITE_BACK	: std_logic_vector(3 downto 0)	:= "1000";
+	subtype		CPU_STATE is std_logic_vector(2 downto 0);
+	
+	constant	CS_DECODE		: CPU_STATE  := "000";
+	constant	CS_EXECUTE		: CPU_STATE  := "001";
+	constant	CS_WRITE		: CPU_STATE  := "010";
+	constant	CS_FINISHED		: CPU_STATE  := "011";
+	constant	CS_READ_WAIT	: CPU_STATE  := "100";
+	constant	CS_WRITE_WAIT	: CPU_STATE  := "101";
+	constant	CS_HALT			: CPU_STATE  := "111";
 
 	------------------------------------------------------------
 	--- System Register constants
