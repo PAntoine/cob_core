@@ -39,7 +39,7 @@ entity LogicDecoder is
 			sys_bus			: inout SYSTEM_BUS;
 			reg_bus			: inout REGISTER_BUS;
 			reg_data		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
-			reg_data2		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			reg_data2		: in	std_logic_vector(DATA_WIDTH-1 downto 0);
 			mem_bus			: inout MEMORY_BUS;
 			mem_bus_data	: inout std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
@@ -47,7 +47,7 @@ end LogicDecoder;
 
 architecture synth of LogicDecoder is
 
-		---------------------------------------------------------------
+	---------------------------------------------------------------
 	--- Include the components
 	---------------------------------------------------------------
 	component AddressModeDecoder is
@@ -81,6 +81,33 @@ architecture synth of LogicDecoder is
 			wait_write		: out std_logic
 		);
 	end component;
+
+	component BusController is
+		port(
+			sel				: in std_logic;		-- select the bus controller
+			read			: in std_logic;		-- 
+			write			: in std_logic;
+			execute			: in std_logic;
+			mem_read		: in std_logic;
+			mem_read_a		: in std_logic;
+			wait_read		: in std_logic;
+			wait_write		: in std_logic;
+			reg_1_rw		: in std_logic;
+			reg_1_en		: in std_logic;
+			reg_2_rw		: in std_logic;
+			reg_2_en		: in std_logic;
+			a_address		: in REG_ID;
+			b_address		: in REG_ID;
+			destination_reg	: in REG_ID;
+			a_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			b_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			accumulator		: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			reg_bus			: out REGISTER_BUS;
+			mem_bus			: out MEMORY_BUS;
+			reg_data		: out std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_bus_data	: out std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component BusController;
 
 	---------------------------------------------------------------
 	--- The connecting signals
@@ -132,7 +159,7 @@ begin
 				when others	=> accumulator <= (others => '0');
 			end case;
 		else
-			accumulator <= (others => '0');
+			accumulator <= (others => 'Z');
 		end if;
 	end process;
 	
@@ -156,6 +183,21 @@ begin
 	flags.interrupt_waiting		<= 'Z';
 	flags.interrupts_masked		<= 'Z';
 	flags.non_masked_interrupt	<= 'Z';
+	
+	------------------------------------------------------------
+	--- Output Driver
+	------------------------------------------------------------
+	process (write, wait_write, clock)
+	begin
+		if write = '0' and wait_write = '0'
+		then
+			data_available	<= '0';
+
+		elsif falling_edge(clock)
+		then
+			data_available <= '1';
+		end if;
+	end process;
 
 	------------------------------------------------------------
 	--- Decode Instruction Input
@@ -189,87 +231,34 @@ begin
 									execute			=> execute,
 									write			=> write,
 									wait_write		=> wait_write);
-	
-	------------------------------------------------------------
-	--- Output Driver
-	------------------------------------------------------------
-	process (write, clock)
-	begin
-		if write = '0'
-		then
-			data_available	<= '0';
-
-		elsif falling_edge(clock) and write = '1'
-		then
-			data_available <= '1';
-		end if;
-	end process;
 
 	------------------------------------------------------------
 	--- Bus Control Drivers
 	------------------------------------------------------------
-	process (read, write, mem_read, execute, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, wait_read, wait_write, mem_read_a, a_reg, b_reg, mem_read, accumulator)
-	begin
-		if read = '1' or execute = '1'
-		then
-			reg_bus.reg_1_addr	<= instruction_reg(LI_SOURCE_A);
-			reg_bus.reg_2_addr	<= instruction_reg(LI_SOURCE_B);
-			reg_bus.reg_1_rw	<= reg_1_rw;
-			reg_bus.reg_2_rw	<= reg_2_rw;
-			reg_bus.reg_1_en	<= reg_1_en;
-			reg_bus.reg_2_en	<= reg_2_en;
-			reg_data			<= (others => 'Z');
-			reg_data2			<= (others => 'Z');
-			mem_bus_data		<= (others => 'Z');
-			mem_bus				<= FREE_MEMORY_BUS;
-
-		elsif wait_read = '1'
-		then
-			reg_bus				<= FREE_REGISTER_BUS;
-			mem_bus_data		<= (others => 'Z');
-			if mem_read_a = '1'
-			then
-				mem_bus.addr	<= a_reg;
-			else
-				mem_bus.addr	<= b_reg;
-			end if;
-			mem_bus.rw			<= RW_READ;
-			mem_bus.en			<= '1';		-- start the memory read.
-			mem_bus_data		<= (others => 'Z');
-			reg_data			<= (others => 'Z');
-			reg_data2			<= (others => 'Z');
-
-		elsif write = '1'
-		then
-			reg_bus.reg_1_addr	<= instruction_reg(LI_DEST);
-			reg_bus.reg_2_addr	<= instruction_reg(LI_SOURCE_B);
-			reg_bus.reg_1_rw	<= RW_WRITE;		-- TODO: hack - the state machine is wrong.
-			reg_bus.reg_2_rw	<= reg_2_rw;
-			reg_bus.reg_1_en	<= reg_1_en;
-			reg_bus.reg_2_en	<= reg_2_en;
-			reg_data 			<= accumulator;
-			reg_data2 			<= (others => 'Z');
-			mem_bus_data		<= (others => 'Z');
-			mem_bus				<= FREE_MEMORY_BUS;
-		
-		elsif wait_write = '1'
-		then
-			reg_bus				<= FREE_REGISTER_BUS;
-			mem_bus.addr		<= a_reg;
-			mem_bus_data		<= accumulator;
-			mem_bus.rw			<= RW_WRITE;
-			mem_bus.en			<= '1';		-- start memory write
-			reg_data			<= (others => 'Z');
-			reg_data2			<= (others => 'Z');
-		
-		else
-			reg_data 			<= (others => 'Z');
-			reg_data2 			<= (others => 'Z');
-			mem_bus_data		<= (others => 'Z');
-			reg_bus				<= FREE_REGISTER_BUS;
-			mem_bus				<= FREE_MEMORY_BUS;
-		end if;
-	end process;
+	bc: BusController port map (
+			sel				=> sel,			-- select the bus controller
+			read			=> read,		-- 
+			write			=> write,
+			execute			=> execute,
+			mem_read		=> mem_read,
+			mem_read_a		=> mem_read_a,
+			wait_read		=> wait_read,
+			wait_write		=> wait_write,
+			reg_1_rw		=> reg_1_rw,
+			reg_1_en		=> reg_1_en,
+			reg_2_rw		=> reg_1_rw,
+			reg_2_en		=> reg_1_en,
+			a_address		=> instruction_reg(LI_SOURCE_A),
+			b_address		=> instruction_reg(LI_SOURCE_B),
+			destination_reg	=> instruction_reg(LI_DEST),
+			a_reg			=> a_reg,
+			b_reg			=> b_reg,
+			accumulator		=> accumulator,
+			reg_bus			=> reg_bus,
+			mem_bus			=> mem_bus,
+			reg_data		=> reg_data,
+			mem_bus_data	=> mem_bus_data
+		);
 		
 	-- load a and b internal registers.
 	process (mem_bus, read, mem_bus.complete, mem_read_a, reg_bus, clock, reg_data)

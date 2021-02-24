@@ -81,7 +81,7 @@ package instructions is
 	subtype LI_IO_CODE	is natural range 20 downto 18;	-- The import states
 	subtype LI_SOURCE_A	is natural range 17 downto 13;	-- Source for A
 	subtype LI_SOURCE_B	is natural range 12 downto 08;	-- Source for B (destination for instructions with Immediate values)
-	subtype LI_DEST		is natural range  7 downto  8;	-- destination
+	subtype LI_DEST		is natural range  7 downto  3;	-- destination
 	subtype LI_IMM8		is natural range  7 downto  0;	-- destination
 
 	-- data access modes

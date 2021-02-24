@@ -23,10 +23,13 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.definitions.all;
+
 use work.SystemRegisters;
 use work.GeneralRegisters;
 use work.BusController;
-use work.ControlUnit;
+use work.AddressModeDecoder;
+use work.CPUStateMachine;
+use work.LogicDecoder;
 
 entity COB_Core is
 		port(
@@ -43,94 +46,156 @@ entity COB_Core is
 end COB_Core ;
 
 architecture synth of COB_Core is
-		---------------------------------------------------------------
-		--- Include the components
-		---------------------------------------------------------------
-		component SystemRegisters is
-			port (
-					reset			: in std_logic;		-- reset all the registers.
-					sel				: in std_logic;		-- is the register block selected.
-					clock			: in std_logic;		-- the clock.
-					addr_data		: in std_logic;		-- output to the address bus or data bus.
-					rw				: in std_logic;		-- are we reading or writing the register.
-					reg_address		: in SYSTEM_REG;	-- the address of the register we are writing to.
+	---------------------------------------------------------------
+	--- Include the components
+	---------------------------------------------------------------
+	component GeneralRegisters is
+		port(
+				reset			: in std_logic;									-- reset all the registers.
+				en_1			: in std_logic;									-- is the register block selected.
+				en_2			: in std_logic;									-- is the register block selected.
+				clock			: in std_logic;									-- the clock.
+				addr_data		: in std_logic;									-- output to the address bus or data bus.
+				rw				: in std_logic;									-- are we reading or writing the register (reg 1 only).
+				reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
+				reg_2_address	: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
 
-					addr			: out std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
-					data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
-				);
-		end component;
+				data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+		);
+	end component;
 
-		component GeneralRegisters is
-			port(
-					reset			: in std_logic;									-- reset all the registers.
-					sel				: in std_logic;									-- is the register block selected.
-					clock			: in std_logic;									-- the clock.
-					addr_data		: in std_logic;		-- output to the address bus or data bus.
-					rw				: in std_logic;									-- are we reading or writing the register.
-					reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
+	component AddressModeDecoder is
+		port(
+			sel				: in std_logic;			-- enable the address mode decoding.
+			mode			: in DATA_MODE;			-- the data mode to be decoded.
+			reg_1_rw		: out std_logic;		-- register 1 read write status
+			reg_1_en		: out std_logic;		-- register 1 enable.
+			reg_2_rw		: out std_logic;		-- register 2 read write status
+			reg_2_en		: out std_logic;		-- register 2 enable.
+			mem_read		: out std_logic;		-- memory read/write status.
+			mem_write		: out std_logic;		-- write to memory.
+			mem_read_a		: out std_logic;		-- read into register a (or b - if false).
+			immediate_8 	: out std_logic;		-- use the immediate 8 bits from the instruction.
+			exception_flag	: out std_logic			-- we have an exception.
+		);
+	end component;
 
-					addr			: out std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
-					data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
-			);
-		end component;
+	component CPUStateMachine is
+		port(
+			reset			: in std_logic;
+			enable			: in std_logic;
+			clock			: in std_logic;
+			mem_read		: in std_logic;
+			mem_write		: in std_logic;
+			mem_complete	: in std_logic;
+			read			: out std_logic;
+			wait_read		: out std_logic;
+			execute			: out std_logic;
+			write			: out std_logic;
+			wait_write		: out std_logic
+		);
+	end component;
 
-		component BusController is
-			port(
-					clock			: in std_logic;		-- the clock.
-					sel				: in std_logic;		-- select the bus controller
-					
-					-- internal bus signals
-					rw				: in std_logic;		-- the read request
-					mem_address		: in std_logic_vector(ADDR_WIDTH-1 downto 0);		-- the address requested
-					data_clock		: out std_logic;	-- when the data is available on the data bus.
+	component BusController is
+		port(
+			sel				: in std_logic;		-- select the bus controller
+			read			: in std_logic;		-- 
+			write			: in std_logic;
+			execute			: in std_logic;
+			mem_read		: in std_logic;
+			mem_read_a		: in std_logic;
+			wait_read		: in std_logic;
+			wait_write		: in std_logic;
+			reg_1_rw		: in std_logic;
+			reg_1_en		: in std_logic;
+			reg_2_rw		: in std_logic;
+			reg_2_en		: in std_logic;
+			a_address		: in REG_ID;
+			b_address		: in REG_ID;
+			destination_reg	: in REG_ID;
+			a_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			b_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			accumulator		: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			reg_bus			: out REGISTER_BUS;
+			mem_bus			: out MEMORY_BUS;
+			reg_data		: out std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_bus_data	: out std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component BusController;
 
-					-- external bus signals
-					as				: out std_logic;	-- address strobe
-					ds				: out std_logic;	-- data strobe
-					bus_rw			: out std_logic;	-- set the read/write flag
-					bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
-					da				: in std_logic									-- data acknowledge - when external data is ready.
-			);
-		end component;
+	component LogicDecoder is
+		port(
+			sel				: in std_logic;
+			clock           : in std_logic;
+			instruction_reg	: in INSTRUCTION_TYPE;
+			data_available	: out std_logic;
+			flags			: out CPU_FLAGS;
+			sys_bus			: inout SYSTEM_BUS;
+			reg_bus			: inout REGISTER_BUS;
+			reg_data		: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			reg_data2		: in	std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_bus			: inout MEMORY_BUS;
+			mem_bus_data	: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component LogicDecoder;
 
-		component ControlUnit is
-			port(
-				reset			: in std_logic;		-- reset all the registers.
-				clock			: in std_logic;		-- the clock.
+	---------------------------------------------------------------
+	--- now the internal signals.
+	---------------------------------------------------------------
 
-				data_bus		: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				sys_bus			: out SYSTEM_BUS	-- the system bus control signals.
-			);
-		end component ControlUnit;
-		
-		---------------------------------------------------------------
-		--- now the internal signals.
-		---------------------------------------------------------------
-		signal rw :				std_logic;
-	
-		signal system_bus	:	SYSTEM_BUS;
-		signal int_address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
-		signal int_data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
-					
 begin
-
-	ctrl_unit:	ControlUnit			port map (reset => reset, clock => clock, sys_bus => system_bus, data_bus => int_data);
 	
-	sys_regs:	SystemRegisters		port map (	reset => reset, sel => system_bus.sys_reg_enable, clock => clock,
-												addr_data => system_bus.addr_data, rw => rw, reg_address => int_address(2 downto 0), addr => int_address, data => int_data);
+	amd: AddressModeDecoder port map (	sel				=> sel,
+										mode			=> instruction_reg(LI_IO_CODE),
+										reg_1_rw		=> reg_1_rw,
+										reg_1_en		=> reg_1_en,
+										reg_2_rw		=> reg_2_rw,
+										reg_2_en		=> reg_2_en,
+										mem_read		=> mem_read,
+										mem_write		=> mem_write,
+										mem_read_a		=> mem_read_a,
+										immediate_8 	=> immediate_8,
+										exception_flag	=> flags.exception_flag);
 
-	gen_regs:	GeneralRegisters	port map (	reset => reset, sel => system_bus.gen_reg_enable, clock => clock,
-												addr_data => system_bus.addr_data, rw => rw, reg_address => int_address(REG_ID_WIDTH-1 downto 0), data => int_data);
-	
-	bus_ctrl:	BusController		port map (	sel => system_bus.bus_enable,
-												clock => clock,
-												rw => system_bus.bus_rw,
-												mem_address => int_address,
-												as => as,
-												ds => ds,
-												bus_rw => bus_rw,
-												bus_address => bus_address,
-												da => da);
+	csm: CPUStateMachine port map ( reset			=> '0',
+									enable			=> sel,
+									clock			=> clock,
+									fetch			=> fetch,
+									mem_read		=> mem_read,
+									mem_write		=> mem_write,
+									mem_complete	=> mem_bus.complete,
+									read			=> read,
+									wait_read		=> wait_read,
+									execute			=> execute,
+									write			=> write,
+									wait_write		=> wait_write);
+
+	bc: BusController port map (
+			sel				=> sel,
+			read			=> read,
+			write			=> write,
+			execute			=> execute,
+			mem_read		=> mem_read,
+			mem_read_a		=> mem_read_a,
+			wait_read		=> wait_read,
+			wait_write		=> wait_write,
+			reg_1_rw		=> reg_1_rw,
+			reg_1_en		=> reg_1_en,
+			reg_2_rw		=> reg_1_rw,
+			reg_2_en		=> reg_1_en,
+			a_address		=> instruction_reg(LI_SOURCE_A),
+			b_address		=> instruction_reg(LI_SOURCE_B),
+			destination_reg	=> instruction_reg(LI_DEST),
+			a_reg			=> a_reg,
+			b_reg			=> b_reg,
+			accumulator		=> accumulator,
+			reg_bus			=> reg_bus,
+			mem_bus			=> mem_bus,
+			reg_data		=> reg_data,
+			mem_bus_data	=> mem_bus_data
+		);
+
 end architecture synth;
 --- vi:nocin:sw=4 ts=4:fdm=marker
 

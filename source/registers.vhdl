@@ -10,6 +10,9 @@
 -- Name  : registers
 -- Desc  : This file defines the registers for the cob project.
 --
+--         This register block can be read/write to via port 1 (reg_1) and be read
+--         on the 
+--
 -- Author: Peter Antoine
 -- Date  : 22/01/2021
 -----------------------------------------------------------------------------------
@@ -24,41 +27,43 @@ use ieee.numeric_std.all;
 
 use work.definitions.all;
 
-entity GeneralRegisters is
+	entity GeneralRegisters is
 		port(
 				reset			: in std_logic;									-- reset all the registers.
-				sel				: in std_logic;									-- is the register block selected.
+				en_1			: in std_logic;									-- is the register block selected.
+				en_2			: in std_logic;									-- is the register block selected.
 				clock			: in std_logic;									-- the clock.
 				addr_data		: in std_logic;									-- output to the address bus or data bus.
-				rw				: in std_logic;									-- are we reading or writing the register.
+				rw				: in std_logic;									-- are we reading or writing the register (reg 1 only).
 				reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
+				reg_2_address	: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
 
-				addr			: out std_logic_vector(REG_WIDTH-1 downto 0);	-- Output to the address bus (internal).
 				data			: inout std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
 		);
-end GeneralRegisters;
+	end GeneralRegisters;
 
 architecture synth of GeneralRegisters is
 
-		---------------------------------------------------------------
-		--- define the registers.
-		---------------------------------------------------------------
-		type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(32-1 downto 0);
-		signal register_bank : REGISTER_ARRAY;
+	---------------------------------------------------------------
+	--- define the registers.
+	---------------------------------------------------------------
+	type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(32-1 downto 0);
+	signal register_bank : REGISTER_ARRAY;
 begin
 
-	-- handle the reading an writing of data from the registers.
-	data <= register_bank(to_integer(unsigned(reg_address))) when (sel='1' and rw=RW_READ and addr_data = '0' and reset='0') else (others => 'Z');
-	addr <= register_bank(to_integer(unsigned(reg_address))) when (sel='1' and rw=RW_READ and addr_data = '1' and reset='0') else (others => 'Z');
+	-- handle the reading the data from the registers.
+	data 	<= register_bank(to_integer(unsigned(reg_address)))   when (en_1='1' and reset='0' and rw=RW_READ) else (others => 'Z');
+	data_2	<= register_bank(to_integer(unsigned(reg_2_address))) when (en_2='1' and reset='0') else (others => 'Z');
 	
 	-- latch the data to the registers on write - rising edge of the sel clock
-	process (rw, reset, clock, sel, data, reg_address)
+	process (rw, reset, clock, en_1, data, reg_address)
 	begin
 		if reset = '1'
 		then
 		  	register_bank(to_integer(unsigned(reg_address))) <= (others => '0');
 		
-		elsif clock'event and clock = '1' and sel = '1' and rw=RW_WRITE
+		elsif clock'event and clock = '1' and en_1 = '1' and rw=RW_WRITE
 		then
 			register_bank(to_integer(unsigned(reg_address))) <= data;
 		end if;

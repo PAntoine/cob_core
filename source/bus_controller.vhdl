@@ -26,45 +26,103 @@ use work.definitions.all;
 
 entity BusController is
 		port(
-			clock			: in std_logic;		-- the clock.
 			sel				: in std_logic;		-- select the bus controller
 			
-			-- internal bus signals
-			rw				: in std_logic;		-- the read request
-			mem_address		: in std_logic_vector(ADDR_WIDTH-1 downto 0);		-- the address requested
-			data_clock		: out std_logic;	-- when the data is available on the data bus.
+			-- CPU modes
+			read			: in std_logic;		-- 
+			write			: in std_logic;
+			execute			: in std_logic;
+			mem_read		: in std_logic;
+			mem_read_a		: in std_logic;
+			wait_read		: in std_logic;
+			wait_write		: in std_logic;
+			
+			-- component bus signals
+			reg_1_rw		: in std_logic;
+			reg_1_en		: in std_logic;
+			reg_2_rw		: in std_logic;
+			reg_2_en		: in std_logic;
 
-			-- external bus signals
-			as				: out std_logic;	-- address strobe
-			ds				: out std_logic;	-- data strobe
-			da				: in std_logic;		-- data acknowledge - when external data is ready.
-			bus_rw			: out std_logic;	-- set the read/write flag
-			bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0)	-- the address selected.
+			-- data buses
+			a_address		: in REG_ID;
+			b_address		: in REG_ID;
+			destination_reg	: in REG_ID;
+			a_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			b_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			accumulator		: in std_logic_vector(DATA_WIDTH-1 downto 0);
+		
+			reg_bus			: out REGISTER_BUS;
+			mem_bus			: out MEMORY_BUS;
+		
+			reg_data		: out std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_bus_data	: out std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 end entity BusController;
 
 architecture synth of BusController is
 
-	-- internal signals
-	signal data_latch : std_logic_vector (DATA_WIDTH-1 downto 0);
-
 begin
+	------------------------------------------------------------
+	--- Bus Control Drivers
+	------------------------------------------------------------
+	process (  read, write, mem_read, execute, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, wait_read,
+	           wait_write, mem_read_a, a_reg, b_reg, mem_read, accumulator, destination_reg, a_address, b_address)
+	begin
+		if read = '1' or execute = '1'
+		then
+			reg_bus.reg_1_addr	<= a_address;
+			reg_bus.reg_2_addr	<= b_address;
+			reg_bus.reg_1_rw	<= reg_1_rw;
+			reg_bus.reg_2_rw	<= reg_2_rw;
+			reg_bus.reg_1_en	<= reg_1_en;
+			reg_bus.reg_2_en	<= reg_2_en;
+			reg_data			<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
+			mem_bus				<= FREE_MEMORY_BUS;
 
-	-- set the rw signal when the chip is selected.
-	bus_rw <= rw when (sel = '1') else 'Z';
-	as <= '1' when (sel = '1') else '0';
+		elsif wait_read = '1'
+		then
+			reg_bus				<= FREE_REGISTER_BUS;
+			mem_bus_data		<= (others => 'Z');
+			if mem_read_a = '1'
+			then
+				mem_bus.addr	<= a_reg;
+			else
+				mem_bus.addr	<= b_reg;
+			end if;
+			mem_bus.rw			<= RW_READ;
+			mem_bus.en			<= '1';		-- start the memory read.
+			mem_bus_data		<= (others => 'Z');
+			reg_data			<= (others => 'Z');
 
-	-- manage write cycle.
-	bus_address <= mem_address when (rw = RW_WRITE and sel = '1') else (others => 'Z');
-	ds <= '1' when (rw=RW_WRITE and clock = '0' and sel = '1') else '0';
-	
-	-- read cycle
-	-- put the data on the rising edge
-	-- set the data_clock on the falling edge.
-	bus_address <= mem_address when (rw = RW_READ and sel = '1') else (others => 'Z');
-	data_clock	<= '1' when (rw = RW_READ and da = '1' and sel = '1' and clock = '0') else '0';
-
+		elsif write = '1'
+		then
+			reg_bus.reg_1_addr	<= destination_reg;
+			reg_bus.reg_2_addr	<= b_address;
+			reg_bus.reg_1_rw	<= RW_WRITE;
+			reg_bus.reg_2_rw	<= reg_2_rw;
+			reg_bus.reg_1_en	<= reg_1_en;
+			reg_bus.reg_2_en	<= reg_2_en;
+			reg_data 			<= accumulator;
+			mem_bus_data		<= (others => 'Z');
+			mem_bus				<= FREE_MEMORY_BUS;
+		
+		elsif wait_write = '1'
+		then
+			reg_bus				<= FREE_REGISTER_BUS;
+			mem_bus.addr		<= a_reg;
+			mem_bus_data		<= accumulator;
+			mem_bus.rw			<= RW_WRITE;
+			mem_bus.en			<= '1';		-- start memory write
+			reg_data			<= (others => 'Z');
+		
+		else
+			reg_data 			<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
+			reg_bus				<= FREE_REGISTER_BUS;
+			mem_bus				<= FREE_MEMORY_BUS;
+		end if;
+	end process;
 end architecture synth;
 
---- vi:nocin:sw=4 ts=4:fdm=marker
-
+--- vi:nocin:ai:sw=4 ts=4:fdm=marker

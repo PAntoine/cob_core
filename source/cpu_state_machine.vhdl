@@ -29,6 +29,7 @@ entity CPUStateMachine is
 			reset			: in std_logic;
 			enable			: in std_logic;
 			clock			: in std_logic;
+			fetch			: in std_logic;
 			mem_read		: in std_logic;
 			mem_write		: in std_logic;
 			mem_complete	: in std_logic;
@@ -51,7 +52,8 @@ begin
 	begin
 		if reset = '1' or enable = '0'
 		then
-			state		<= CS_DECODE;
+			state		<= CS_FETCH;
+			fetch		<= '0';
 			read		<= '0';
 			wait_read	<= '0';
 			execute		<= '0';
@@ -61,7 +63,21 @@ begin
 		elsif rising_edge(clock)
 		then
 			case state is
-				when  CS_DECODE	=>
+				when CS_FETCH =>
+						fetch		<= '1';
+						read		<= '0';
+						execute		<= '0';
+						write		<= '0';
+						wait_read	<= '0';
+						wait_write	<= '0';
+
+						if mem_complete = '0'
+						then
+							state	<= CS_DECODE;
+						end if;
+
+				when CS_DECODE	=>
+						fetch		<= '0';
 						read		<= '1';
 						execute		<= '0';
 						write		<= '0';
@@ -76,6 +92,7 @@ begin
 						end if;
 
 				when CS_READ_WAIT =>
+						fetch		<= '0';
 						read		<= '0';
 						execute		<= '0';
 						write		<= '0';
@@ -88,6 +105,7 @@ begin
 						end if;
 
 				when CS_EXECUTE =>
+						fetch		<= '0';
 						read		<= '0';
 						execute		<= '1';
 						write		<= '0';
@@ -96,6 +114,7 @@ begin
 						state		<= CS_WRITE;
 
 				when CS_WRITE =>
+						fetch		<= '0';
 						read		<= '0';
 						execute		<= '0';
 						write		<= '1';
@@ -106,10 +125,11 @@ begin
 						then
 							state	<= CS_WRITE_WAIT;		-- wait until the memory device completes it's write.
 						else
-							state	<= CS_FINISHED;
+							state	<= CS_FETCH;
 						end if;
 				
 				when CS_WRITE_WAIT =>
+						fetch		<= '0';
 						read		<= '0';
 						execute		<= '0';
 						write		<= '0';
@@ -118,16 +138,17 @@ begin
 						
 						if mem_complete = '1'
 						then
-							state	<= CS_FINISHED;
+							state	<= CS_FETCH;
 						end if;
 				
 				when others =>
+						fetch		<= '0';
 						read		<= '0';
 						execute		<= '0';
 						write		<= '0';
 						wait_read	<= '0';
 						wait_write	<= '0';
-						state		<= CS_FINISHED;
+						state		<= CS_HALT;
 			end case;
 		end if;
 	end process;
