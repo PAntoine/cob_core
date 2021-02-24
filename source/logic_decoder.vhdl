@@ -26,6 +26,8 @@ use work.definitions.all;
 use work.instructions.all;
 use work.LogicFunctions.all;
 
+use work.AddressModeDecoder;
+
 entity LogicDecoder is
 		port(
 			sel				: in std_logic;
@@ -43,21 +45,34 @@ entity LogicDecoder is
 end LogicDecoder;
 
 architecture synth of LogicDecoder is
-	type LOGIC_BUS is record
-		and_enabled	:	std_logic;	-- the command is and
-		or_enabled	:	std_logic;	-- the command is or
-		lsl_enabled :	std_logic;	-- the logical shift left command
-		lsr_enabled :	std_logic;	-- the logical shift right command
-	end record LOGIC_BUS;
 
+		---------------------------------------------------------------
+	--- Include the components
+	---------------------------------------------------------------
+	component AddressModeDecoder is
+		port(
+			sel				: in std_logic;			-- enable the address mode decoding.
+			mode			: in DATA_MODE;			-- the data mode to be decoded.
+			reg_1_rw		: out std_logic;		-- register 1 read write status
+			reg_1_en		: out std_logic;		-- register 1 enable.
+			reg_2_rw		: out std_logic;		-- register 2 read write status
+			reg_2_en		: out std_logic;		-- register 2 enable.
+			mem_read		: out std_logic;		-- memory read/write status.
+			mem_write		: out std_logic;		-- write to memory.
+			mem_read_a		: out std_logic;		-- read into register a (or b - if false).
+			immediate_8 	: out std_logic;		-- use the immediate 8 bits from the instruction.
+			exception_flag	: out std_logic			-- we have an exception.
+		);
+	end component;
+
+	---------------------------------------------------------------
+	--- The connecting signals
+	---------------------------------------------------------------
     signal op_code : std_logic_vector(INSTR_OPCODE_RANGE);
 
 	signal accumulator 	: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal a_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal b_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
-
-	signal a_source		: REG_ID;
-	signal b_source		: REG_ID;
 
 	signal 		state			: std_logic_vector(2 downto 0);
 	constant	LI_IDLE			: std_logic_vector(2 downto 0) := "000";
@@ -72,8 +87,6 @@ architecture synth of LogicDecoder is
 	signal write	: std_logic;
 			
 	signal write_reg_bus	: REGISTER_BUS;
-	signal reg_1_addr		: REG_ID;
-	signal reg_2_addr		: REG_ID;
 	signal reg_1_rw			: std_logic;
 	signal reg_2_rw			: std_logic;
 	signal reg_1_en			: std_logic;
@@ -85,16 +98,10 @@ architecture synth of LogicDecoder is
 	signal wait_write		: std_logic;
 
 	signal mem_read_a		: std_logic;
-	signal mem_rw			: std_logic;
-	signal mem_en			: std_logic;
 	signal mem_read			: std_logic;
 	signal mem_write		: std_logic;
 	signal mem_addr			: std_logic_vector(ADDR_WIDTH-1 downto 0);
 
-
-	signal test : std_logic_vector(2 downto 0);
-
-	signal bus_control	: LOGIC_BUS;
 begin
 	------------------------------------------------------------
 	--- Logic Instruction Decoder
@@ -149,113 +156,17 @@ begin
 	--- This handles the read (load) part of the logical
 	--- instructions.
 	------------------------------------------------------------
-	a_source	<= instruction_reg(LI_SOURCE_A);
-	b_source	<= instruction_reg(LI_SOURCE_B);
-	
-	test <= instruction_reg(LI_IO_CODE);
-
-	process (sel, instruction_reg, a_reg, b_reg, a_source, b_source, write, reg_data) is
-	begin
-		if (sel = '0')
-		then
-			reg_1_addr	<= (others => 'Z');
-			reg_2_addr	<= (others => 'Z');
-			reg_1_rw	<= 'Z';
-			reg_2_rw	<= 'Z';
-			reg_1_en	<= 'Z';
-			reg_2_en	<= 'Z';
-			mem_addr	<= (others => 'Z');
-			mem_rw		<= 'Z';
-			mem_en		<= 'Z';
-			immediate_8 <= 'Z';
-			flags.exception_flag	<= 'Z';
-
-		else
-			case instruction_reg(LI_IO_CODE) is
-				when LI_DA_RRR =>
-							-- reg in for a and b,
-							reg_1_addr	<= a_source;
-							reg_2_addr	<= b_source;
-							reg_1_rw	<= RW_READ;
-							reg_2_rw	<= RW_READ;
-							reg_1_en	<= '1';
-							reg_2_en	<= '1';
-							mem_read_a	<= '0';
-							mem_read	<= '0';
-							mem_write	<= '0';
-							mem_addr	<= reg_data;
-							immediate_8 <= '0';
-							flags.exception_flag <= '0';
-							
-				when LI_DA_MRR =>
-							-- mem read for a, and reg read for b.
-							-- read reg a then use that as the
-							-- address for the memory read.
-							reg_1_addr	<= a_source;
-							reg_2_addr	<= b_source;
-							reg_1_rw	<= RW_READ;
-							reg_2_rw	<= RW_READ;
-							reg_1_en	<= '1';
-							reg_2_en	<= '1';
-							mem_read_a	<= '1';
-							mem_read	<= '1';
-							mem_write	<= '0';
-							mem_addr	<= reg_data;
-							immediate_8 <= '0';
-							flags.exception_flag <= '0';
-							
-				when LI_DA_RMR =>
-							-- source a reg, source b mem. 
-							reg_1_addr	<= a_source;
-							reg_2_addr	<= b_source;
-							reg_1_rw	<= RW_READ;
-							reg_2_rw	<= RW_READ;
-							reg_1_en	<= '1';
-							reg_2_en	<= '1';
-							mem_read_a	<= '0';
-							mem_read	<= '1';
-							mem_write	<= '0';
-							mem_addr	<= (others => 'Z');
-							immediate_8 <= '0';
-							flags.exception_flag <= '0';
-
-				when LI_DA_R_R =>
-							-- Only reg a.
-							reg_1_addr	<= a_source;
-							reg_2_addr	<= (others => 'Z');
-							reg_1_rw	<= RW_READ;
-							reg_2_rw	<= RW_READ;
-							reg_1_en	<= '1';
-							reg_2_en	<= '0';
-							mem_read	<= '0';
-							mem_write	<= '0';
-							mem_addr	<= (others => 'Z');
-							immediate_8 <= '0';
-							flags.exception_flag <= '0';
-
-				when LI_DA_RIR =>
-							-- reg read for a, immediate for b.
-							reg_1_addr	<= a_source;
-							reg_2_addr	<= (others => 'Z');
-							reg_1_rw	<= RW_READ;
-							reg_2_rw	<= RW_READ;
-							reg_1_en	<= '1';
-							reg_2_en	<= '0';
-							mem_read	<= '0';
-							mem_write	<= '0';
-							mem_addr	<= (others => 'Z');
-							immediate_8 <= '1';
-							flags.exception_flag <= '0';
-
-				when others =>
-							--sys_bus.exception	<= '1';		-- This is an illegal instruction.
-							flags.exception_flag	<= '1';
-							mem_addr				<= (others => 'X');
-							mem_rw					<= RW_READ;
-							mem_en					<= '0';
-			end case;
-		end if;
-	end process;
+	amd: AddressModeDecoder port map (	sel				=> sel,
+										mode			=> instruction_reg(LI_IO_CODE),
+										reg_1_rw		=> reg_1_rw,
+										reg_1_en		=> reg_1_en,
+										reg_2_rw		=> reg_2_rw,
+										reg_2_en		=> reg_2_en,
+										mem_read		=> mem_read,
+										mem_write		=> mem_write,
+										mem_read_a		=> mem_read_a,
+										immediate_8 	=> immediate_8,
+										exception_flag	=> flags.exception_flag);
 
 	------------------------------------------------------------
 	--- Logic state machine
@@ -354,12 +265,12 @@ begin
 	------------------------------------------------------------
 	--- Bus Control Drivers
 	------------------------------------------------------------
-	process (read, write, mem_read, execute, reg_1_rw, reg_1_en, reg_1_addr, reg_2_rw, reg_2_en, reg_2_addr, wait_read, wait_write, mem_read_a, a_reg, b_reg, mem_addr, mem_read, accumulator)
+	process (read, write, mem_read, execute, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, wait_read, wait_write, mem_read_a, a_reg, b_reg, mem_read, accumulator)
 	begin
 		if read = '1' or execute = '1'
 		then
-			reg_bus.reg_1_addr	<= reg_1_addr;
-			reg_bus.reg_2_addr	<= reg_2_addr;
+			reg_bus.reg_1_addr	<= instruction_reg(LI_SOURCE_A);
+			reg_bus.reg_2_addr	<= instruction_reg(LI_SOURCE_B);
 			reg_bus.reg_1_rw	<= reg_1_rw;
 			reg_bus.reg_2_rw	<= reg_2_rw;
 			reg_bus.reg_1_en	<= reg_1_en;
@@ -384,7 +295,7 @@ begin
 		elsif write = '1'
 		then
 			reg_bus.reg_1_addr	<= instruction_reg(LI_DEST);
-			reg_bus.reg_2_addr	<= reg_2_addr;
+			reg_bus.reg_2_addr	<= instruction_reg(LI_SOURCE_B);
 			reg_bus.reg_1_rw	<= RW_WRITE;		-- TODO: hack - the state machine is wrong.
 			reg_bus.reg_2_rw	<= reg_2_rw;
 			reg_bus.reg_1_en	<= reg_1_en;

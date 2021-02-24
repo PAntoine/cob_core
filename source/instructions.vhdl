@@ -85,6 +85,7 @@ package instructions is
 	subtype LI_IMM8		is natural range  7 downto  0;	-- destination
 
 	-- data access modes
+	subtype		DATA_MODE is std_logic_vector(2 downto 0);
 	constant	LI_DA_RRR	:	std_logic_vector(2 downto 0)	:= "000";
 	constant	LI_DA_MRR	:	std_logic_vector(2 downto 0)	:= "001";
 	constant	LI_DA_RMR	:	std_logic_vector(2 downto 0)	:= "010";

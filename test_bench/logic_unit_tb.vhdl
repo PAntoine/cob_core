@@ -60,6 +60,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 			signal reg_1_en		: in	std_logic;
 			signal reg_2_en		: in	std_logic;
 			signal reg_1_rw		: in	std_logic;
+			signal rr_instr		: in	std_logic;
 			signal reg_1_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal reg_2_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			signal sel			: out	std_logic;
@@ -71,7 +72,6 @@ architecture simulation of Logic_Unit_Test_Bench is
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
-	signal	running			: std_logic := '0';
 	signal	do_mem			: std_logic := '0';
 	signal	do_reg			: std_logic := '1';
 	signal	sel				: std_logic := '0';
@@ -81,6 +81,8 @@ architecture simulation of Logic_Unit_Test_Bench is
 	signal	reg_bus			: REGISTER_BUS := INIT_REGISTER_BUS;
 	signal	mem_bus			: MEMORY_BUS;
 	signal	data_available	: std_logic := '0';
+
+	signal	rr_instr		: std_logic := '0';
 
 	signal	init_test		: std_logic := '0';
 	signal	data_load		: std_logic := '0';
@@ -92,9 +94,6 @@ architecture simulation of Logic_Unit_Test_Bench is
 	---------------------------------------------------------------
 	--- fake registers
 	---------------------------------------------------------------
-	type REGISTER_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(32-1 downto 0);
-	shared variable register_bank : REGISTER_ARRAY := (others => (others => '0'));
-
 	signal reg_data		: std_logic_vector(31 downto 0);
 	signal reg_data2	: std_logic_vector(31 downto 0);
 
@@ -112,13 +111,16 @@ architecture simulation of Logic_Unit_Test_Bench is
 
 begin
 	-- test case
-	clock <= not clock after 1 ns when running = '1' else '0';
-	running <= '0', '1' after 1 ns;
+	clock <= not clock after 1 ns;
 
 	process
 		variable tests    : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
-		variable rr_tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := r_r_test_cases;
+		variable rr_tests : TEST_CASE_ARRAY(0 to r_r_test_cases'length-1) := r_r_test_cases;
 	begin
+		-- need some setup time.
+		wait for 1 ns;
+
+		-- start the tests.
 		for index in 0 to tests'length-1
 		loop
 			reg_start <= '1';
@@ -143,7 +145,7 @@ begin
 			reg_start <= '1';
 
 			-- set the test case
-			rr_instruction <= '1';
+			rr_instr <= '1';
 			reg_test <= rr_tests(index);
 
 			wait until complete = '1';
@@ -168,6 +170,7 @@ begin
 						reg_1_en	=> reg_bus.reg_1_en,
 						reg_2_en	=> reg_bus.reg_2_en,
 						reg_1_rw	=> reg_bus.reg_1_rw,
+						rr_instr	=> rr_instr,
 						reg_1_data	=> reg_data,
 						reg_2_data	=> reg_data2,
 						sel			=> sel,

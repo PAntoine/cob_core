@@ -54,12 +54,8 @@ architecture behv of LogicUnitRegisterTest is
 	----------------------------------------------------
 begin
 	-- let make or state item.
-	if rr_instr = '1'
-	then
-		instruction <= test_case.opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
-	else
-		instruction <= test_case.opcode & IU_LOGIC & LI_DA_R_R & "00001" & "00010" & "00011" & "000"; -- when start = '1' else (others => 'Z');
-	end if;
+	instruction <= test_case.opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000" when rr_instr = '0' else (others => 'Z');
+	instruction <= test_case.opcode & IU_LOGIC & LI_DA_R_R & "00001" & "00010" & "00011" & "000" when rr_instr = '1' else (others => 'Z');
 
 	sel <= '1' when start = '1' else '0';
 
