@@ -47,8 +47,9 @@ architecture simulation of Logic_Unit_Test_Bench is
 				sys_bus			: inout SYSTEM_BUS;
 				reg_bus			: inout REGISTER_BUS;
 				reg_data		: inout	std_logic_vector(31 downto 0);
-				reg_data2		: inout	std_logic_vector(31 downto 0);
-				mem_bus			: inout MEMORY_BUS
+				reg_data2		: in	std_logic_vector(31 downto 0);
+				mem_bus			: inout MEMORY_BUS;
+				mem_bus_data	: inout std_logic_vector(DATA_WIDTH-1 downto 0)
 			);
 	end component LogicDecoder;
 
@@ -109,6 +110,7 @@ architecture simulation of Logic_Unit_Test_Bench is
 	
 	signal address_mode : std_logic_vector(2 downto 0);
 
+	signal mem_bus_data	: std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');	-- unused in these tests.
 begin
 	-- test case
 	clock <= not clock after 1 ns;
@@ -178,7 +180,7 @@ begin
 						result		=> result,
 						complete	=> complete);
 	
-	logic_unit:	LogicDecoder	port map (	sel => sel,
+	logic_unit:	logicDecoder	port map (	sel => sel,
 											clock => clock,
 											instruction_reg => instruction_reg,
 											data_available => data_available,
@@ -187,7 +189,8 @@ begin
 											reg_bus => reg_bus,
 											reg_data => reg_data,
 											reg_data2 => reg_data2,
-											mem_bus => mem_bus);
+											mem_bus => mem_bus,
+											mem_bus_data => mem_bus_data);
 
 end architecture simulation;
 

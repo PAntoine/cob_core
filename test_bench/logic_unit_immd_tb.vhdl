@@ -47,7 +47,7 @@ architecture simulation of Logic_Unit_Immediate_Test_Bench is
 				sys_bus			: inout SYSTEM_BUS;
 				reg_bus			: inout REGISTER_BUS;
 				reg_data		: inout	std_logic_vector(31 downto 0);
-				reg_data2		: inout	std_logic_vector(31 downto 0);
+				reg_data2		: in	std_logic_vector(31 downto 0);
 				mem_bus			: inout MEMORY_BUS
 			);
 	end component LogicDecoder;
