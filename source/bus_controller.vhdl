@@ -29,13 +29,7 @@ entity BusController is
 			sel				: in std_logic;		-- select the bus controller
 			
 			-- CPU modes
-			read			: in std_logic;		-- 
-			write			: in std_logic;
-			execute			: in std_logic;
-			mem_read		: in std_logic;
-			mem_read_a		: in std_logic;
-			wait_read		: in std_logic;
-			wait_write		: in std_logic;
+			sys_bus			: in SYSTEM_BUS;
 			
 			-- component bus signals
 			reg_1_rw		: in std_logic;
@@ -43,10 +37,13 @@ entity BusController is
 			reg_2_rw		: in std_logic;
 			reg_2_en		: in std_logic;
 
+			mem_read_a		: in std_logic;		-- read into internal reg a or b.
+
 			-- data buses
 			a_address		: in REG_ID;
 			b_address		: in REG_ID;
 			destination_reg	: in REG_ID;
+			pc_reg			: in std_logic_vector(ADDR_WIDTH-1 downto 0);
 			a_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 			b_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 			accumulator		: in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -65,10 +62,19 @@ begin
 	------------------------------------------------------------
 	--- Bus Control Drivers
 	------------------------------------------------------------
-	process (  read, write, mem_read, execute, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, wait_read,
-	           wait_write, mem_read_a, a_reg, b_reg, mem_read, accumulator, destination_reg, a_address, b_address)
+	process (  sys_bus, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, mem_read_a,
+	           a_reg, b_reg, accumulator, destination_reg, a_address, b_address, pc_reg)
 	begin
-		if read = '1' or execute = '1'
+		if sys_bus.fetch = '1'
+		then
+			reg_bus				<= FREE_REGISTER_BUS;
+			reg_data			<= (others => 'Z');
+			mem_bus_data		<= (others => 'Z');
+			mem_bus.addr		<= pc_reg;
+			mem_bus.rw			<= RW_READ;
+			mem_bus.en			<= '1';		-- start the memory read.
+		
+		elsif sys_bus.read = '1' or sys_bus.execute = '1'
 		then
 			reg_bus.reg_1_addr	<= a_address;
 			reg_bus.reg_2_addr	<= b_address;
@@ -80,7 +86,7 @@ begin
 			mem_bus_data		<= (others => 'Z');
 			mem_bus				<= FREE_MEMORY_BUS;
 
-		elsif wait_read = '1'
+		elsif sys_bus.wait_read = '1'
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
 			mem_bus_data		<= (others => 'Z');
@@ -92,10 +98,9 @@ begin
 			end if;
 			mem_bus.rw			<= RW_READ;
 			mem_bus.en			<= '1';		-- start the memory read.
-			mem_bus_data		<= (others => 'Z');
 			reg_data			<= (others => 'Z');
 
-		elsif write = '1'
+		elsif sys_bus.write = '1'
 		then
 			reg_bus.reg_1_addr	<= destination_reg;
 			reg_bus.reg_2_addr	<= b_address;
@@ -107,7 +112,7 @@ begin
 			mem_bus_data		<= (others => 'Z');
 			mem_bus				<= FREE_MEMORY_BUS;
 		
-		elsif wait_write = '1'
+		elsif sys_bus.wait_write = '1'
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
 			mem_bus.addr		<= a_reg;

@@ -29,15 +29,10 @@ entity CPUStateMachine is
 			reset			: in std_logic;
 			enable			: in std_logic;
 			clock			: in std_logic;
-			fetch			: in std_logic;
 			mem_read		: in std_logic;
 			mem_write		: in std_logic;
 			mem_complete	: in std_logic;
-			read			: out std_logic;
-			wait_read		: out std_logic;
-			execute			: out std_logic;
-			write			: out std_logic;
-			wait_write		: out std_logic
+			sys_bus			: out SYSTEM_BUS
 		);
 end CPUStateMachine;
 
@@ -53,23 +48,23 @@ begin
 		if reset = '1' or enable = '0'
 		then
 			state		<= CS_FETCH;
-			fetch		<= '0';
-			read		<= '0';
-			wait_read	<= '0';
-			execute		<= '0';
-			write		<= '0';
-			wait_write	<= '0';
+			sys_bus.fetch		<= '0';
+			sys_bus.read		<= '0';
+			sys_bus.wait_read	<= '0';
+			sys_bus.execute		<= '0';
+			sys_bus.write		<= '0';
+			sys_bus.wait_write	<= '0';
 
 		elsif rising_edge(clock)
 		then
 			case state is
 				when CS_FETCH =>
-						fetch		<= '1';
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '0';
-						wait_write	<= '0';
+						sys_bus.fetch		<= '1';
+						sys_bus.read		<= '0';
+						sys_bus.execute		<= '0';
+						sys_bus.write		<= '0';
+						sys_bus.wait_read	<= '0';
+						sys_bus.wait_write	<= '0';
 
 						if mem_complete = '0'
 						then
@@ -77,12 +72,12 @@ begin
 						end if;
 
 				when CS_DECODE	=>
-						fetch		<= '0';
-						read		<= '1';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '0';
-						wait_write	<= '0';
+						sys_bus.fetch		<= '0';
+						sys_bus.read		<= '1';
+						sys_bus.execute		<= '0';
+						sys_bus.write		<= '0';
+						sys_bus.wait_read	<= '0';
+						sys_bus.wait_write	<= '0';
 
 						if mem_read = '0'
 						then
@@ -92,12 +87,12 @@ begin
 						end if;
 
 				when CS_READ_WAIT =>
-						fetch		<= '0';
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '1';
-						wait_write	<= '0';
+						sys_bus.fetch		<= '0';
+						sys_bus.read		<= '0';
+						sys_bus.execute		<= '0';
+						sys_bus.write		<= '0';
+						sys_bus.wait_read	<= '1';
+						sys_bus.wait_write	<= '0';
 						
 						if mem_complete = '1'
 						then
@@ -105,21 +100,21 @@ begin
 						end if;
 
 				when CS_EXECUTE =>
-						fetch		<= '0';
-						read		<= '0';
-						execute		<= '1';
-						write		<= '0';
-						wait_read	<= '0';
-						wait_write	<= '0';
+						sys_bus.fetch		<= '0';
+						sys_bus.read		<= '0';
+						sys_bus.execute		<= '1';
+						sys_bus.write		<= '0';
+						sys_bus.wait_read	<= '0';
+						sys_bus.wait_write	<= '0';
 						state		<= CS_WRITE;
 
 				when CS_WRITE =>
-						fetch		<= '0';
-						read		<= '0';
-						execute		<= '0';
-						write		<= '1';
-						wait_read	<= '0';
-						wait_write	<= '0';
+						sys_bus.fetch		<= '0';
+						sys_bus.read		<= '0';
+						sys_bus.execute		<= '0';
+						sys_bus.write		<= '1';
+						sys_bus.wait_read	<= '0';
+						sys_bus.wait_write	<= '0';
 						
 						if mem_write = '0'
 						then
@@ -129,12 +124,12 @@ begin
 						end if;
 				
 				when CS_WRITE_WAIT =>
-						fetch		<= '0';
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '0';
-						wait_write	<= '1';
+						sys_bus.fetch		<= '0';
+						sys_bus.read		<= '0';
+						sys_bus.execute		<= '0';
+						sys_bus.write		<= '0';
+						sys_bus.wait_read	<= '0';
+						sys_bus.wait_write	<= '1';
 						
 						if mem_complete = '1'
 						then
@@ -142,12 +137,12 @@ begin
 						end if;
 				
 				when others =>
-						fetch		<= '0';
-						read		<= '0';
-						execute		<= '0';
-						write		<= '0';
-						wait_read	<= '0';
-						wait_write	<= '0';
+						sys_bus.fetch		<= '0';
+						sys_bus.read		<= '0';
+						sys_bus.execute		<= '0';
+						sys_bus.write		<= '0';
+						sys_bus.wait_read	<= '0';
+						sys_bus.wait_write	<= '0';
 						state		<= CS_HALT;
 			end case;
 		end if;

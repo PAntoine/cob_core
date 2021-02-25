@@ -74,6 +74,7 @@ architecture synth of LogicDecoder is
 			mem_read		: in std_logic;
 			mem_write		: in std_logic;
 			mem_complete	: in std_logic;
+			fetch			: out std_logic;
 			read			: out std_logic;
 			wait_read		: out std_logic;
 			execute			: out std_logic;

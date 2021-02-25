@@ -31,6 +31,7 @@ package definitions is
 	
 	constant	ADDR_WIDTH	: natural := 32;
 	constant	DATA_WIDTH	: natural := 32;
+	constant 	ADDR_BYTES	: natural := ADDR_WIDTH / 8;
 
 	constant	ZEROS		: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '0');
 
@@ -47,12 +48,13 @@ package definitions is
 	------------------------------------------------------------
 	subtype		CPU_STATE is std_logic_vector(2 downto 0);
 	
-	constant	CS_DECODE		: CPU_STATE  := "000";
-	constant	CS_EXECUTE		: CPU_STATE  := "001";
-	constant	CS_WRITE		: CPU_STATE  := "010";
-	constant	CS_FINISHED		: CPU_STATE  := "011";
-	constant	CS_READ_WAIT	: CPU_STATE  := "100";
-	constant	CS_WRITE_WAIT	: CPU_STATE  := "101";
+	constant	CS_FETCH		: CPU_STATE  := "000";
+	constant	CS_DECODE		: CPU_STATE  := "001";
+	constant	CS_EXECUTE		: CPU_STATE  := "010";
+	constant	CS_WRITE		: CPU_STATE  := "011";
+	constant	CS_FINISHED		: CPU_STATE  := "100";
+	constant	CS_READ_WAIT	: CPU_STATE  := "101";
+	constant	CS_WRITE_WAIT	: CPU_STATE  := "110";
 	constant	CS_HALT			: CPU_STATE  := "111";
 
 	------------------------------------------------------------
@@ -73,12 +75,12 @@ package definitions is
 	--- System BUS Registers
 	------------------------------------------------------------
 	type SYSTEM_BUS is record
-		bus_enable		: std_logic;	-- BUS Enable
-		bus_rw			: std_logic;	-- BUS read/rw
-		gen_reg_enable	: std_logic;	-- General Registers Enable 
-		addr_data		: std_logic;	-- Indirect addressing - output to the data or address bus.
-		busy			: std_logic;	-- An instruction is currently being processed.
-		exception		: std_logic;	-- and exception occurred.
+		fetch			: std_logic;		-- fetch the next instruction from the bus
+		read			: std_logic;		-- register read.
+		wait_read		: std_logic;		-- wait state for memory read
+		execute			: std_logic;		-- execute the instruction.
+		write			: std_logic;		-- register write back.
+		wait_write		: std_logic;		-- wait for a memory to finished.
 	end record SYSTEM_BUS;  
 	
 	------------------------------------------------------------

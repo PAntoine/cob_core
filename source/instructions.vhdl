@@ -47,6 +47,8 @@ package instructions is
 	subtype INSTR_UNIT_RANGE	is natural range 23 downto 21;	-- The instruction units
 	subtype INSTR_SIZE_RANGE	is natural range 20 downto 19;	-- The opcode
 
+	constant	HALT_INSTR	:	INSTRUCTION_TYPE	:= (others => '0');
+
 	------------------------------------------------------------
 	--- Instruction Unit
 	------------------------------------------------------------
