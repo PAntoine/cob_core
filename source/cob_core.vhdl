@@ -25,10 +25,10 @@ use ieee.numeric_std.all;
 use work.definitions.all;
 use work.instructions.all;
 
-use work.BusController;
-use work.CPUStateMachine;
 use work.MemoryUnit;
+use work.BusController;
 use work.ProgramCounter;
+use work.CPUStateMachine;
 
 entity COB_Core is
 		port(
@@ -38,6 +38,7 @@ entity COB_Core is
 				
 				as				: out std_logic;	-- address strobe
 				ds				: out std_logic;	-- data strobe
+				bus_en			: out std_logic;	-- bus enable.
 				bus_rw			: out std_logic;	-- set the read/write flag
 				bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
 				da				: in std_logic;									-- data acknowledge - when external data is ready.
@@ -49,22 +50,6 @@ architecture synth of COB_Core is
 	---------------------------------------------------------------
 	--- Include the components
 	---------------------------------------------------------------
-	component GeneralRegisters is
-		port(
-				reset			: in std_logic;									-- reset all the registers.
-				en_1			: in std_logic;									-- is the register block selected.
-				en_2			: in std_logic;									-- is the register block selected.
-				clock			: in std_logic;									-- the clock.
-				addr_data		: in std_logic;									-- output to the address bus or data bus.
-				rw				: in std_logic;									-- are we reading or writing the register (reg 1 only).
-				reg_address		: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
-				reg_2_address	: in std_logic_vector(REG_ID_WIDTH-1 downto 0);	-- the address of the register we are writing to.
-
-				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
-				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
-		);
-	end component;
-
 	component ProgramCounter is
 		port(
 			reset	: in std_logic;									-- reset the program counter to the default address.
@@ -111,6 +96,21 @@ architecture synth of COB_Core is
 		);
 	end component BusController;
 
+	component MemoryUnit is
+		port(
+			en				: in	std_logic;
+			rw				: in	std_logic;
+			complete		: out	std_logic;
+			address			: in 	std_logic_vector(ADDR_WIDTH-1 downto 0);
+			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_dev_da		: in	std_logic;
+			mem_dev_rw		: out	std_logic;
+			mem_dev_en		: out	std_logic;
+			mem_dev_addr	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
+			mem_dev_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component MemoryUnit;
+
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
@@ -141,9 +141,12 @@ architecture synth of COB_Core is
 	signal	a_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal	b_reg		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal	accumulator	: std_logic_vector(DATA_WIDTH-1 downto 0);
+	
+	signal int_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
+
 	signal	pc_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter interconnect.
 begin
-	csm: CPUStateMachine port map ( reset => '0', enable => enable, clock => clock, mem_read => mem_read, mem_write => mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
+	csm: CPUStateMachine port map ( reset => reset, enable => enable, clock => clock, mem_read => mem_read, mem_write => mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
 
 	bc: BusController port map (
 			sel				=> enable,
@@ -176,7 +179,8 @@ begin
 		end if;
 	end process;
 
-	-- mu: MemoryUnit	port map (	en => wait_read or wait_write or fetch, rw => wait_write, complete => comp, address => address, data => int_data, mem_dev_da => da, mem_dev_rw => rw, mem_dev_addr => addr, mem_dev_data => data);
+	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,
+								mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
 
 end architecture synth;
 --- vi:nocin:sw=4 ts=4:fdm=marker

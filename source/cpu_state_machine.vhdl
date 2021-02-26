@@ -116,7 +116,7 @@ begin
 						sys_bus.wait_read	<= '0';
 						sys_bus.wait_write	<= '0';
 						
-						if mem_write = '0'
+						if mem_write = '1'
 						then
 							state	<= CS_WRITE_WAIT;		-- wait until the memory device completes it's write.
 						else

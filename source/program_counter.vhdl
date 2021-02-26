@@ -40,21 +40,17 @@ architecture synth of ProgramCounter is
 	signal load_addr	: std_logic;
 begin
 
-	process (reset, load, address)
+	process (reset, load, fetch, address, counter)
 	begin
 		if reset = '1'
 		then
 			counter <= (others => '0');
 
-		elsif falling_edge(load)
+		elsif load = '1'
 		then
 			counter <= address;
-		end if;
-	end process;
-
-	process (reset, fetch, counter)
-	begin
-		if falling_edge(fetch)
+		
+		elsif falling_edge(fetch)
 		then
 			counter <= std_logic_vector(unsigned(counter) + ADDR_BYTES);
 		end if;
