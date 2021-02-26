@@ -106,7 +106,7 @@ begin
 						sys_bus.write		<= '0';
 						sys_bus.wait_read	<= '0';
 						sys_bus.wait_write	<= '0';
-						state		<= CS_WRITE;
+						state				<= CS_WRITE;
 
 				when CS_WRITE =>
 						sys_bus.fetch		<= '0';
@@ -143,7 +143,7 @@ begin
 						sys_bus.write		<= '0';
 						sys_bus.wait_read	<= '0';
 						sys_bus.wait_write	<= '0';
-						state		<= CS_HALT;
+						state				<= CS_HALT;
 			end case;
 		end if;
 	end process;

@@ -26,6 +26,7 @@ use ieee.std_logic_textio.all;
 
 use work.definitions.all;
 use work.instructions.all;
+use work.instruction_generators.all;
 
 use work.COB_Core;
 
@@ -49,7 +50,7 @@ architecture simulation of COB_Core_Test_Bench is
 				bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
 				da				: in  std_logic;								-- data acknowledge - when external data is ready.
 				data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
-		);
+			);
 	end component COB_Core;
 
 	---------------------------------------------------------------
@@ -70,7 +71,7 @@ architecture simulation of COB_Core_Test_Bench is
 
 begin
 	-- clock signal
-	clock <= not clock after 10 ps;
+	clock <= not clock after 50 ps;
 
 	-- start the test.
 	enable <= '1' after 25 ps;
@@ -87,7 +88,12 @@ begin
 
 		elsif bus_en = '1' and bus_rw = RW_READ
 		then
-			data 	<= (others => '1');
+			case bus_address(31 downto 29) is
+				when "000"	=> data <= GetNopTestInstruction(bus_address);
+
+				when others => data <= x"F0F0F0F0";
+			end case;
+			
 			da		<= '1';
 		end if;
 	end process;

@@ -24,7 +24,6 @@ use work.definitions.all;
 use work.instructions.all;
 
 package logic_tb_defines is
-
 	---------------------------------------------------------------
 	--- Test structures
 	---------------------------------------------------------------

@@ -29,6 +29,7 @@ use work.definitions.all;
 entity MemoryUnit is
 		port(
 			en				: in	std_logic;
+			clock			: in	std_logic;
 			rw				: in	std_logic;
 			complete		: out	std_logic;	-- the data has been read and is available,
 			address			: in 	std_logic_vector(ADDR_WIDTH-1 downto 0);
@@ -51,9 +52,20 @@ begin
 
 	-- lets control the memory bus.
 	mem_dev_rw		<= RW_READ			when en = '0' or rw = RW_READ else RW_WRITE;
-	mem_dev_en		<= '0'				when en = '0' else '1';
 	mem_dev_data	<= (others => 'Z')	when en = '0' or rw = RW_READ else data;
 	mem_dev_addr	<= (others => 'Z')	when en = '0' else address;
+
+	process (en, clock)
+	begin
+		if en = '0'
+		then
+			mem_dev_en <= '0';
+
+		elsif rising_edge(clock)
+		then
+			mem_dev_en		<= '1';
+		end if;
+	end process;
 
 end architecture synth;
 

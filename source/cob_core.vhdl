@@ -99,6 +99,7 @@ architecture synth of COB_Core is
 	component MemoryUnit is
 		port(
 			en				: in	std_logic;
+			clock			: in	std_logic;
 			rw				: in	std_logic;
 			complete		: out	std_logic;
 			address			: in 	std_logic_vector(ADDR_WIDTH-1 downto 0);
@@ -179,7 +180,7 @@ begin
 		end if;
 	end process;
 
-	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,
+	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, clock => clock, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,
 								mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
 
 end architecture synth;
