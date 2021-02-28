@@ -44,8 +44,8 @@ entity BusController is
 			b_address		: in REG_ID;
 			destination_reg	: in REG_ID;
 			pc_reg			: in std_logic_vector(ADDR_WIDTH-1 downto 0);
-			a_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-			b_reg			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			a_op			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			b_op			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 			accumulator		: in std_logic_vector(DATA_WIDTH-1 downto 0);
 		
 			reg_bus			: out REGISTER_BUS;
@@ -63,7 +63,7 @@ begin
 	--- Bus Control Drivers
 	------------------------------------------------------------
 	process (  sys_bus, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, mem_read_a,
-	           a_reg, b_reg, accumulator, destination_reg, a_address, b_address, pc_reg)
+	           a_op, b_op, accumulator, destination_reg, a_address, b_address, pc_reg)
 	begin
 		if sys_bus.fetch = '1'
 		then
@@ -92,9 +92,9 @@ begin
 			mem_bus_data		<= (others => 'Z');
 			if mem_read_a = '1'
 			then
-				mem_bus.addr	<= a_reg;
+				mem_bus.addr	<= a_op;
 			else
-				mem_bus.addr	<= b_reg;
+				mem_bus.addr	<= b_op;
 			end if;
 			mem_bus.rw			<= RW_READ;
 			mem_bus.en			<= '1';		-- start the memory read.
@@ -115,7 +115,7 @@ begin
 		elsif sys_bus.wait_write = '1'
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
-			mem_bus.addr		<= a_reg;
+			mem_bus.addr		<= a_op;
 			mem_bus_data		<= accumulator;
 			mem_bus.rw			<= RW_WRITE;
 			mem_bus.en			<= '1';		-- start memory write

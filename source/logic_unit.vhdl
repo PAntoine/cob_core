@@ -45,9 +45,9 @@ begin
 	------------------------------------------------------------
 	--- Logic Instruction
 	------------------------------------------------------------
-	process (enable, sys_bus, a_op, b_op, op_code) is
+	process (enable, a_op, b_op, op_code) is
 	begin
-		if enable ='1' and sys_bus.execute = '1'
+		if enable ='1'
 		then
 			case op_code is
 				when LI_LSL => accumulator <= LogicalShiftLeft(a_op, b_op(4 downto 0));

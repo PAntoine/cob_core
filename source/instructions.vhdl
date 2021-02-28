@@ -102,11 +102,12 @@ package instructions is
 
 	-- data access modes
 	subtype		DATA_MODE is std_logic_vector(2 downto 0);
-	constant	LI_DA_RRR	:	std_logic_vector(2 downto 0)	:= "000";
-	constant	LI_DA_MRR	:	std_logic_vector(2 downto 0)	:= "001";
-	constant	LI_DA_RMR	:	std_logic_vector(2 downto 0)	:= "010";
-	constant	LI_DA_R_R	:	std_logic_vector(2 downto 0)	:= "011";
-	constant	LI_DA_RIR	:	std_logic_vector(2 downto 0)	:= "100";
+	constant	LI_DA_XXX	:	std_logic_vector(2 downto 0)	:= "000";
+	constant	LI_DA_RRR	:	std_logic_vector(2 downto 0)	:= "001";
+	constant	LI_DA_MRR	:	std_logic_vector(2 downto 0)	:= "010";
+	constant	LI_DA_RMR	:	std_logic_vector(2 downto 0)	:= "011";
+	constant	LI_DA_R_R	:	std_logic_vector(2 downto 0)	:= "100";
+	constant	LI_DA_RIR	:	std_logic_vector(2 downto 0)	:= "101";
 
 	-- op codes
 	constant	LI_AND		:	std_logic_vector(7 downto 0)	:= "00000001";	--- logical and
