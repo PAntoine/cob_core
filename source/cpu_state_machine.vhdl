@@ -43,6 +43,9 @@ begin
 	------------------------------------------------------------
 	--- Logic state machine
 	------------------------------------------------------------
+	--  TODO: should separate the sys bus settings from the state machine. So they do not have to
+	-- wait for the next clock to change will make the thing quicker - change that later.
+
 	process (reset, enable, state, clock)
 	begin
 		if reset = '1' or enable = '0'
@@ -106,6 +109,9 @@ begin
 						sys_bus.write		<= '0';
 						sys_bus.wait_read	<= '0';
 						sys_bus.wait_write	<= '0';
+						-- double wrong TODO: this should select what write state to goto and it
+						-- it should wait for the execution to complete.
+
 						state				<= CS_WRITE;
 
 				when CS_WRITE =>

@@ -41,12 +41,13 @@ package instructions is
     ---          U = Instruction Unit (IU) 3 bits
     ---          x = instruction details - 19 bits
 	------------------------------------------------------------
-	subtype INSTRUCTION_TYPE is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
-	
 	subtype INSTR_OPCODE_RANGE	is natural range 31 downto 24;	-- The instruction size
 	subtype INSTR_UNIT_RANGE	is natural range 23 downto 21;	-- The instruction units
 	subtype INSTR_SIZE_RANGE	is natural range 20 downto 19;	-- The opcode
 
+	subtype INSTRUCTION_TYPE 	is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
+	subtype OP_CODE_TYPE		is std_logic_vector(OP_CODE_WIDTH-1 downto 0);
+	
 	constant	HALT_INSTR	:	INSTRUCTION_TYPE	:= (others => '0');
 
 	------------------------------------------------------------
@@ -56,6 +57,19 @@ package instructions is
 	constant	IU_CONTROL	:	std_logic_vector(2 downto 0)	:= "001";	--- control unit
 	constant	IU_ARITH	:	std_logic_vector(2 downto 0)	:= "010";	--- arithmetic unit
 	constant	IU_MEMORY	:	std_logic_vector(2 downto 0)	:= "011";	--- memory unit
+
+	type INSTRUCTION_UNIT_TYPE is record
+		logic	: std_logic;
+		control	: std_logic;
+		arith	: std_logic;
+		memory	: std_logic;
+	end record INSTRUCTION_UNIT_TYPE;
+
+	constant	IU_IDLE			:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '0');
+	constant	IU_LOGIC_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('1', '0', '0', '0');
+	constant	IU_CONTROL_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '1', '0', '0');
+	constant	IU_ARITH_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '1', '0');
+	constant	IU_MEMORY_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '1');
 
 	------------------------------------------------------------
 	--- Logic Instructions
@@ -94,7 +108,7 @@ package instructions is
 	constant	LI_DA_R_R	:	std_logic_vector(2 downto 0)	:= "011";
 	constant	LI_DA_RIR	:	std_logic_vector(2 downto 0)	:= "100";
 
-	-- Commands
+	-- op codes
 	constant	LI_AND		:	std_logic_vector(7 downto 0)	:= "00000001";	--- logical and
 	constant	LI_OR		:	std_logic_vector(7 downto 0)	:= "00000010";	--- logical or
 	constant	LI_XOR		:	std_logic_vector(7 downto 0)	:= "00000011";	--- logical xor
@@ -119,6 +133,7 @@ package instructions is
 	------------------------------------------------------------
 	--- Control Instructions
 	------------------------------------------------------------
+	constant	CI_NOP			:	std_logic_vector(7 downto 0)	:= "00000000";	--- do nothing.
 	constant	CI_BRANCH		:	std_logic_vector(7 downto 0)	:= "00000001";	--- branch always
 	constant	CI_BRANCH_LE	:	std_logic_vector(7 downto 0)	:= "00000010";	--- branch if less than or equal
 	constant	CI_BRANCH_LT	:	std_logic_vector(7 downto 0)	:= "00000011";	--- branch if less than

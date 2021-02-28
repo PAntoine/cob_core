@@ -138,4 +138,4 @@ begin
 
 end architecture synth;
 
---- vi:nocin:sw=4 ts=4:fdm=marker
+--- vi:nocin:ai:sw=4 ts=4:fdm=marker

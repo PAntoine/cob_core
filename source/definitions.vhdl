@@ -83,6 +83,16 @@ package definitions is
 		wait_write		: std_logic;		-- wait for a memory to finished.
 	end record SYSTEM_BUS;  
 	
+	constant FREE_SYSTEM_BUS: SYSTEM_BUS :=
+	(
+		fetch			=> 'Z',
+		read			=> 'Z',
+		wait_read		=> 'Z',
+		execute			=> 'Z',
+		write			=> 'Z',
+		wait_write		=> 'Z'
+	);
+	
 	------------------------------------------------------------
 	--- Memory Bus Signals
 	------------------------------------------------------------

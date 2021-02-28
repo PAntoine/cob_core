@@ -61,9 +61,9 @@ begin
 		then
 			mem_dev_en <= '0';
 
-		elsif rising_edge(clock)
+		elsif falling_edge(clock)
 		then
-			mem_dev_en		<= '1';
+			mem_dev_en	<= '1';
 		end if;
 	end process;
 

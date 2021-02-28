@@ -73,6 +73,7 @@ begin
 	-- clock signal
 	clock <= not clock after 50 ps;
 
+
 	-- start the test.
 	enable <= '1' after 25 ps;
 	reset  <= '0' after 5 ps;
@@ -83,20 +84,34 @@ begin
 	begin
 		if bus_en = '0'
 		then
-			da 		<= '0';
 			data 	<= (others => 'Z');
 
 		elsif bus_en = '1' and bus_rw = RW_READ
 		then
 			case bus_address(31 downto 29) is
-				when "000"	=> data <= GetNopTestInstruction(bus_address);
+				when "000"	=> data <= GetLogicRegisterInstruction(bus_address);
+				when "001"	=> data <= GetNopTestInstruction(bus_address);
+				when "010"	=> data <= GetLogicImmdiateInstruction(bus_address);
+				when "011"	=> data <= GetLogicMemoryInstruction(bus_address);
+				when "100"	=> data <= GetLogicSingleInstruction(bus_address);
 
 				when others => data <= x"F0F0F0F0";
 			end case;
-			
-			da		<= '1';
 		end if;
 	end process;
+
+	process (bus_en, clock, bus_rw)
+	begin
+		if bus_en = '0'
+		then
+			da <= '0';
+
+		elsif bus_en = '1' and bus_rw = RW_READ
+		then
+			da <= '1';
+		end if;
+	end process;
+	
 
 end architecture simulation;
 

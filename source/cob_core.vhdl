@@ -29,6 +29,7 @@ use work.MemoryUnit;
 use work.BusController;
 use work.ProgramCounter;
 use work.CPUStateMachine;
+use work.LogicUnit;
 
 entity COB_Core is
 		port(
@@ -42,6 +43,9 @@ entity COB_Core is
 				bus_rw			: out std_logic;	-- set the read/write flag
 				bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
 				da				: in std_logic;									-- data acknowledge - when external data is ready.
+	-- rtl_synthesis off
+				test_port		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- test port for 
+	-- rtl_synthesis on
 				data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
 		);
 end COB_Core ;
@@ -112,6 +116,19 @@ architecture synth of COB_Core is
 		);
 	end component MemoryUnit;
 
+	component LogicUnit is
+		port(
+				enable		: in 	std_logic;		-- are we running?
+				da			: out	std_logic;		-- data available - the command has completed.
+				sys_bus		: in	SYSTEM_BUS;		-- the system bus controls
+				op_code		: in 	OP_CODE_TYPE;	-- the op code
+				flags		: out	CPU_FLAGS;		-- guess what the flags.
+				a_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
+				b_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
+				accumulator	: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
+		);
+	end component LogicUnit;
+
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
@@ -122,6 +139,7 @@ architecture synth of COB_Core is
 	signal sys_bus		: SYSTEM_BUS;
 	signal mem_bus		: MEMORY_BUS 	:= FREE_MEMORY_BUS;
 	signal reg_bus		: REGISTER_BUS	:= FREE_REGISTER_BUS;
+    signal flags        : CPU_FLAGS;
 
 	-- component interconnect signals
 	signal reg_1_rw		: std_logic;
@@ -134,6 +152,11 @@ architecture synth of COB_Core is
 	signal mem_write	: std_logic := '0';
 
 	signal load_pc		: std_logic := '0';		-- load the program counter from somewhere (TODO)
+	
+	signal instruction_complete	: std_logic;	-- the instruction has finished - needs to go into the CSM - TODO.
+
+	-- instruction unit selection
+	signal instruction_unit_sel	: INSTRUCTION_UNIT_TYPE;
 
 	-- component interconnect registers.
 	signal	reg_data	: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '0');
@@ -172,17 +195,44 @@ begin
 
 	pc: ProgramCounter port map (reset => reset, fetch => sys_bus.fetch, load => load_pc, address => mem_bus.addr, pc => pc_bus);
 	
-	process (sys_bus.fetch, mem_bus.complete)
+	ir: process (sys_bus.fetch, da)
 	begin
-		if sys_bus.fetch = '1' and rising_edge(mem_bus.complete)
+		if sys_bus.fetch = '1' and da = '1'
 		then
-			instruction_reg <= mem_data;
+			instruction_reg <= data;
 		end if;
 	end process;
 
+	-- unit selection - which is the active processing unit.
+	us: process (instruction_reg, sys_bus.fetch)
+	begin
+		if sys_bus.fetch = '0' and reset = '0'
+		then
+			case instruction_reg(INSTR_UNIT_RANGE) is
+				when IU_LOGIC	=> instruction_unit_sel <= IU_LOGIC_SEL;
+				when IU_CONTROL	=> instruction_unit_sel <= IU_CONTROL_SEL;
+				when IU_ARITH	=> instruction_unit_sel <= IU_ARITH_SEL;
+				when IU_MEMORY	=> instruction_unit_sel <= IU_MEMORY_SEL;
+				when others		=> instruction_unit_sel <= IU_IDLE;
+			end case;
+		else
+			instruction_unit_sel <= IU_IDLE;
+		end if;
+	end process;
+
+	-- instruction units
+	iu_logic:	LogicUnit	port map (	enable=>instruction_unit_sel.logic,
+										da=>instruction_complete,
+										sys_bus=>sys_bus,
+										op_code=>instruction_reg(INSTR_OPCODE_RANGE),
+										flags=>flags,
+										a_op=>a_reg,
+										b_op=>b_reg,
+										accumulator=>accumulator);
+
+	-- memory bus control
 	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, clock => clock, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,
 								mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
 
 end architecture synth;
 --- vi:nocin:sw=4 ts=4:fdm=marker
-
