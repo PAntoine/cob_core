@@ -1,10 +1,10 @@
 ----------------------------------------------------------------------------------
---             _____ ____  ____     _____
---            / ____/ __ \|  _ \   / ____|
---           | |   | |  | | |_) | | |     ___  _ __ ___
---           | |   | |  | |  _ <  | |    / _ \| '__/ _ \
---           | |___| |__| | |_) | | |___| (_) | | |  __/
---            \_____\____/|____/   \_____\___/|_|  \___|
+--			   _____ ____  ____		_____
+--			  / ____/ __ \|  _ \   / ____|
+--			 | |   | |	| | |_) | | |	  ___  _ __ ___
+--			 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
+--			 | |___| |__| | |_) | | |___| (_) | | |  __/
+--			  \_____\____/|____/   \_____\___/|_|  \___|
 --
 --
 -- Name  : logic_tb_defines
@@ -13,9 +13,9 @@
 -- Author: Peter Antoine
 -- Date  : 22/01/2021
 -----------------------------------------------------------------------------------
---                     Copyright (c) 2021 Peter Antoine
---                            All rights Reserved.
---                    Released Under the Artistic Licence
+--					   Copyright (c) 2021 Peter Antoine
+--							  All rights Reserved.
+--					  Released Under the Artistic Licence
 -----------------------------------------------------------------------------------
 
 library IEEE;
@@ -33,6 +33,11 @@ package logic_tb_defines is
 		b_input :	std_logic_vector(DATA_WIDTH-1 downto 0);
 		output	:	std_logic_vector(DATA_WIDTH-1 downto 0);
 	end record TEST_CASE_TYPE;
+   
+	constant NULL_TEST : TEST_CASE_TYPE :=
+	(
+		   (others => '1'), (others => '0'), (others => '0'), (others => '0')
+	);
 	
 	type TEST_CASE_ARRAY is array(integer range <>) of TEST_CASE_TYPE;
 

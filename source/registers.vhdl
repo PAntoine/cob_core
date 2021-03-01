@@ -34,7 +34,13 @@ use work.definitions.all;
 
 				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
-		);
+				-- rtl_synthesis off
+				;
+				reg_a			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				reg_b			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				out_stuff		: out std_logic_vector(DATA_WIDTH-1 downto 0)
+				-- rtl_synthesis on
+	);
 	end GeneralRegisters;
 
 architecture synth of GeneralRegisters is
@@ -48,40 +54,35 @@ architecture synth of GeneralRegisters is
 begin
 
 	-- handle the reading the data from the registers.
-	data 	<= register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) when (reg_bus.reg_1_en='1' and reset='0' and reg_bus.reg_1_rw=RW_READ) else (others => 'Z');
-	data_2	<= register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) when (reg_bus.reg_2_en='1' and reset='0') else (others => 'Z');
+	data <= 
+	-- rtl_synthesis off
+			reg_a when reg_bus.reg_1_addr = "00001" and reg_bus.reg_1_en='1' and reg_bus.reg_1_rw=RW_READ else
+	-- rtl_synthesis on
+			register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) when (reg_bus.reg_1_en='1' and reset='0' and reg_bus.reg_1_rw=RW_READ) else (others => 'Z');
+
+	data_2 <=
+-- rtl_synthesis off
+			reg_b when reg_bus.reg_2_addr = "00010" and reg_bus.reg_2_en='1' else
+	-- rtl_synthesis on
+			register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) when (reg_bus.reg_2_en='1' and reset='0' and reg_bus.reg_2_rw=RW_READ) else (others => 'Z');
 	
 	data_w_clock <= '1' when reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw = '1' else '0';
 	
-	process (reset, data_w_clock, reg_bus)
+	process (reset, data_w_clock, reg_bus, register_bank)
 	begin
 		if reset = '1'
 		then
-			-- register_bank <= (others => (others => '0'));
-			register_bank(0) <= x"FFFFFFFF";
-			register_bank(1) <= x"FFFFFFFF";
-			register_bank(2) <= x"00000001";
-			register_bank(3) <= x"00000000";
-
+			register_bank <= (others => (others => '0'));
+			
 		elsif rising_edge(data_w_clock)
 		then
 			register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) <= data;
+			-- rtl_synthesis off
+			out_stuff <= data;
+			-- rtl_synthesis on
 		end if;
 	end process;
 
---	-- latch the data to the registers on write - rising edge of the sel clock
---	process (reg_bus.reg_1_rw, reset, clock, reg_bus.reg_1_en, data, reg_address)
---	begin
---		if reset = '1'
---		then
---		  	register_bank(to_integer(unsigned(reg_address))) <= (others => '0');
---		
---		elsif clock'event and clock = '1' and reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw=RW_WRITE
---		then
---			register_bank(to_integer(unsigned(reg_address))) <= data;
---		end if;
---	end process;
-	
 end architecture synth;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker

@@ -49,6 +49,9 @@ architecture simulation of COB_Core_Test_Bench is
 				bus_rw			: out std_logic;	-- set the read/write flag
 				bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
 				da				: in  std_logic;								-- data acknowledge - when external data is ready.
+				test_reg_a		: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				test_reg_b		: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				test_port		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- test port for 
 				data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
 			);
 	end component COB_Core;
@@ -69,6 +72,10 @@ architecture simulation of COB_Core_Test_Bench is
 	signal	da			: std_logic	:= '0';
 	signal	data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
+	signal meh : std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal test_a : std_logic_vector(DATA_WIDTH-1 downto 0) := x"FFFFFFFF";
+	signal test_b : std_logic_vector(DATA_WIDTH-1 downto 0) := x"00000008";
+
 begin
 	-- clock signal
 	clock <= not clock after 50 ps;
@@ -78,7 +85,8 @@ begin
 	enable <= '1' after 25 ps;
 	reset  <= '0' after 5 ps;
 
-	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data);
+	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data,
+								test_port=>meh, test_reg_a=>test_a, test_reg_b=>test_b);
 
 	process (bus_en, bus_rw)
 	begin

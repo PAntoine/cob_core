@@ -46,6 +46,8 @@ entity COB_Core is
 				bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
 				da				: in std_logic;									-- data acknowledge - when external data is ready.
 	-- rtl_synthesis off
+				test_reg_a		: in std_logic_vector(DATA_WIDTH-1 downto 0);	-- test port for 
+				test_reg_b		: in std_logic_vector(DATA_WIDTH-1 downto 0);	-- test port for 
 				test_port		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- test port for 
 	-- rtl_synthesis on
 				data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
@@ -153,6 +155,12 @@ architecture synth of COB_Core is
 				reg_bus			: REGISTER_BUS;									-- the register control bus.
 				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+				-- rtl_synthesis off
+				;
+				reg_a			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				reg_b			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				out_stuff		: out std_logic_vector(DATA_WIDTH-1 downto 0)
+				-- rtl_synthesis on
 		);
 	end component GeneralRegisters;
 
@@ -312,7 +320,13 @@ begin
 	end process;
 
 	-- general register bank.
-	rb: GeneralRegisters port map (reset => reset, reg_bus => reg_bus, data => reg_data, data_2 => reg_data_2);
+	rb: GeneralRegisters port map (reset => reset, reg_bus => reg_bus, data => reg_data, data_2 => reg_data_2
+				-- rtl_synthesis off
+				, reg_a	=> test_reg_a
+				, reg_b => test_reg_b
+				, out_stuff => test_port
+				-- rtl_synthesis on
+				);
 
 	-- instruction units
 	iu_logic: LogicUnit port map(enable=>instruction_unit_sel.logic, da=>instruction_complete, sys_bus=>sys_bus, op_code=>instruction_reg(INSTR_OPCODE_RANGE), flags=>flags, a_op=>a_op, b_op=>b_op, accumulator=>accumulator);

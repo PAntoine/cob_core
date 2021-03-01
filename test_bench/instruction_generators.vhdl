@@ -1,10 +1,10 @@
 ----------------------------------------------------------------------------------
---             _____ ____  ____     _____
---            / ____/ __ \|  _ \   / ____|
---           | |   | |  | | |_) | | |     ___  _ __ ___
---           | |   | |  | |  _ <  | |    / _ \| '__/ _ \
---           | |___| |__| | |_) | | |___| (_) | | |  __/
---            \_____\____/|____/   \_____\___/|_|  \___|
+--			   _____ ____  ____		_____
+--			  / ____/ __ \|  _ \   / ____|
+--			 | |   | |	| | |_) | | |	  ___  _ __ ___
+--			 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
+--			 | |___| |__| | |_) | | |___| (_) | | |  __/
+--			  \_____\____/|____/   \_____\___/|_|  \___|
 --
 --
 -- Name  : logic_tb_defines
@@ -13,9 +13,9 @@
 -- Author: Peter Antoine
 -- Date  : 22/01/2021
 -----------------------------------------------------------------------------------
---                     Copyright (c) 2021 Peter Antoine
---                            All rights Reserved.
---                    Released Under the Artistic Licence
+--					   Copyright (c) 2021 Peter Antoine
+--							  All rights Reserved.
+--					  Released Under the Artistic Licence
 -----------------------------------------------------------------------------------
 
 library IEEE;
@@ -26,14 +26,15 @@ use ieee.numeric_std.all;
 use work.logic_tb_defines.all;
 
 package instruction_generators is
-    ----------------------------------------------------
-    --- functions
-    ----------------------------------------------------
+	----------------------------------------------------
+	--- functions
+	----------------------------------------------------
 	function GetNopTestInstruction			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicImmdiateInstruction 	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicMemoryInstruction 		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+	function GetLogicImmdiateInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+	function GetLogicMemoryInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicSingleInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+	function GetLogicTestValues 			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return TEST_CASE_TYPE;
 
 
 end package instruction_generators;
@@ -119,6 +120,24 @@ package body instruction_generators is
 		
 		return dout;
 	end function;
+	
+	function GetLogicTestValues (a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return TEST_CASE_TYPE is
+			variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
+			variable index : integer;
+			variable dout : TEST_CASE_TYPE;
+	begin
+			index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)));
+
+			if index < lsl_test_cases'length-1
+			then
+					dout := tests(index);
+			else
+					dout := NULL_TEST;
+			end if;
+
+			return dout;
+	end function;
+
 
 end instruction_generators;
 --- vi:nocin:ai:sw=4 ts=4:fdm=marker
