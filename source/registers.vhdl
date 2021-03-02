@@ -38,7 +38,7 @@ use work.definitions.all;
 				;
 				reg_a			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 				reg_b			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				out_stuff		: out std_logic_vector(DATA_WIDTH-1 downto 0)
+				result			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 				-- rtl_synthesis on
 	);
 	end GeneralRegisters;
@@ -77,8 +77,15 @@ begin
 		elsif rising_edge(data_w_clock)
 		then
 			register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) <= data;
+
 			-- rtl_synthesis off
-			out_stuff <= data;
+			if reg_bus.reg_1_addr = "00011"
+			then
+				if data /= result
+				then
+					report "no match"  severity warning;
+				end if
+			end if;
 			-- rtl_synthesis on
 		end if;
 	end process;

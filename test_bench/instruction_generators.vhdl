@@ -88,13 +88,13 @@ package body instruction_generators is
 	end function;
 
 	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
-		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
+		variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)));
+		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)))/4;
 
-		if index < immed_test_cases'length-1
+		if index < lsl_test_cases'length-1
 		then
 			dout := tests(index).opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000";
 		else
@@ -109,7 +109,7 @@ package body instruction_generators is
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)));
+		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)))/4;
 
 		if index < immed_test_cases'length-1
 		then
@@ -126,7 +126,7 @@ package body instruction_generators is
 			variable index : integer;
 			variable dout : TEST_CASE_TYPE;
 	begin
-			index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)));
+			index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)))/4;
 
 			if index < lsl_test_cases'length-1
 			then

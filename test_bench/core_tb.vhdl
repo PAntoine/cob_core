@@ -28,6 +28,8 @@ use work.definitions.all;
 use work.instructions.all;
 use work.instruction_generators.all;
 
+use work.logic_tb_defines.all;
+
 use work.COB_Core;
 
 entity COB_Core_Test_Bench is
@@ -76,6 +78,8 @@ architecture simulation of COB_Core_Test_Bench is
 	signal test_a : std_logic_vector(DATA_WIDTH-1 downto 0) := x"FFFFFFFF";
 	signal test_b : std_logic_vector(DATA_WIDTH-1 downto 0) := x"00000008";
 
+	signal result : std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal prev   : std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
 	-- clock signal
 	clock <= not clock after 50 ps;
@@ -88,6 +92,20 @@ begin
 	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data,
 								test_port=>meh, test_reg_a=>test_a, test_reg_b=>test_b);
 
+	process (bus_en, prev, bus_rw, result)
+	begin
+		if bus_en = '1' and bus_rw = RW_READ
+		then
+			if result /= meh
+			then
+				report "---> address(0x" & to_hstring(bus_address) & ") now:" & to_hstring(GetLogicTestValues(bus_address).output) & "  result: " & to_hstring(result) & " prev:" & to_hstring(prev) & " got " & to_hstring(meh) severity warning;
+			else
+				report "---> address(0x" & to_hstring(bus_address) & ")" severity warning;
+				-- report "failure: address(0x" & to_hstring(bus_address) & ") expected " & to_hstring(prev) & " got " & to_hstring(meh) severity warning;
+			end if;
+		end if;
+	end process;
+
 	process (bus_en, bus_rw)
 	begin
 		if bus_en = '0'
@@ -97,7 +115,13 @@ begin
 		elsif bus_en = '1' and bus_rw = RW_READ
 		then
 			case bus_address(31 downto 29) is
-				when "000"	=> data <= GetLogicRegisterInstruction(bus_address);
+				when "000"	=> 
+								data	<= GetLogicRegisterInstruction(bus_address);
+								test_a	<= GetLogicTestValues(bus_address).a_input;
+								test_b	<= GetLogicTestValues(bus_address).b_input;
+								prev <= result;
+								result	<= GetLogicTestValues(bus_address).output;
+
 				when "001"	=> data <= GetNopTestInstruction(bus_address);
 				when "010"	=> data <= GetLogicImmdiateInstruction(bus_address);
 				when "011"	=> data <= GetLogicMemoryInstruction(bus_address);
