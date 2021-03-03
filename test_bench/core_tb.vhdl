@@ -51,9 +51,6 @@ architecture simulation of COB_Core_Test_Bench is
 				bus_rw			: out std_logic;	-- set the read/write flag
 				bus_address		: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address selected.
 				da				: in  std_logic;								-- data acknowledge - when external data is ready.
-				test_reg_a		: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				test_reg_b		: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				test_port		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- test port for 
 				data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)	-- The data width of the register.
 			);
 	end component COB_Core;
@@ -78,8 +75,6 @@ architecture simulation of COB_Core_Test_Bench is
 	signal test_a : std_logic_vector(DATA_WIDTH-1 downto 0) := x"FFFFFFFF";
 	signal test_b : std_logic_vector(DATA_WIDTH-1 downto 0) := x"00000008";
 
-	signal result : std_logic_vector(DATA_WIDTH-1 downto 0);
-	signal prev   : std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
 	-- clock signal
 	clock <= not clock after 50 ps;
@@ -89,22 +84,7 @@ begin
 	enable <= '1' after 25 ps;
 	reset  <= '0' after 5 ps;
 
-	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data,
-								test_port=>meh, test_reg_a=>test_a, test_reg_b=>test_b);
-
-	process (bus_en, prev, bus_rw, result)
-	begin
-		if bus_en = '1' and bus_rw = RW_READ
-		then
-			if result /= meh
-			then
-				report "---> address(0x" & to_hstring(bus_address) & ") now:" & to_hstring(GetLogicTestValues(bus_address).output) & "  result: " & to_hstring(result) & " prev:" & to_hstring(prev) & " got " & to_hstring(meh) severity warning;
-			else
-				report "---> address(0x" & to_hstring(bus_address) & ")" severity warning;
-				-- report "failure: address(0x" & to_hstring(bus_address) & ") expected " & to_hstring(prev) & " got " & to_hstring(meh) severity warning;
-			end if;
-		end if;
-	end process;
+	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data);
 
 	process (bus_en, bus_rw)
 	begin
@@ -119,8 +99,7 @@ begin
 								data	<= GetLogicRegisterInstruction(bus_address);
 								test_a	<= GetLogicTestValues(bus_address).a_input;
 								test_b	<= GetLogicTestValues(bus_address).b_input;
-								prev <= result;
-								result	<= GetLogicTestValues(bus_address).output;
+								-- result	<= GetLogicTestValues(bus_address).output;
 
 				when "001"	=> data <= GetNopTestInstruction(bus_address);
 				when "010"	=> data <= GetLogicImmdiateInstruction(bus_address);

@@ -34,12 +34,6 @@ use work.definitions.all;
 
 				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
-				-- rtl_synthesis off
-				;
-				reg_a			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				reg_b			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				result			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-				-- rtl_synthesis on
 	);
 	end GeneralRegisters;
 
@@ -54,17 +48,9 @@ architecture synth of GeneralRegisters is
 begin
 
 	-- handle the reading the data from the registers.
-	data <= 
-	-- rtl_synthesis off
-			reg_a when reg_bus.reg_1_addr = "00001" and reg_bus.reg_1_en='1' and reg_bus.reg_1_rw=RW_READ else
-	-- rtl_synthesis on
-			register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) when (reg_bus.reg_1_en='1' and reset='0' and reg_bus.reg_1_rw=RW_READ) else (others => 'Z');
+	data <= register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) when (reg_bus.reg_1_en='1' and reset='0' and reg_bus.reg_1_rw=RW_READ) else (others => 'Z');
 
-	data_2 <=
--- rtl_synthesis off
-			reg_b when reg_bus.reg_2_addr = "00010" and reg_bus.reg_2_en='1' else
-	-- rtl_synthesis on
-			register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) when (reg_bus.reg_2_en='1' and reset='0' and reg_bus.reg_2_rw=RW_READ) else (others => 'Z');
+	data_2 <= register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) when (reg_bus.reg_2_en='1' and reset='0' and reg_bus.reg_2_rw=RW_READ) else (others => 'Z');
 	
 	data_w_clock <= '1' when reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw = '1' else '0';
 	
@@ -77,16 +63,6 @@ begin
 		elsif rising_edge(data_w_clock)
 		then
 			register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) <= data;
-
-			-- rtl_synthesis off
-			if reg_bus.reg_1_addr = "00011"
-			then
-				if data /= result
-				then
-					report "no match"  severity warning;
-				end if
-			end if;
-			-- rtl_synthesis on
 		end if;
 	end process;
 
