@@ -62,7 +62,7 @@ package body instruction_generators is
 
 		if index < immed_test_cases'length-1
 		then
-			dout := tests(index).opcode & IU_LOGIC & LI_DA_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
+			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 		else
 			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
@@ -79,7 +79,7 @@ package body instruction_generators is
 
 		if index < immed_test_cases'length-1
 		then
-			dout := tests(index).opcode & IU_LOGIC & LI_DA_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
+			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 		else
 			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
@@ -96,7 +96,7 @@ package body instruction_generators is
 
 		if index < lsl_test_cases'length-1
 		then
-			dout := tests(index).opcode & IU_LOGIC & LI_DA_RRR & "00001" & "00010" & "00011" & "000";
+			dout := tests(index).opcode & IU_LOGIC & AM_RRR & "00001" & "00010" & "00011" & "000";
 		else
 			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
@@ -113,7 +113,7 @@ package body instruction_generators is
 
 		if index < immed_test_cases'length-1
 		then
-			dout := tests(index).opcode & IU_LOGIC & LI_DA_R_R & "00001" & "00010" & "00011" & "000";
+			dout := tests(index).opcode & IU_LOGIC & AM_R_R & "00001" & "00010" & "00011" & "000";
 		else
 			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;

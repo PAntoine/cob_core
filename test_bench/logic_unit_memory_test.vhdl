@@ -76,8 +76,8 @@ begin
 
 	sel <= '1' when start = '1' else '0';
 
-	reg_1_value <= x"00000001" when address_mode = LI_DA_MRR else test_case.a_input;
-	reg_2_value <= x"00000002" when address_mode = LI_DA_RMR else test_case.b_input;
+	reg_1_value <= x"00000001" when address_mode = AM_MRR else test_case.a_input;
+	reg_2_value <= x"00000002" when address_mode = AM_RMR else test_case.b_input;
 
 	-- indirect reading of the register for the memory address
 	-- so lets simply return known addresses for the memory.

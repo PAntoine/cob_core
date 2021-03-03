@@ -28,15 +28,8 @@ use work.instructions.all;
 entity AddressModeDecoder is
 		port(
 			sel				: in std_logic;			-- enable the address mode decoding.
-			mode			: in DATA_MODE;			-- the data mode to be decoded.
-			reg_1_rw		: out std_logic;		-- register 1 read write status
-			reg_1_en		: out std_logic;		-- register 1 enable.
-			reg_2_rw		: out std_logic;		-- register 2 read write status
-			reg_2_en		: out std_logic;		-- register 2 enable.
-			mem_read		: out std_logic;		-- memory read/write status.
-			mem_write		: out std_logic;		-- write to memory.
-			mem_read_a		: out std_logic;		-- read into register a (or b - if false).
-			immediate_8 	: out std_logic;		-- use the immediate 8 bits from the instruction.
+			mode			: in ADDRESSING_MODE;	-- the data mode to be decoded.
+			addr_mode_bus	: out ADDRESS_MODE_BUS;	-- the address mode bus signals.
 			exception_flag	: out std_logic			-- we have an exception.
 		);
 end AddressModeDecoder;
@@ -47,91 +40,84 @@ begin
 	begin
 		if (sel = '0')
 		then
-			reg_1_rw		<= 'Z';
-			reg_2_rw		<= 'Z';
-			reg_1_en		<= 'Z';
-			reg_2_en		<= 'Z';
-			mem_read_a		<= 'Z';
-			mem_read		<= 'Z';
-			mem_write		<= 'Z';
-			immediate_8 	<= 'Z';
+			addr_mode_bus <= FREE_ADDRESS_MODE_BUS;
 			exception_flag	<= 'Z';
 
 		else
 			case mode is
-				when LI_DA_RRR =>
+				when AM_RRR =>
 					-- reg in for a and b,
-					reg_1_rw		<= RW_READ;
-					reg_2_rw		<= RW_READ;
-					reg_1_en		<= '1';
-					reg_2_en		<= '1';
-					mem_read_a		<= '0';
-					mem_read		<= '0';
-					mem_write		<= '0';
-					immediate_8 	<= '0';
+					addr_mode_bus.reg_1_rw		<= RW_READ;
+					addr_mode_bus.reg_2_rw		<= RW_READ;
+					addr_mode_bus.reg_1_en		<= '1';
+					addr_mode_bus.reg_2_en		<= '1';
+					addr_mode_bus.mem_read_a	<= '0';
+					addr_mode_bus.mem_read		<= '0';
+					addr_mode_bus.mem_write		<= '0';
+					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 							
-				when LI_DA_MRR =>
+				when AM_MRR =>
 					-- mem read for a, and reg read for b.
 					-- read reg a then use that as the
 					-- address for the memory read.
-					reg_1_rw		<= RW_READ;
-					reg_2_rw		<= RW_READ;
-					reg_1_en		<= '1';
-					reg_2_en		<= '1';
-					mem_read_a		<= '1';
-					mem_read		<= '1';
-					mem_write		<= '0';
-					immediate_8 	<= '0';
+					addr_mode_bus.reg_1_rw		<= RW_READ;
+					addr_mode_bus.reg_2_rw		<= RW_READ;
+					addr_mode_bus.reg_1_en		<= '1';
+					addr_mode_bus.reg_2_en		<= '1';
+					addr_mode_bus.mem_read_a	<= '1';
+					addr_mode_bus.mem_read		<= '1';
+					addr_mode_bus.mem_write		<= '0';
+					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 							
-				when LI_DA_RMR =>
+				when AM_RMR =>
 					-- source a reg, source b mem. 
-					reg_1_rw		<= RW_READ;
-					reg_2_rw		<= RW_READ;
-					reg_1_en		<= '1';
-					reg_2_en		<= '1';
-					mem_read_a		<= '0';
-					mem_read		<= '1';
-					mem_write		<= '0';
-					immediate_8 	<= '0';
+					addr_mode_bus.reg_1_rw		<= RW_READ;
+					addr_mode_bus.reg_2_rw		<= RW_READ;
+					addr_mode_bus.reg_1_en		<= '1';
+					addr_mode_bus.reg_2_en		<= '1';
+					addr_mode_bus.mem_read_a	<= '0';
+					addr_mode_bus.mem_read		<= '1';
+					addr_mode_bus.mem_write		<= '0';
+					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 
-				when LI_DA_R_R =>
+				when AM_R_R =>
 					-- Only reg a.
-					reg_1_rw		<= RW_READ;
-					reg_2_rw		<= RW_READ;
-					reg_1_en		<= '1';
-					reg_2_en		<= '0';
-					mem_read_a		<= '0';
-					mem_read		<= '0';
-					mem_write		<= '0';
-					immediate_8 	<= '0';
+					addr_mode_bus.reg_1_rw		<= RW_READ;
+					addr_mode_bus.reg_2_rw		<= RW_READ;
+					addr_mode_bus.reg_1_en		<= '1';
+					addr_mode_bus.reg_2_en		<= '0';
+					addr_mode_bus.mem_read_a	<= '0';
+					addr_mode_bus.mem_read		<= '0';
+					addr_mode_bus.mem_write		<= '0';
+					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 
-				when LI_DA_RIR =>
+				when AM_RIR =>
 					-- reg read for a, immediate for b.
-					reg_1_rw		<= RW_READ;
-					reg_2_rw		<= RW_READ;
-					reg_1_en		<= '1';
-					reg_2_en		<= '0';
-					mem_read_a		<= '0';
-					mem_read		<= '0';
-					mem_write		<= '0';
-					immediate_8 	<= '1';
+					addr_mode_bus.reg_1_rw		<= RW_READ;
+					addr_mode_bus.reg_2_rw		<= RW_READ;
+					addr_mode_bus.reg_1_en		<= '1';
+					addr_mode_bus.reg_2_en		<= '0';
+					addr_mode_bus.mem_read_a	<= '0';
+					addr_mode_bus.mem_read		<= '0';
+					addr_mode_bus.mem_write		<= '0';
+					addr_mode_bus.immediate_8 	<= '1';
 					exception_flag	<= '0';
 
 				when others =>
 					--sys_bus.exception	<= '1';		-- This is an illegal instruction.
 					exception_flag	<= '1';
-					reg_1_rw		<= RW_READ;
-					reg_2_rw		<= RW_READ;
-					reg_1_en		<= '0';
-					reg_2_en		<= '0';
-					mem_read_a		<= '0';
-					mem_read		<= '0';
-					mem_write		<= '0';
-					immediate_8 	<= '0';
+					addr_mode_bus.reg_1_rw		<= RW_READ;
+					addr_mode_bus.reg_2_rw		<= RW_READ;
+					addr_mode_bus.reg_1_en		<= '0';
+					addr_mode_bus.reg_2_en		<= '0';
+					addr_mode_bus.mem_read_a	<= '0';
+					addr_mode_bus.mem_read		<= '0';
+					addr_mode_bus.mem_write		<= '0';
+					addr_mode_bus.immediate_8 	<= '0';
 			end case;
 		end if;
 	end process;

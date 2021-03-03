@@ -80,11 +80,7 @@ architecture synth of COB_Core is
 		port(
 			sel				: in std_logic;		-- select the bus controller
 			sys_bus			: in SYSTEM_BUS;
-			reg_1_rw		: in std_logic;
-			reg_1_en		: in std_logic;
-			reg_2_rw		: in std_logic;
-			reg_2_en		: in std_logic;
-			mem_read_a		: in std_logic;		-- read into internal reg a or b.
+			addr_mode_bus	: in ADDRESS_MODE_BUS;
 			a_address		: in REG_ID;
 			b_address		: in REG_ID;
 			destination_reg	: in REG_ID;
@@ -131,15 +127,8 @@ architecture synth of COB_Core is
 	component AddressModeDecoder is
 		port(
 			sel				: in std_logic;			-- enable the address mode decoding.
-			mode			: in DATA_MODE;			-- the data mode to be decoded.
-			reg_1_rw		: out std_logic;		-- register 1 read write status
-			reg_1_en		: out std_logic;		-- register 1 enable.
-			reg_2_rw		: out std_logic;		-- register 2 read write status
-			reg_2_en		: out std_logic;		-- register 2 enable.
-			mem_read		: out std_logic;		-- memory read/write status.
-			mem_write		: out std_logic;		-- write to memory.
-			mem_read_a		: out std_logic;		-- read into register a (or b - if false).
-			immediate_8 	: out std_logic;		-- use the immediate 8 bits from the instruction.
+			mode			: in ADDRESSING_MODE;	-- the data mode to be decoded.
+			addr_mode_bus	: out ADDRESS_MODE_BUS;
 			exception_flag	: out std_logic			-- we have an exception.
 		);
 	end component;
@@ -160,27 +149,17 @@ architecture synth of COB_Core is
 	signal instruction_reg	: INSTRUCTION_TYPE	:= HALT_INSTR;
 	
 	-- control signal buses
-	signal sys_bus		: SYSTEM_BUS;
-	signal mem_bus		: MEMORY_BUS 	:= FREE_MEMORY_BUS;
-	signal reg_bus		: REGISTER_BUS	:= FREE_REGISTER_BUS;
-    signal flags        : CPU_FLAGS;
+	signal sys_bus			: SYSTEM_BUS;
+	signal mem_bus			: MEMORY_BUS 		:= FREE_MEMORY_BUS;
+	signal reg_bus			: REGISTER_BUS		:= FREE_REGISTER_BUS;
+    signal addr_mode_bus	: ADDRESS_MODE_BUS	:= INIT_ADDRESS_MODE_BUS;
+    signal flags        	: CPU_FLAGS;
 
 	-- component interconnect signals
-	signal reg_1_rw		: std_logic;
-	signal reg_1_en		: std_logic;
-	signal reg_2_rw		: std_logic;
-	signal reg_2_en		: std_logic;
+	signal load_pc		: std_logic := '0';				-- load the program counter from somewhere (TODO)
 	
-	signal mem_read		: std_logic	:= '0';
-	signal mem_read_a	: std_logic := '0';
-	signal mem_write	: std_logic := '0';
-
-	signal immediate_8	: std_logic := '0';
-
-	signal load_pc		: std_logic := '0';			-- load the program counter from somewhere (TODO)
-	
-	signal data_mode	: DATA_MODE := LI_DA_XXX;	-- data mode where the operands come from.
-	signal mode_decode	: std_logic := '0';			-- we have and instructions that requires the data mode decoding.
+	signal data_mode	: ADDRESSING_MODE := AM_XXX;	-- data mode where the operands come from.
+	signal mode_decode	: std_logic := '0';				-- we have and instructions that requires the data mode decoding.
 
 	signal instruction_complete	: std_logic;	-- the instruction has finished - needs to go into the CSM - TODO.
 
@@ -199,16 +178,12 @@ architecture synth of COB_Core is
 
 	signal	pc_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter interconnect.
 begin
-	csm: CPUStateMachine port map ( reset => reset, enable => enable, clock => clock, mem_read => mem_read, mem_write => mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
+	csm: CPUStateMachine port map ( reset => reset, enable => enable, clock => clock, mem_read => addr_mode_bus.mem_read, mem_write => addr_mode_bus.mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
 
 	bc: BusController port map (
 			sel				=> enable,
 			sys_bus			=> sys_bus,
-			reg_1_rw		=> reg_1_rw,
-			reg_1_en		=> reg_1_en,
-			reg_2_rw		=> reg_1_rw,
-			reg_2_en		=> reg_1_en,
-			mem_read_a		=> mem_read_a,
+			addr_mode_bus	=> addr_mode_bus,
 			a_address		=> instruction_reg(LI_SOURCE_A),
 			b_address		=> instruction_reg(LI_SOURCE_B),
 			destination_reg	=> instruction_reg(LI_DEST),
@@ -224,12 +199,10 @@ begin
 
 	pc: ProgramCounter port map (reset => reset, fetch => sys_bus.fetch, load => load_pc, address => mem_bus.addr, pc => pc_bus);
 	
- 	amd: AddressModeDecoder port map (	sel => mode_decode, mode => data_mode, reg_1_rw => reg_1_rw, reg_1_en => reg_1_en, reg_2_rw => reg_2_rw,
-										reg_2_en => reg_2_en, mem_read => mem_read, mem_write => mem_write, mem_read_a => mem_read_a, immediate_8 => immediate_8,
-										exception_flag => flags.exception_flag);
+ 	amd: AddressModeDecoder port map (sel => mode_decode, mode => data_mode, addr_mode_bus => addr_mode_bus, exception_flag => flags.exception_flag);
 
 	-- internal registers.
-	ir: process (sys_bus.fetch, da)
+	ir: process (sys_bus.fetch, da, data)
 	begin
 		if sys_bus.fetch = '1' and da = '1'
 		then
@@ -237,35 +210,35 @@ begin
 		end if;
 	end process;
 
-	opa: process (sys_bus.read, mem_bus.complete, mem_read_a, clock, reg_data)
+	opa: process (sys_bus.read, mem_bus.complete, addr_mode_bus.mem_read_a, clock, reg_data)
 	begin
 		if falling_edge(clock)
 		then
- 			if sys_bus.read = '0' and mem_read = '1' and mem_bus.complete = '1' and mem_read_a = '1'
+ 			if sys_bus.read = '0' and addr_mode_bus.mem_read = '1' and mem_bus.complete = '1' and addr_mode_bus.mem_read_a = '1'
  			then
 				a_op <= mem_data;
 			
-			elsif sys_bus.read = '1' and reg_1_en = '1' and reg_1_rw = RW_READ
+			elsif sys_bus.read = '1' and addr_mode_bus.reg_1_en = '1' and addr_mode_bus.reg_1_rw = RW_READ
 			then
 				a_op <= reg_data;
 			end if;
 		end if;
 	end process;
 	
-	opb: process (sys_bus.read, mem_bus.complete, mem_read_a, clock, reg_data_2)
+	opb: process (sys_bus.read, mem_bus.complete, addr_mode_bus.mem_read_a, clock, reg_data_2)
 	begin
 		if falling_edge(clock)
 		then
-			if immediate_8 = '1'
+			if addr_mode_bus.immediate_8 = '1'
 			then
 				-- load b operand with the immediate value from the instruction
 				b_op <= ZEROS(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
 				
- 			elsif sys_bus.read = '0' and mem_read = '1' and mem_bus.complete = '1' and mem_read_a = '0'
+ 			elsif sys_bus.read = '0' and addr_mode_bus.mem_read = '1' and mem_bus.complete = '1' and addr_mode_bus.mem_read_a = '0'
 			then
 				b_op <= mem_data;
 			
-			elsif sys_bus.read = '1' and reg_2_en = '1' and reg_2_rw = RW_READ
+			elsif sys_bus.read = '1' and addr_mode_bus.reg_2_en = '1' and addr_mode_bus.reg_2_rw = RW_READ
 			then	
 				b_op <= reg_data_2;
 			end if;
@@ -273,7 +246,7 @@ begin
 	end process;
 
 	-- unit selection - which is the active processing unit.
-	us: process (instruction_reg, sys_bus.fetch)
+	us: process (reset, instruction_reg, sys_bus.fetch)
 	begin
 		if sys_bus.fetch = '0' and reset = '0'
 		then
@@ -285,22 +258,22 @@ begin
 
 				when IU_CONTROL	=>
 						instruction_unit_sel	<= IU_CONTROL_SEL;
-						data_mode				<= LI_DA_XXX;
+						data_mode				<= AM_XXX;
 						mode_decode				<= '0';
 
 				when IU_ARITH	=>
 						instruction_unit_sel	<= IU_ARITH_SEL;
-						data_mode				<= LI_DA_XXX;
+						data_mode				<= AM_XXX;
 						mode_decode				<= '0';
 
 				when IU_MEMORY	=>
 						instruction_unit_sel <= IU_MEMORY_SEL;
-						data_mode				<= LI_DA_XXX;
+						data_mode				<= AM_XXX;
 						mode_decode				<= '0';
 
 				when others		=>
 						instruction_unit_sel <= IU_IDLE;
-						data_mode				<= LI_DA_XXX;
+						data_mode				<= AM_XXX;
 						mode_decode				<= '0';
 			end case;
 		else

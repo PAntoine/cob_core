@@ -28,6 +28,15 @@ package instructions is
 	------------------------------------------------------------
 	constant INSTRUCTION_WIDTH	:	natural := 32;
 	constant OP_CODE_WIDTH 		:	natural := 8;
+	
+	-- data access modes
+	subtype		ADDRESSING_MODE is std_logic_vector(2 downto 0);
+	constant	AM_XXX	:	std_logic_vector(2 downto 0)	:= "000";
+	constant	AM_RRR	:	std_logic_vector(2 downto 0)	:= "001";
+	constant	AM_MRR	:	std_logic_vector(2 downto 0)	:= "010";
+	constant	AM_RMR	:	std_logic_vector(2 downto 0)	:= "011";
+	constant	AM_R_R	:	std_logic_vector(2 downto 0)	:= "100";
+	constant	AM_RIR	:	std_logic_vector(2 downto 0)	:= "101";
 
 	------------------------------------------------------------
 	--- type definitions for the instructions
@@ -100,15 +109,6 @@ package instructions is
 	subtype LI_DEST		is natural range  7 downto  3;	-- destination
 	subtype LI_IMM8		is natural range  7 downto  0;	-- destination
 
-	-- data access modes
-	subtype		DATA_MODE is std_logic_vector(2 downto 0);
-	constant	LI_DA_XXX	:	std_logic_vector(2 downto 0)	:= "000";
-	constant	LI_DA_RRR	:	std_logic_vector(2 downto 0)	:= "001";
-	constant	LI_DA_MRR	:	std_logic_vector(2 downto 0)	:= "010";
-	constant	LI_DA_RMR	:	std_logic_vector(2 downto 0)	:= "011";
-	constant	LI_DA_R_R	:	std_logic_vector(2 downto 0)	:= "100";
-	constant	LI_DA_RIR	:	std_logic_vector(2 downto 0)	:= "101";
-
 	-- op codes
 	constant	LI_AND		:	std_logic_vector(7 downto 0)	:= "00000001";	--- logical and
 	constant	LI_OR		:	std_logic_vector(7 downto 0)	:= "00000010";	--- logical or
@@ -133,19 +133,34 @@ package instructions is
 	
 	------------------------------------------------------------
 	--- Control Instructions
+	---
+	---           3         2         1         
+	---          10987654321098765432109876543210
+	---          -+---------+---------+----------
+    ---          mmOOOOOOUUUxxxxxxxxxxxxxxxxxxxxx
+	---
+	---    Address Mode |
+	---     oo = mode   |  Meaning of X
+	---   --------------+------------------------------------------
+	---         00      | Immediate relative sxxxxxxxxxxxxxxxxxxxx
+	---         01		| Register Direct	 xxxxxxxxxxxxxxxxRRRRR
+	---         10		| Register Indirect	 xxxxxxxxxxxxxxxxRRRRR
+	---
 	------------------------------------------------------------
-	constant	CI_NOP			:	std_logic_vector(7 downto 0)	:= "00000000";	--- do nothing.
-	constant	CI_BRANCH		:	std_logic_vector(7 downto 0)	:= "00000001";	--- branch always
-	constant	CI_BRANCH_LE	:	std_logic_vector(7 downto 0)	:= "00000010";	--- branch if less than or equal
-	constant	CI_BRANCH_LT	:	std_logic_vector(7 downto 0)	:= "00000011";	--- branch if less than
-	constant	CI_BRANCH_GE	:	std_logic_vector(7 downto 0)	:= "00000100";	--- branch if greater than or equal
-	constant	CI_BRANCH_GT	:	std_logic_vector(7 downto 0)	:= "00000101";	--- branch if greater then
-	constant	CI_BRANCH_EQ	:	std_logic_vector(7 downto 0)	:= "00000110";	--- branch if equal
-	constant	CI_BRANCH_NE	:	std_logic_vector(7 downto 0)	:= "00000111";	--- branch if not equal
-	constant	CI_CALL			:	std_logic_vector(7 downto 0)	:= "00001000";	--- jump subroutine
-	constant	CI_RETURN		:	std_logic_vector(7 downto 0)	:= "00001001";	--- return from subroutine.
-	constant	CI_INT			:	std_logic_vector(7 downto 0)	:= "00001010";	--- cause interrupt
-	constant	CI_RETI			:	std_logic_vector(7 downto 0)	:= "00001011";	--- return from interrupt
+	subtype CI_IO_MODE	is natural range 31 downto 30;	-- Address mode
+	
+	constant	CI_NOP			:	std_logic_vector(7 downto 0)	:= "XX000000";	--- do nothing.
+	constant	CI_BRANCH		:	std_logic_vector(7 downto 0)	:= "XX000001";	--- branch always
+	constant	CI_BRANCH_LE	:	std_logic_vector(7 downto 0)	:= "XX000010";	--- branch if less than or equal
+	constant	CI_BRANCH_LT	:	std_logic_vector(7 downto 0)	:= "XX000011";	--- branch if less than
+	constant	CI_BRANCH_GE	:	std_logic_vector(7 downto 0)	:= "XX000100";	--- branch if greater than or equal
+	constant	CI_BRANCH_GT	:	std_logic_vector(7 downto 0)	:= "XX000101";	--- branch if greater then
+	constant	CI_BRANCH_EQ	:	std_logic_vector(7 downto 0)	:= "XX000110";	--- branch if equal
+	constant	CI_BRANCH_NE	:	std_logic_vector(7 downto 0)	:= "XX000111";	--- branch if not equal
+	constant	CI_CALL			:	std_logic_vector(7 downto 0)	:= "XX001000";	--- jump subroutine
+	constant	CI_RETURN		:	std_logic_vector(7 downto 0)	:= "XX001001";	--- return from subroutine.
+	constant	CI_INT			:	std_logic_vector(7 downto 0)	:= "XX001010";	--- cause interrupt
+	constant	CI_RETI			:	std_logic_vector(7 downto 0)	:= "XX001011";	--- return from interrupt
 
 	------------------------------------------------------------
 	--- Memory Instructions

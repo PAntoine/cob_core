@@ -58,7 +58,7 @@ architecture behv of LogicUnitImmediateTest is
 	----------------------------------------------------
 begin
 	-- let make or state item.
-	instruction <= test_case.opcode & IU_LOGIC & LI_DA_RIR & "00001" & "00011" & test_case.b_input(7 downto 0); -- when start = '1' else (others => 'Z');
+	instruction <= test_case.opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & test_case.b_input(7 downto 0); -- when start = '1' else (others => 'Z');
 
 	sel <= '1' when start = '1' else '0';
 

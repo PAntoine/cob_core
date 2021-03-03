@@ -26,18 +26,9 @@ use work.definitions.all;
 
 entity BusController is
 		port(
-			sel				: in std_logic;		-- select the bus controller
-			
-			-- CPU modes
+			sel				: in std_logic;
 			sys_bus			: in SYSTEM_BUS;
-			
-			-- component bus signals
-			reg_1_rw		: in std_logic;
-			reg_1_en		: in std_logic;
-			reg_2_rw		: in std_logic;
-			reg_2_en		: in std_logic;
-
-			mem_read_a		: in std_logic;		-- read into internal reg a or b.
+			addr_mode_bus	: in ADDRESS_MODE_BUS;
 
 			-- data buses
 			a_address		: in REG_ID;
@@ -62,8 +53,7 @@ begin
 	------------------------------------------------------------
 	--- Bus Control Drivers
 	------------------------------------------------------------
-	process (  sys_bus, reg_1_rw, reg_1_en, reg_2_rw, reg_2_en, mem_read_a,
-	           a_op, b_op, accumulator, destination_reg, a_address, b_address, pc_reg)
+	process (sys_bus, addr_mode_bus, a_op, b_op, accumulator, destination_reg, a_address, b_address, pc_reg)
 	begin
 		if sys_bus.fetch = '1'
 		then
@@ -78,10 +68,10 @@ begin
 		then
 			reg_bus.reg_1_addr	<= a_address;
 			reg_bus.reg_2_addr	<= b_address;
-			reg_bus.reg_1_rw	<= reg_1_rw;
-			reg_bus.reg_2_rw	<= reg_2_rw;
-			reg_bus.reg_1_en	<= reg_1_en;
-			reg_bus.reg_2_en	<= reg_2_en;
+			reg_bus.reg_1_rw	<= addr_mode_bus.reg_1_rw;
+			reg_bus.reg_2_rw	<= addr_mode_bus.reg_2_rw;
+			reg_bus.reg_1_en	<= addr_mode_bus.reg_1_en;
+			reg_bus.reg_2_en	<= addr_mode_bus.reg_2_en;
 			reg_data			<= (others => 'Z');
 			mem_bus_data		<= (others => 'Z');
 			mem_bus				<= FREE_MEMORY_BUS;
@@ -90,7 +80,7 @@ begin
 		then
 			reg_bus				<= FREE_REGISTER_BUS;
 			mem_bus_data		<= (others => 'Z');
-			if mem_read_a = '1'
+			if addr_mode_bus.mem_read_a = '1'
 			then
 				mem_bus.addr	<= a_op;
 			else
@@ -105,9 +95,9 @@ begin
 			reg_bus.reg_1_addr	<= destination_reg;
 			reg_bus.reg_2_addr	<= b_address;
 			reg_bus.reg_1_rw	<= RW_WRITE;
-			reg_bus.reg_2_rw	<= reg_2_rw;
-			reg_bus.reg_1_en	<= reg_1_en;
-			reg_bus.reg_2_en	<= reg_2_en;
+			reg_bus.reg_2_rw	<= addr_mode_bus.reg_2_rw;
+			reg_bus.reg_1_en	<= addr_mode_bus.reg_1_en;
+			reg_bus.reg_2_en	<= addr_mode_bus.reg_2_en;
 			reg_data 			<= accumulator;
 			mem_bus_data		<= (others => 'Z');
 			mem_bus				<= FREE_MEMORY_BUS;

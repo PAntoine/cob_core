@@ -94,6 +94,44 @@ package definitions is
 	);
 	
 	------------------------------------------------------------
+	--- Address Mode Bus
+	------------------------------------------------------------
+	type ADDRESS_MODE_BUS is record
+		reg_1_rw   		: std_logic;
+		reg_1_en   		: std_logic;
+		reg_2_rw   		: std_logic;
+		reg_2_en   		: std_logic;
+		mem_read   		: std_logic;
+		mem_write  		: std_logic;
+		mem_read_a 		: std_logic;
+		immediate_8		: std_logic;
+	end record ADDRESS_MODE_BUS;  
+
+	constant FREE_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> 'Z',
+		reg_1_en   		=> 'Z',
+		reg_2_rw   		=> 'Z',
+		reg_2_en   		=> 'Z',
+		mem_read   		=> 'Z',
+		mem_write  		=> 'Z',
+		mem_read_a 		=> 'Z',
+		immediate_8		=> 'Z'
+	);
+
+	constant INIT_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '0',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '0',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0'
+	);
+
+	------------------------------------------------------------
 	--- Memory Bus Signals
 	------------------------------------------------------------
 	type MEMORY_BUS is record

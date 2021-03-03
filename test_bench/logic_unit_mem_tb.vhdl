@@ -119,7 +119,7 @@ begin
 	process
 	 variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
 	 type test_mode is array(0 to 1) of std_logic_vector(2 downto 0);
-	 variable modes : test_mode := (LI_DA_MRR, LI_DA_RMR);
+	 variable modes : test_mode := (AM_MRR, AM_RMR);
 	 
 	begin
 		-- need some setup time.
