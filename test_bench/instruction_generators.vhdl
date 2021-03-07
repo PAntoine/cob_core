@@ -29,6 +29,7 @@ package instruction_generators is
 	----------------------------------------------------
 	--- functions
 	----------------------------------------------------
+	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetNopTestInstruction			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicImmdiateInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicMemoryInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
@@ -40,14 +41,21 @@ package instruction_generators is
 end package instruction_generators;
 
 package body instruction_generators is
+	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+		variable dout : INSTRUCTION_TYPE;
+	begin
+		dout := CI_AM_IMMEDIATE_REL & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
+		return dout;
+	end function;
+
 	function GetNopTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
 		if unsigned(a_in) < 255
 		then
-			dout := CI_NOP & IU_CONTROL & ZEROS(20 downto 0);
+			dout := CI_NOP & "0000" & IU_CONTROL & ZEROS(20 downto 0);
 		else
-			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
 
 		return dout;
@@ -64,7 +72,7 @@ package body instruction_generators is
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 		else
-			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
 		
 		return dout;
@@ -81,7 +89,7 @@ package body instruction_generators is
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 		else
-			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
 		
 		return dout;
@@ -98,7 +106,7 @@ package body instruction_generators is
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_RRR & "00001" & "00010" & "00011" & "000";
 		else
-			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
 
 		return dout;
@@ -115,7 +123,7 @@ package body instruction_generators is
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_R_R & "00001" & "00010" & "00011" & "000";
 		else
-			dout := CI_BRANCH & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
 		end if;
 		
 		return dout;

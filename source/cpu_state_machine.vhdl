@@ -29,6 +29,8 @@ entity CPUStateMachine is
 			reset			: in std_logic;
 			enable			: in std_logic;
 			clock			: in std_logic;
+			reg_read		: in std_logic;
+			reg_write		: in std_logic;
 			mem_read		: in std_logic;
 			mem_write		: in std_logic;
 			mem_complete	: in std_logic;
@@ -76,11 +78,17 @@ begin
 
 				when CS_DECODE	=>
 						sys_bus.fetch		<= '0';
-						sys_bus.read		<= '1';
 						sys_bus.execute		<= '0';
 						sys_bus.write		<= '0';
 						sys_bus.wait_read	<= '0';
 						sys_bus.wait_write	<= '0';
+
+						if reg_read = '1'
+						then
+							sys_bus.read	<= '1';
+						else
+							sys_bus.read	<= '0';
+						end if;
 
 						if mem_read = '0'
 						then
@@ -112,7 +120,15 @@ begin
 						-- double wrong TODO: this should select what write state to goto and it
 						-- it should wait for the execution to complete.
 
-						state				<= CS_WRITE;
+						if mem_write = '1'
+						then
+							state	<= CS_WRITE_WAIT;
+						elsif reg_write = '1'
+						then
+							state	<= CS_WRITE;
+						else
+							state	<= CS_FETCH;
+						end if;
 
 				when CS_WRITE =>
 						sys_bus.fetch		<= '0';

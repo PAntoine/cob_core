@@ -38,6 +38,9 @@ package instructions is
 	constant	AM_R_R	:	std_logic_vector(2 downto 0)	:= "100";
 	constant	AM_RIR	:	std_logic_vector(2 downto 0)	:= "101";
 
+	-- TODO: this is incorrectly named
+	subtype LI_IMM21	is natural range  20 downto  0;	-- immediate instruction value
+
 	------------------------------------------------------------
 	--- type definitions for the instructions
 	---
@@ -147,20 +150,27 @@ package instructions is
 	---         10		| Register Indirect	 xxxxxxxxxxxxxxxxRRRRR
 	---
 	------------------------------------------------------------
+	subtype CI_AM_TYPE is std_logic_vector(1 downto 0);
+
 	subtype CI_IO_MODE	is natural range 31 downto 30;	-- Address mode
+	constant	CI_AM_IMMEDIATE_REL		:	CI_AM_TYPE := "00";
+	constant	CI_AM_REGISTER_DIRECT	:	CI_AM_TYPE := "01";
+	constant	CI_AM_REGISTER_INDIRECT	:	CI_AM_TYPE := "10";
 	
-	constant	CI_NOP			:	std_logic_vector(7 downto 0)	:= "XX000000";	--- do nothing.
-	constant	CI_BRANCH		:	std_logic_vector(7 downto 0)	:= "XX000001";	--- branch always
-	constant	CI_BRANCH_LE	:	std_logic_vector(7 downto 0)	:= "XX000010";	--- branch if less than or equal
-	constant	CI_BRANCH_LT	:	std_logic_vector(7 downto 0)	:= "XX000011";	--- branch if less than
-	constant	CI_BRANCH_GE	:	std_logic_vector(7 downto 0)	:= "XX000100";	--- branch if greater than or equal
-	constant	CI_BRANCH_GT	:	std_logic_vector(7 downto 0)	:= "XX000101";	--- branch if greater then
-	constant	CI_BRANCH_EQ	:	std_logic_vector(7 downto 0)	:= "XX000110";	--- branch if equal
-	constant	CI_BRANCH_NE	:	std_logic_vector(7 downto 0)	:= "XX000111";	--- branch if not equal
-	constant	CI_CALL			:	std_logic_vector(7 downto 0)	:= "XX001000";	--- jump subroutine
-	constant	CI_RETURN		:	std_logic_vector(7 downto 0)	:= "XX001001";	--- return from subroutine.
-	constant	CI_INT			:	std_logic_vector(7 downto 0)	:= "XX001010";	--- cause interrupt
-	constant	CI_RETI			:	std_logic_vector(7 downto 0)	:= "XX001011";	--- return from interrupt
+	subtype CONTROL_OP_CODE_TYPE		is std_logic_vector(3 downto 0);
+
+	constant	CI_NOP			:	CONTROL_OP_CODE_TYPE	:= "0000";	--- do nothing.
+	constant	CI_BRANCH		:	CONTROL_OP_CODE_TYPE	:= "0001";	--- branch always
+	constant	CI_BRANCH_LE	:	CONTROL_OP_CODE_TYPE	:= "0010";	--- branch if less than or equal
+	constant	CI_BRANCH_LT	:	CONTROL_OP_CODE_TYPE	:= "0011";	--- branch if less than
+	constant	CI_BRANCH_GE	:	CONTROL_OP_CODE_TYPE	:= "0100";	--- branch if greater than or equal
+	constant	CI_BRANCH_GT	:	CONTROL_OP_CODE_TYPE	:= "0101";	--- branch if greater then
+	constant	CI_BRANCH_EQ	:	CONTROL_OP_CODE_TYPE	:= "0110";	--- branch if equal
+	constant	CI_BRANCH_NE	:	CONTROL_OP_CODE_TYPE	:= "0111";	--- branch if not equal
+	constant	CI_CALL			:	CONTROL_OP_CODE_TYPE	:= "1000";	--- jump subroutine
+	constant	CI_RETURN		:	CONTROL_OP_CODE_TYPE	:= "1001";	--- return from subroutine.
+	constant	CI_INT			:	CONTROL_OP_CODE_TYPE	:= "1010";	--- cause interrupt
+	constant	CI_RETI			:	CONTROL_OP_CODE_TYPE	:= "1011";	--- return from interrupt
 
 	------------------------------------------------------------
 	--- Memory Instructions

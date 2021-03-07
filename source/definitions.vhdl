@@ -105,6 +105,8 @@ package definitions is
 		mem_write  		: std_logic;
 		mem_read_a 		: std_logic;
 		immediate_8		: std_logic;
+		immediate_21	: std_logic;
+		pc_update		: std_logic; 
 	end record ADDRESS_MODE_BUS;  
 
 	constant FREE_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
@@ -116,7 +118,9 @@ package definitions is
 		mem_read   		=> 'Z',
 		mem_write  		=> 'Z',
 		mem_read_a 		=> 'Z',
-		immediate_8		=> 'Z'
+		immediate_8		=> 'Z',
+		immediate_21	=> 'Z',
+		pc_update		=> 'Z'
 	);
 
 	constant INIT_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
@@ -128,8 +132,95 @@ package definitions is
 		mem_read   		=> '0',
 		mem_write  		=> '0',
 		mem_read_a 		=> '0',
-		immediate_8		=> '0'
+		immediate_8		=> '0',
+		immediate_21	=> '0',
+		pc_update		=> '0'
 	);
+
+	constant IMM_21_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '0',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '0',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '1',
+		pc_update		=> '0'
+	);
+
+	constant IMM_21_TO_PC_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '0',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '0',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '1',
+		pc_update		=> '1'
+	);
+
+	constant REGISTER_1_ADDRESS_MODE : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '1',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '0',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '0',
+		pc_update		=> '0'
+	);
+
+	constant REGISTER_1_INDIRECT_ADDRESS_MODE : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '1',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '1',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '0',
+		pc_update		=> '0'
+	);
+
+	constant REGISTER_1_TO_PC_ADDRESS_MODE : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '1',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '0',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '0',
+		pc_update		=> '1'
+	);
+
+	constant REGISTER_1_INDIRECT_TO_PC_ADDRESS_MODE : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '1',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '1',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '0',
+		pc_update		=> '1'
+	);
+
 
 	------------------------------------------------------------
 	--- Memory Bus Signals

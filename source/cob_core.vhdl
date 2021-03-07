@@ -5,7 +5,7 @@
 --					 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
 --					 | |___| |__| | |_) | | |___| (_) | | |  __/
 --					  \_____\____/|____/   \_____\___/|_|  \___|
---					
+--
 --
 -- Name  : cob_core
 -- Desc  : The COB Core processor.
@@ -30,6 +30,7 @@ use work.BusController;
 use work.ProgramCounter;
 use work.CPUStateMachine;
 use work.LogicUnit;
+use work.ControlUnit;
 use work.AddressModeDecoder;
 use work.GeneralRegisters;
 
@@ -38,7 +39,7 @@ entity COB_Core is
 				reset			: in std_logic;		-- reset all the registers.
 				enable			: in std_logic;		-- enable the processor.
 				clock			: in std_logic;		-- the external system clock.
-				
+
 				as				: out std_logic;	-- address strobe
 				ds				: out std_logic;	-- data strobe
 				bus_en			: out std_logic;	-- bus enable.
@@ -69,6 +70,8 @@ architecture synth of COB_Core is
 			reset			: in std_logic;
 			enable			: in std_logic;
 			clock			: in std_logic;
+			reg_read		: in std_logic;
+			reg_write		: in std_logic;
 			mem_read		: in std_logic;
 			mem_write		: in std_logic;
 			mem_complete	: in std_logic;
@@ -123,7 +126,21 @@ architecture synth of COB_Core is
 				accumulator	: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
 		);
 	end component LogicUnit;
-	
+
+	component ControlUnit is
+		port(
+				enable			: in 	std_logic;			-- are we running?
+				da				: out	std_logic;			-- data available - the command has completed.
+				sys_bus			: in 	SYSTEM_BUS;			-- the system bus controls
+				op_code			: in 	OP_CODE_TYPE;		-- the op code
+				flags			: in	CPU_FLAGS;			-- guess what the flags.
+				addr_mode_bus	: out	ADDRESS_MODE_BUS;	-- drive the address bus.
+				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
+				pc				: in	std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter value
+				accumulator		: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
+		);
+	end component ControlUnit;
+
 	component AddressModeDecoder is
 		port(
 			sel				: in std_logic;			-- enable the address mode decoding.
@@ -132,7 +149,7 @@ architecture synth of COB_Core is
 			exception_flag	: out std_logic			-- we have an exception.
 		);
 	end component;
-	
+
 	component GeneralRegisters is
 		port(
 				reset			: in std_logic;									-- reset all the registers.
@@ -145,9 +162,9 @@ architecture synth of COB_Core is
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
-	
+
 	signal instruction_reg	: INSTRUCTION_TYPE	:= HALT_INSTR;
-	
+
 	-- control signal buses
 	signal sys_bus			: SYSTEM_BUS;
 	signal mem_bus			: MEMORY_BUS 		:= FREE_MEMORY_BUS;
@@ -157,7 +174,7 @@ architecture synth of COB_Core is
 
 	-- component interconnect signals
 	signal load_pc		: std_logic := '0';				-- load the program counter from somewhere (TODO)
-	
+
 	signal data_mode	: ADDRESSING_MODE := AM_XXX;	-- data mode where the operands come from.
 	signal mode_decode	: std_logic := '0';				-- we have and instructions that requires the data mode decoding.
 
@@ -173,12 +190,21 @@ architecture synth of COB_Core is
 	signal	a_op		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal	b_op		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal	accumulator	: std_logic_vector(DATA_WIDTH-1 downto 0);
-	
+
 	signal int_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
 	signal	pc_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter interconnect.
+
+	signal reg_read : std_logic;
+	signal reg_write : std_logic;
 begin
-	csm: CPUStateMachine port map ( reset => reset, enable => enable, clock => clock, mem_read => addr_mode_bus.mem_read, mem_write => addr_mode_bus.mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
+
+	reg_read  <= (addr_mode_bus.reg_1_en or addr_mode_bus.reg_2_en) when (addr_mode_bus.reg_1_rw = RW_READ and addr_mode_bus.reg_2_rw = RW_READ) else '0';
+	reg_write <= (addr_mode_bus.reg_1_en or addr_mode_bus.reg_2_en) when (addr_mode_bus.reg_1_rw = RW_WRITE or addr_mode_bus.reg_2_rw = RW_WRITE)
+					else '1' when addr_mode_bus.pc_update = '1'
+					else '0';
+
+	csm: CPUStateMachine port map ( reset => reset, enable => enable, clock => clock, mem_read => addr_mode_bus.mem_read, reg_read => reg_read, reg_write => reg_write, mem_write => addr_mode_bus.mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
 
 	bc: BusController port map (
 			sel				=> enable,
@@ -197,8 +223,10 @@ begin
 			mem_bus_data	=> mem_data
 		);
 
-	pc: ProgramCounter port map (reset => reset, fetch => sys_bus.fetch, load => load_pc, address => mem_bus.addr, pc => pc_bus);
-	
+	load_pc <= '1' when addr_mode_bus.pc_update = '1' and sys_bus.write = '1' else '0';
+
+	pc: ProgramCounter port map (reset => reset, fetch => sys_bus.fetch, load => load_pc, address => accumulator, pc => pc_bus);
+
  	amd: AddressModeDecoder port map (sel => mode_decode, mode => data_mode, addr_mode_bus => addr_mode_bus, exception_flag => flags.exception_flag);
 
 	-- internal registers.
@@ -217,14 +245,24 @@ begin
  			if sys_bus.read = '0' and addr_mode_bus.mem_read = '1' and mem_bus.complete = '1' and addr_mode_bus.mem_read_a = '1'
  			then
 				a_op <= mem_data;
-			
+
 			elsif sys_bus.read = '1' and addr_mode_bus.reg_1_en = '1' and addr_mode_bus.reg_1_rw = RW_READ
 			then
 				a_op <= reg_data;
+
+			elsif addr_mode_bus.immediate_8 = '1'
+			then
+				-- load b operand with the immediate value from the instruction
+				a_op <= ZEROS(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
+
+			elsif addr_mode_bus.immediate_21 = '1'
+			then
+				-- load b operand with the immediate value from the instruction
+				a_op <= ZEROS(DATA_WIDTH-1 downto 21) & instruction_reg(LI_IMM21);
 			end if;
 		end if;
 	end process;
-	
+
 	opb: process (sys_bus.read, mem_bus.complete, addr_mode_bus.mem_read_a, clock, reg_data_2)
 	begin
 		if falling_edge(clock)
@@ -233,13 +271,13 @@ begin
 			then
 				-- load b operand with the immediate value from the instruction
 				b_op <= ZEROS(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
-				
+
  			elsif sys_bus.read = '0' and addr_mode_bus.mem_read = '1' and mem_bus.complete = '1' and addr_mode_bus.mem_read_a = '0'
 			then
 				b_op <= mem_data;
-			
+
 			elsif sys_bus.read = '1' and addr_mode_bus.reg_2_en = '1' and addr_mode_bus.reg_2_rw = RW_READ
-			then	
+			then
 				b_op <= reg_data_2;
 			end if;
 		end if;
@@ -251,7 +289,7 @@ begin
 		if sys_bus.fetch = '0' and reset = '0'
 		then
 			case instruction_reg(INSTR_UNIT_RANGE) is
-				when IU_LOGIC	=> 
+				when IU_LOGIC	=>
 						instruction_unit_sel 	<= IU_LOGIC_SEL;
 						data_mode				<= instruction_reg(LI_IO_CODE);
 						mode_decode				<= '1';
@@ -285,7 +323,9 @@ begin
 	rb: GeneralRegisters port map (reset => reset, reg_bus => reg_bus, data => reg_data, data_2 => reg_data_2);
 
 	-- instruction units
-	iu_logic: LogicUnit port map(enable=>instruction_unit_sel.logic, da=>instruction_complete, sys_bus=>sys_bus, op_code=>instruction_reg(INSTR_OPCODE_RANGE), flags=>flags, a_op=>a_op, b_op=>b_op, accumulator=>accumulator);
+	iu_logic:	LogicUnit port map(enable=>instruction_unit_sel.logic, da=>instruction_complete, sys_bus=>sys_bus, op_code=>instruction_reg(INSTR_OPCODE_RANGE), flags=>flags, a_op=>a_op, b_op=>b_op, accumulator=>accumulator);
+	cu: 		ControlUnit port map (	enable => instruction_unit_sel.control, da => instruction_complete, sys_bus => sys_bus, op_code =>instruction_reg(INSTR_OPCODE_RANGE),
+										flags => flags, addr_mode_bus => addr_mode_bus, a_op => a_op, pc => pc_bus, accumulator => accumulator);
 
 	-- memory bus control
 	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, clock => clock, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,
