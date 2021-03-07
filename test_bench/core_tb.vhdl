@@ -96,17 +96,17 @@ begin
 		then
 			case bus_address(22 downto 20) is
 				when "000"	=>	data	<= GetBranchTestInstruction(bus_address);
-				when "100"	=> 
+				when "111"	=> 
 								-- TODO: there is a hack that the bus address is trimed inside to 20 bits, shouls
 								--       should really do it here or it's going to cause me trouble.
 								data	<= GetLogicRegisterInstruction(bus_address);
 								test_a	<= GetLogicTestValues(bus_address).a_input;
 								test_b	<= GetLogicTestValues(bus_address).b_input;
 								-- result	<= GetLogicTestValues(bus_address).output;
-				when "010"	=> data <= GetNopTestInstruction(bus_address);
-				when "011"	=> data <= GetLogicImmdiateInstruction(bus_address);
-				when "110"	=> data <= GetLogicMemoryInstruction(bus_address);
-				when "101"	=> data <= GetLogicSingleInstruction(bus_address);
+				when "110"	=> data <= GetNopTestInstruction(bus_address);
+				when "101"	=> data <= GetLogicImmdiateInstruction(bus_address);
+				when "100"	=> data <= GetLogicMemoryInstruction(bus_address);
+				when "011"	=> data <= GetLogicSingleInstruction(bus_address);
 
 				when others => data <= x"F0F0F0F0";
 			end case;

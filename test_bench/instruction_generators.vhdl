@@ -49,11 +49,29 @@ package body instruction_generators is
 		then
 			dout := CI_AM_IMMEDIATE_REL & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
 		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "111000000000000000000";
 		end if;
 
 		return dout;
 	end function;
+	
+	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+		variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
+		variable index : integer;
+		variable dout : INSTRUCTION_TYPE;
+	begin
+		index := to_integer(unsigned(a_in(19 downto 0)))/4;
+
+		if index < lsl_test_cases'length-1
+		then
+			dout := tests(index).opcode & IU_LOGIC & AM_RRR & "00001" & "00010" & "00011" & "000";
+		else
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "110000000000000000000";
+		end if;
+
+		return dout;
+	end function;
+
 
 	function GetNopTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
@@ -62,7 +80,7 @@ package body instruction_generators is
 		then
 			dout := CI_NOP & "0000" & IU_CONTROL & ZEROS(20 downto 0);
 		else
-			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "101000000000000000000";
 		end if;
 
 		return dout;
@@ -73,13 +91,13 @@ package body instruction_generators is
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)));
+		index := to_integer(unsigned(a_in(19 downto 0)))/4;
 
 		if index < immed_test_cases'length-1
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 		else
-			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
 		end if;
 		
 		return dout;
@@ -90,32 +108,15 @@ package body instruction_generators is
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)));
+		index := to_integer(unsigned(a_in(19 downto 0)))/4;
 
 		if index < immed_test_cases'length-1
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 		else
-			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "011000000000000000000";
 		end if;
 		
-		return dout;
-	end function;
-
-	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
-		variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
-		variable index : integer;
-		variable dout : INSTRUCTION_TYPE;
-	begin
-		index := to_integer(unsigned(a_in(20 downto 0)))/4;
-
-		if index < lsl_test_cases'length-1
-		then
-			dout := tests(index).opcode & IU_LOGIC & AM_RRR & "00001" & "00010" & "00011" & "000";
-		else
-			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
-		end if;
-
 		return dout;
 	end function;
 
@@ -124,13 +125,13 @@ package body instruction_generators is
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)))/4;
+		index := to_integer(unsigned(a_in(19 downto 0)))/4;
 
 		if index < immed_test_cases'length-1
 		then
 			dout := tests(index).opcode & IU_LOGIC & AM_R_R & "00001" & "00010" & "00011" & "000";
 		else
-			dout := CI_BRANCH & "0000" & IU_CONTROL & ZEROS(20 downto 0);  -- TODO: need to sort out a jump target.
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "010000000000000000000";
 		end if;
 		
 		return dout;
