@@ -90,11 +90,11 @@ begin
 							sys_bus.read	<= '0';
 						end if;
 
-						if mem_read = '0'
+						if mem_read = '1'
 						then
-							state	<= CS_EXECUTE;
-						else
 							state	<= CS_READ_WAIT;		-- wait state while waiting for the memory device to do it's work.
+						else	
+							state	<= CS_EXECUTE;
 						end if;
 
 				when CS_READ_WAIT =>

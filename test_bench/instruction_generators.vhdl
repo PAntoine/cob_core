@@ -44,7 +44,14 @@ package body instruction_generators is
 	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		dout := CI_AM_IMMEDIATE_REL & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
+		
+		if a_in = x"00000200"
+		then
+			dout := CI_AM_IMMEDIATE_REL & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
+		else
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
+		end if;
+
 		return dout;
 	end function;
 

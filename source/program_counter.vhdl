@@ -31,12 +31,14 @@ entity ProgramCounter is
 			load	: in std_logic;									-- the counter is being loaded with an address.
 			address	: in std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address to be loaded in the program counter.
 
+			current	: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the current address - stable throughout the operation.
 			pc		: out std_logic_vector(ADDR_WIDTH-1 downto 0)	-- the value of the program counter.
 		);
 end ProgramCounter;
 
 architecture synth of ProgramCounter is
 	signal counter		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the program counter.
+	signal current_addr	: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the program counter - of the current instruction.
 	signal load_addr	: std_logic;
 begin
 
@@ -56,6 +58,19 @@ begin
 		end if;
 	end process;
 
+	process (reset, fetch)
+	begin
+		if reset = '1'
+		then
+			current_addr <= (others => 'Z');
+		
+		elsif rising_edge(fetch)
+		then
+			current_addr <= counter;
+		end if;
+	end process;
+
+	current <= current_addr;
 	pc <= counter;
 
 end architecture synth;

@@ -34,6 +34,7 @@ package definitions is
 	constant 	ADDR_BYTES	: natural := ADDR_WIDTH / 8;
 
 	constant	ZEROS		: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '0');
+	constant	ONES		: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '1');
 
 	------------------------------------------------------------
 	--- Register constants
@@ -136,6 +137,22 @@ package definitions is
 		immediate_21	=> '0',
 		pc_update		=> '0'
 	);
+	
+	-- this is the same as INIT - but names matter - this is for instructions that done
+	-- read or write memory or registers.`
+	constant NONE_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
+	(
+		reg_1_rw   		=> '0',
+		reg_1_en   		=> '0',
+		reg_2_rw   		=> '0',
+		reg_2_en   		=> '0',
+		mem_read   		=> '0',
+		mem_write  		=> '0',
+		mem_read_a 		=> '0',
+		immediate_8		=> '0',
+		immediate_21	=> '0',
+		pc_update		=> '0'
+	);
 
 	constant IMM_21_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
 	(
@@ -213,7 +230,7 @@ package definitions is
 		reg_1_en   		=> '1',
 		reg_2_rw   		=> '0',
 		reg_2_en   		=> '0',
-		mem_read   		=> '1',
+		mem_read   		=> '0',
 		mem_write  		=> '0',
 		mem_read_a 		=> '0',
 		immediate_8		=> '0',

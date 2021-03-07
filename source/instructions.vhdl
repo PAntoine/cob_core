@@ -69,19 +69,22 @@ package instructions is
 	constant	IU_CONTROL	:	std_logic_vector(2 downto 0)	:= "001";	--- control unit
 	constant	IU_ARITH	:	std_logic_vector(2 downto 0)	:= "010";	--- arithmetic unit
 	constant	IU_MEMORY	:	std_logic_vector(2 downto 0)	:= "011";	--- memory unit
+	constant	IU_SYSTEM	:	std_logic_vector(2 downto 0)	:= "100";	--- system unit
 
 	type INSTRUCTION_UNIT_TYPE is record
 		logic	: std_logic;
 		control	: std_logic;
 		arith	: std_logic;
 		memory	: std_logic;
+		system	: std_logic;
 	end record INSTRUCTION_UNIT_TYPE;
 
-	constant	IU_IDLE			:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '0');
-	constant	IU_LOGIC_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('1', '0', '0', '0');
-	constant	IU_CONTROL_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '1', '0', '0');
-	constant	IU_ARITH_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '1', '0');
-	constant	IU_MEMORY_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '1');
+	constant	IU_IDLE			:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '0', '0');
+	constant	IU_LOGIC_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('1', '0', '0', '0', '0');
+	constant	IU_CONTROL_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '1', '0', '0', '0');
+	constant	IU_ARITH_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '1', '0', '0');
+	constant	IU_MEMORY_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '1', '0');
+	constant	IU_SYSTEM_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '0', '1');
 
 	------------------------------------------------------------
 	--- Logic Instructions
@@ -153,9 +156,10 @@ package instructions is
 	subtype CI_AM_TYPE is std_logic_vector(1 downto 0);
 
 	subtype CI_IO_MODE	is natural range 31 downto 30;	-- Address mode
-	constant	CI_AM_IMMEDIATE_REL		:	CI_AM_TYPE := "00";
-	constant	CI_AM_REGISTER_DIRECT	:	CI_AM_TYPE := "01";
-	constant	CI_AM_REGISTER_INDIRECT	:	CI_AM_TYPE := "10";
+	constant	CI_AM_IMMEDIATE			:	CI_AM_TYPE := "00";
+	constant	CI_AM_IMMEDIATE_REL		:	CI_AM_TYPE := "01";
+	constant	CI_AM_REGISTER_DIRECT	:	CI_AM_TYPE := "10";
+	constant	CI_AM_REGISTER_INDIRECT	:	CI_AM_TYPE := "11";
 	
 	subtype CONTROL_OP_CODE_TYPE		is std_logic_vector(3 downto 0);
 
