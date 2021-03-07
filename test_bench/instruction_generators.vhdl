@@ -45,11 +45,11 @@ package body instruction_generators is
 		variable dout : INSTRUCTION_TYPE;
 	begin
 		
-		if a_in = x"00000200"
+		if a_in = x"00400800"
 		then
 			dout := CI_AM_IMMEDIATE_REL & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
 		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
+			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
 		end if;
 
 		return dout;
@@ -107,7 +107,7 @@ package body instruction_generators is
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		index := to_integer(unsigned(a_in(ADDR_WIDTH-4 downto 0)))/4;
+		index := to_integer(unsigned(a_in(20 downto 0)))/4;
 
 		if index < lsl_test_cases'length-1
 		then

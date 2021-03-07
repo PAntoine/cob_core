@@ -77,18 +77,18 @@ begin
 				-- exception.
 				accumulator <= pc + (internal_addr(ADDR_WIDTH-3 downto 0) & "00");
 			
-			elsif am_value = CI_AM_IMMEDIATE_REL
+			elsif am_value = CI_AM_IMMEDIATE
 			then
 				-- immediate addresses need to be 32bit aligned - so don't waste the bottom 2 bits
-				-- gives a larger immediate address space.
-				accumulator <= (internal_addr(ADDR_WIDTH-3 downto 0) & "00");	-- dword aligned.
+				-- gives a larger immediate address space. This must not sign extend the value.
+				accumulator <= (ZEROS(ADDR_WIDTH-3 downto 21) & internal_addr(LI_IMM21) & "00");	-- dword aligned.
 			else
 				accumulator <= internal_addr;
 			end if;
 		end if;
 	end process;
 
-	process (enable, sys_bus.execute, op_code)
+	process (enable, sys_bus.execute, a_op, op_code)
 	begin
 		if enable = '0' or (sys_bus.execute = '0' and sys_bus.write = '0')
 		then
