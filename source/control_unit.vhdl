@@ -28,12 +28,12 @@ use work.instructions.all;
 
 entity ControlUnit is
 		port(
-				enable			: in 	std_logic;			-- are we running?
-				da				: out	std_logic;			-- data available - the command has completed.
-				sys_bus			: in 	SYSTEM_BUS;			-- the system bus controls
-				op_code			: in 	OP_CODE_TYPE;		-- the op code
-				flags			: in	CPU_FLAGS;			-- guess what the flags.
-				addr_mode_bus	: out	ADDRESS_MODE_BUS;	-- drive the address bus.
+				enable			: in 	std_logic;				-- are we running?
+				da				: out	std_logic;				-- data available - the command has completed.
+				sys_bus			: in 	SYSTEM_BUS;				-- the system bus controls
+				instruction		: in 	INSTRUCTION_TYPE;		-- the instruction
+				flags			: in	CPU_FLAGS;				-- guess what the flags.
+				addr_mode_bus	: out	ADDRESS_MODE_BUS;		-- drive the address bus.
 				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
 				pc				: in	std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter value
 				accumulator		: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
@@ -44,8 +44,10 @@ architecture synth of ControlUnit is
 
 	signal internal_addr	: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal am_value			: CI_AM_TYPE;
+	signal op_code			: CONTROL_OP_CODE_TYPE;
 begin
-	am_value <= op_code(OP_CODE_WIDTH-1 downto OP_CODE_WIDTH-2);
+	am_value <= instruction(CI_AM_MODE);
+	op_code  <= instruction(CONTROL_OPCODE_RANGE);
 
 	process (enable, am_value)
 	begin
@@ -94,7 +96,7 @@ begin
 		then
 			internal_addr <= (others => 'Z');
 		else
-			case op_code(3 downto 0) is
+			case op_code is
 				when CI_BRANCH		=> internal_addr <= a_op;
 
 				when CI_BRANCH_LE	=> 	if flags.zero_flag = '1' or flags.sign_flag = '1'

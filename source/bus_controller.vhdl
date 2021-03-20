@@ -68,8 +68,8 @@ begin
 		then
 			reg_bus.reg_1_addr	<= a_address;
 			reg_bus.reg_2_addr	<= b_address;
-			reg_bus.reg_1_rw	<= addr_mode_bus.reg_1_rw;
-			reg_bus.reg_2_rw	<= addr_mode_bus.reg_2_rw;
+			reg_bus.reg_1_rw	<= RW_READ;
+			reg_bus.reg_2_rw	<= RW_READ;
 			reg_bus.reg_1_en	<= addr_mode_bus.reg_1_en;
 			reg_bus.reg_2_en	<= addr_mode_bus.reg_2_en;
 			reg_data			<= (others => 'Z');

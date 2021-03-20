@@ -28,20 +28,57 @@ use work.LogicFunctions.all;
 
 entity LogicUnit is
 		port(
-				enable		: in 	std_logic;		-- are we running?
-				da			: out	std_logic;		-- data available - the command has completed.
-				sys_bus		: in 	SYSTEM_BUS;		-- the system bus controls
-				op_code		: in 	OP_CODE_TYPE;	-- the op code
-				flags		: out	CPU_FLAGS;		-- guess what the flags.
-				a_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
-				b_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
-				accumulator	: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
+				enable			: in 	std_logic;			-- are we running?
+				da				: out	std_logic;			-- data available - the command has completed.
+				sys_bus			: in 	SYSTEM_BUS;			-- the system bus controls
+				instruction		: in	INSTRUCTION_TYPE;	-- instruction
+				addr_mode_bus	: out	ADDRESS_MODE_BUS;	-- drive the address bus.
+				flags			: out	CPU_FLAGS;			-- guess what the flags.
+				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
+				b_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
+				accumulator		: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
 		);
 end LogicUnit;
 
 architecture synth of LogicUnit is
-
+	
+	signal internal_op		: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal am_value			: LI_AM_TYPE;
+	signal op_code			: LOGIC_OP_CODE_TYPE;
 begin
+
+	am_value	<= instruction(LI_AM_CODE);
+	op_code		<= instruction(LI_OP_CODE_RANGE);
+
+	------------------------------------------------------------
+	--- Decode the Addressing modes.
+	------------------------------------------------------------
+	process (enable, am_value) is
+	begin
+		if (enable = '0')
+		then
+			addr_mode_bus 	<= FREE_ADDRESS_MODE_BUS;
+			flags.exception <= 'Z';
+		else
+			case am_value is
+				when LI_AM_RRR	=>	addr_mode_bus	<= REGISTER_1_AND_2_ADDRESS_MODE;
+									flags.exception	<= '0';
+				when LI_AM_MRR	=>	addr_mode_bus	<= MEMORY_INDIRECT_TO_A_AND_REG_2_ADDRESS_MODE;
+									flags.exception	<= '0';
+				when LI_AM_RMR	=>	addr_mode_bus	<= MEMORY_INDIRECT_TO_B_AND_REG_2_ADDRESS_MODE;
+									flags.exception	<= '0';
+				when LI_AM_R_R	=>	addr_mode_bus 	<= REGISTER_1_ADDRESS_MODE;
+									flags.exception	<= '0';
+				when LI_AM_RIR	=>	addr_mode_bus 	<= REGISTER_1_ADDRESS_MODE;		-- immediate to reg_b
+									flags.exception	<= '0';
+				when others		=>	addr_mode_bus	<= NONE_ADDRESS_MODE_BUS;
+									flags.exception	<= '1';
+			end case;
+		end if;
+	end process;
+
+	internal_addr <= ZERO(DATA_WIDTH-1 downto 8) & instruction(LI_IMM8) when am_value = AM_RIR else b_op;
+
 	------------------------------------------------------------
 	--- Logic Instruction
 	------------------------------------------------------------
@@ -50,15 +87,15 @@ begin
 		if enable ='1'
 		then
 			case op_code is
-				when LI_LSL => accumulator <= LogicalShiftLeft(a_op, b_op(4 downto 0));
-				when LI_LSR => accumulator <= LogicalShiftRight(a_op, b_op(4 downto 0));
-				when LI_AND	=> accumulator <= a_op and b_op;
-				when LI_OR	=> accumulator <= a_op or b_op;
-				when LI_XOR	=> accumulator <= a_op xor b_op;
+				when LI_LSL => accumulator <= LogicalShiftLeft(a_op, internal_op(4 downto 0));
+				when LI_LSR => accumulator <= LogicalShiftRight(a_op, internal_op(4 downto 0));
+				when LI_AND	=> accumulator <= a_op and internal_op;
+				when LI_OR	=> accumulator <= a_op or internal_op;
+				when LI_XOR	=> accumulator <= a_op xor internal_op;
 				when LI_NOT	=> accumulator <= not a_op;
 				--when LI_NEG	=> accumulator <= (not a_op) + 1;
-				when LI_ROR	=> accumulator <= RotateRight(a_op, b_op(4 downto 0));
-				when LI_ROL	=> accumulator <= RotateLeft(a_op, b_op(4 downto 0));
+				when LI_ROR	=> accumulator <= RotateRight(a_op, internal_op(4 downto 0));
+				when LI_ROL	=> accumulator <= RotateLeft(a_op, internal_op(4 downto 0));
 				when others	=> accumulator <= (others => '0');
 			end case;
 		else
@@ -70,7 +107,7 @@ begin
 	da <= sys_bus.execute when enable = '1' else 'Z';
 
 	------------------------------------------------------------
-	--- Set he flags register.
+	--- Set the flags register.
 	------------------------------------------------------------
 	flags.zero_flag <= 'Z' when enable = '0' else '1' when accumulator = ZEROS else '0';
     flags.sign_flag <= 'Z' when enable = '0' else '1' when accumulator(DATA_WIDTH-1) = '1' else '0';

@@ -31,8 +31,8 @@ use work.ProgramCounter;
 use work.CPUStateMachine;
 use work.LogicUnit;
 use work.ControlUnit;
-use work.AddressModeDecoder;
 use work.GeneralRegisters;
+use work.LoadStoreUnit;
 
 entity COB_Core is
 		port(
@@ -120,7 +120,7 @@ architecture synth of COB_Core is
 				enable		: in 	std_logic;		-- are we running?
 				da			: out	std_logic;		-- data available - the command has completed.
 				sys_bus		: in	SYSTEM_BUS;		-- the system bus controls
-				op_code		: in 	OP_CODE_TYPE;	-- the op code
+				op_code		: in 	LOGIC_OP_CODE_TYPE;	-- the op code
 				flags		: out	CPU_FLAGS;		-- guess what the flags.
 				a_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
 				b_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
@@ -133,7 +133,7 @@ architecture synth of COB_Core is
 				enable			: in 	std_logic;			-- are we running?
 				da				: out	std_logic;			-- data available - the command has completed.
 				sys_bus			: in 	SYSTEM_BUS;			-- the system bus controls
-				op_code			: in 	OP_CODE_TYPE;		-- the op code
+				instruction		: in	INSTRUCTION_TYPE;	-- the instruction
 				flags			: in	CPU_FLAGS;			-- guess what the flags.
 				addr_mode_bus	: out	ADDRESS_MODE_BUS;	-- drive the address bus.
 				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
@@ -142,14 +142,19 @@ architecture synth of COB_Core is
 		);
 	end component ControlUnit;
 
-	component AddressModeDecoder is
+	component LoadStoreUnit is
 		port(
-			sel				: in std_logic;			-- enable the address mode decoding.
-			mode			: in ADDRESSING_MODE;	-- the data mode to be decoded.
-			addr_mode_bus	: out ADDRESS_MODE_BUS;
-			exception_flag	: out std_logic			-- we have an exception.
+				enable			: in 	std_logic;				-- are we running?
+				da				: out	std_logic;				-- data available - the command has completed.
+				sys_bus			: in 	SYSTEM_BUS;				-- the system bus controls
+				addr_mode_bus	: out	ADDRESS_MODE_BUS;		-- drive the address bus.
+				instruction		: in 	INSTRUCTION_TYPE;		-- the op code
+				flags			: out	CPU_FLAGS;		-- guess what the flags.
+				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
+				b_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
+				accumulator		: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
 		);
-	end component;
+	end component LoadStoreUnit;
 
 	component GeneralRegisters is
 		port(
@@ -176,7 +181,6 @@ architecture synth of COB_Core is
 	-- component interconnect signals
 	signal load_pc		: std_logic := '0';				-- load the program counter from somewhere (TODO)
 
-	signal data_mode	: ADDRESSING_MODE := AM_XXX;	-- data mode where the operands come from.
 	signal mode_decode	: std_logic := '0';				-- we have and instructions that requires the data mode decoding.
 
 	signal instruction_complete	: std_logic;	-- the instruction has finished - needs to go into the CSM - TODO.
@@ -231,8 +235,6 @@ begin
 
 	pc: ProgramCounter port map (reset => reset, fetch => sys_bus.fetch, load => load_pc, address => accumulator, current => current_addr, pc => pc_bus);
 
- 	amd: AddressModeDecoder port map (sel => mode_decode, mode => data_mode, addr_mode_bus => addr_mode_bus, exception_flag => flags.exception_flag);
-
 	-- internal registers.
 	ir: process (sys_bus.fetch, da, data)
 	begin
@@ -242,60 +244,8 @@ begin
 		end if;
 	end process;
 
-	opa: process (sys_bus.read, mem_bus.complete, addr_mode_bus.mem_read_a, clock, reg_data)
-	begin
-		if falling_edge(clock)
-		then
- 			if sys_bus.read = '0' and addr_mode_bus.mem_read = '1' and mem_bus.complete = '1' and addr_mode_bus.mem_read_a = '1'
- 			then
-				a_op <= mem_data;
-
-			elsif sys_bus.read = '1' and addr_mode_bus.reg_1_en = '1' and addr_mode_bus.reg_1_rw = RW_READ
-			then
-				a_op <= reg_data;
-
-			elsif addr_mode_bus.immediate_8 = '1'
-			then
-				-- load b operand with the immediate value from the instruction
-				if instruction_reg(7) = '1'
-				then
-					a_op <= ONES(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
-				else
-					a_op <= ZEROS(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
-				end if;
-
-			elsif addr_mode_bus.immediate_21 = '1'
-			then
-				-- load b operand with the immediate value from the instruction (sign extended)
-				if instruction_reg(20) = '1'
-				then
-					a_op <= ONES(DATA_WIDTH-1 downto 21) & instruction_reg(LI_IMM21);
-				else
-					a_op <= ZEROS(DATA_WIDTH-1 downto 21) & instruction_reg(LI_IMM21);
-				end if;
-			end if;
-		end if;
-	end process;
-
-	opb: process (sys_bus.read, mem_bus.complete, addr_mode_bus.mem_read_a, clock, reg_data_2)
-	begin
-		if falling_edge(clock)
-		then
-			if addr_mode_bus.immediate_8 = '1'
-			then
-				-- load b operand with the immediate value from the instruction
-				b_op <= ZEROS(DATA_WIDTH-1 downto 8) & instruction_reg(LI_IMM8);
-
- 			elsif sys_bus.read = '0' and addr_mode_bus.mem_read = '1' and mem_bus.complete = '1' and addr_mode_bus.mem_read_a = '0'
-			then
-				b_op <= mem_data;
-
-			elsif sys_bus.read = '1' and addr_mode_bus.reg_2_en = '1' and addr_mode_bus.reg_2_rw = RW_READ
-			then
-				b_op <= reg_data_2;
-			end if;
-		end if;
-	end process;
+	opra:	OperandRegister port map (enable => opra_enable, mode => opr_mode, reg_bus => reg_bus, mem_bus => mem_bus, reg_data => reg_data, mem_data => mem_data, da => opra_da, value => opra_data);
+	oprb:	OperandRegister port map (enable => oprb_enable, mode => opr_mode, reg_bus => reg_bus, mem_bus => mem_bus, reg_data => reg_data, mem_data => mem_data, da => oprb_da, value => oprb_data);
 
 	-- unit selection - which is the active processing unit.
 	us: process (reset, instruction_reg, sys_bus.fetch)
@@ -303,35 +253,12 @@ begin
 		if sys_bus.fetch = '0' and reset = '0'
 		then
 			case instruction_reg(INSTR_UNIT_RANGE) is
-				when IU_LOGIC	=>
-						instruction_unit_sel 	<= IU_LOGIC_SEL;
-						data_mode				<= instruction_reg(LI_IO_CODE);
-						mode_decode				<= '1';
-
-				when IU_CONTROL	=>
-						instruction_unit_sel	<= IU_CONTROL_SEL;
-						data_mode				<= AM_XXX;
-						mode_decode				<= '0';
-
-				when IU_ARITH	=>
-						instruction_unit_sel	<= IU_ARITH_SEL;
-						data_mode				<= AM_XXX;
-						mode_decode				<= '0';
-
-				when IU_MEMORY	=>
-						instruction_unit_sel <= IU_MEMORY_SEL;
-						data_mode				<= AM_XXX;
-						mode_decode				<= '0';
-				
-				when IU_SYSTEM =>
-						instruction_unit_sel <= IU_SYSTEM_SEL;
-						data_mode				<= AM_XXX;
-						mode_decode				<= '0';
-
-				when others		=>
-						instruction_unit_sel <= IU_IDLE;
-						data_mode				<= AM_XXX;
-						mode_decode				<= '0';
+				when IU_LOGIC		=> instruction_unit_sel <= IU_LOGIC_SEL;
+				when IU_CONTROL		=> instruction_unit_sel	<= IU_CONTROL_SEL;
+				when IU_ARITH		=> instruction_unit_sel	<= IU_ARITH_SEL;
+				when IU_LOAD_STORE	=> instruction_unit_sel <= IU_LOAD_STORE_SEL;
+				when IU_SYSTEM 		=> instruction_unit_sel <= IU_SYSTEM_SEL;
+				when others			=> instruction_unit_sel <= IU_IDLE;
 			end case;
 		else
 			instruction_unit_sel <= IU_IDLE;
@@ -342,9 +269,14 @@ begin
 	rb: GeneralRegisters port map (reset => reset, reg_bus => reg_bus, data => reg_data, data_2 => reg_data_2);
 
 	-- instruction units
-	iu_logic:	LogicUnit port map(enable=>instruction_unit_sel.logic, da=>instruction_complete, sys_bus=>sys_bus, op_code=>instruction_reg(INSTR_OPCODE_RANGE), flags=>flags, a_op=>a_op, b_op=>b_op, accumulator=>accumulator);
-	cu: 		ControlUnit port map (	enable => instruction_unit_sel.control, da => instruction_complete, sys_bus => sys_bus, op_code =>instruction_reg(INSTR_OPCODE_RANGE),
-										flags => flags, addr_mode_bus => addr_mode_bus, a_op => a_op, pc => current_addr, accumulator => accumulator);
+	iu_logic:	LogicUnit		port map (enable=>instruction_unit_sel.logic,   da=>instruction_complete, sys_bus=>sys_bus, instruction=>instruction_reg, flags=>flags, addr_mode_bus=>addr_mode_bus, a_op=>a_op, b_op=>b_op,
+											accumulator=>accumulator);
+
+	cu: 		ControlUnit 	port map (enable=>instruction_unit_sel.control, da=>instruction_complete, sys_bus=>sys_bus, instruction=>instruction_reg, flags=>flags, addr_mode_bus=>addr_mode_bus, a_op=>a_op, pc=>current_addr,
+											accumulator=>accumulator);
+
+	ls: 		LoadStoreUnit 	port map (enable=>instruction_unit_sel.control, da=>instruction_complete, sys_bus=>sys_bus, instruction=>instruction_reg, flags=>flags, addr_mode_bus=>addr_mode_bus, a_op=>a_op, b_op=>b_op, 
+											accumulator=>accumulator);
 
 	-- memory bus control
 	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, clock => clock, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,

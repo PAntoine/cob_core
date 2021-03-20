@@ -95,151 +95,6 @@ package definitions is
 	);
 	
 	------------------------------------------------------------
-	--- Address Mode Bus
-	------------------------------------------------------------
-	type ADDRESS_MODE_BUS is record
-		reg_1_rw   		: std_logic;
-		reg_1_en   		: std_logic;
-		reg_2_rw   		: std_logic;
-		reg_2_en   		: std_logic;
-		mem_read   		: std_logic;
-		mem_write  		: std_logic;
-		mem_read_a 		: std_logic;
-		immediate_8		: std_logic;
-		immediate_21	: std_logic;
-		pc_update		: std_logic; 
-	end record ADDRESS_MODE_BUS;  
-
-	constant FREE_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> 'Z',
-		reg_1_en   		=> 'Z',
-		reg_2_rw   		=> 'Z',
-		reg_2_en   		=> 'Z',
-		mem_read   		=> 'Z',
-		mem_write  		=> 'Z',
-		mem_read_a 		=> 'Z',
-		immediate_8		=> 'Z',
-		immediate_21	=> 'Z',
-		pc_update		=> 'Z'
-	);
-
-	constant INIT_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '0',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '0',
-		pc_update		=> '0'
-	);
-	
-	-- this is the same as INIT - but names matter - this is for instructions that done
-	-- read or write memory or registers.`
-	constant NONE_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '0',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '0',
-		pc_update		=> '0'
-	);
-
-	constant IMM_21_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '0',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '1',
-		pc_update		=> '0'
-	);
-
-	constant IMM_21_TO_PC_ADDRESS_MODE_BUS : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '0',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '1',
-		pc_update		=> '1'
-	);
-
-	constant REGISTER_1_ADDRESS_MODE : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '1',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '0',
-		pc_update		=> '0'
-	);
-
-	constant REGISTER_1_INDIRECT_ADDRESS_MODE : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '1',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '1',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '0',
-		pc_update		=> '0'
-	);
-
-	constant REGISTER_1_TO_PC_ADDRESS_MODE : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '1',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '0',
-		pc_update		=> '1'
-	);
-
-	constant REGISTER_1_INDIRECT_TO_PC_ADDRESS_MODE : ADDRESS_MODE_BUS :=
-	(
-		reg_1_rw   		=> '0',
-		reg_1_en   		=> '1',
-		reg_2_rw   		=> '0',
-		reg_2_en   		=> '0',
-		mem_read   		=> '0',
-		mem_write  		=> '0',
-		mem_read_a 		=> '0',
-		immediate_8		=> '0',
-		immediate_21	=> '0',
-		pc_update		=> '1'
-	);
-
-
-	------------------------------------------------------------
 	--- Memory Bus Signals
 	------------------------------------------------------------
 	type MEMORY_BUS is record
@@ -264,36 +119,30 @@ package definitions is
 		complete	=> '0',
 		addr		=> (others => '0')
 	);
-
+	
 	------------------------------------------------------------
 	--- Register Bus Signals
 	------------------------------------------------------------
 	type REGISTER_BUS is record
 		reg_1_en	:	std_logic;
-		reg_1_rw	:	std_logic;
 		reg_1_addr	:	REG_ID;
 		reg_2_en	:	std_logic;
-		reg_2_rw	:	std_logic;
 		reg_2_addr	:	REG_ID;
 	end record REGISTER_BUS;  
 
 	constant FREE_REGISTER_BUS : REGISTER_BUS :=
 	(
 		reg_1_en	=> 'Z',
-		reg_1_rw	=> 'Z',
 		reg_1_addr	=> (others => 'Z'),
 		reg_2_en	=> 'Z',
-		reg_2_rw	=> 'Z',
 		reg_2_addr	=> (others => 'Z')
 	);
 	
 	constant INIT_REGISTER_BUS : REGISTER_BUS :=
 	(
 		reg_1_en	=> '0',
-		reg_1_rw	=> '0',
 		reg_1_addr	=> (others => '0'),
 		reg_2_en	=> '0',
-		reg_2_rw	=> '0',
 		reg_2_addr	=> (others => '0')
 	);
 

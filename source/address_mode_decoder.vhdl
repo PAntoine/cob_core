@@ -47,77 +47,58 @@ begin
 			case mode is
 				when AM_RRR =>
 					-- reg in for a and b,
-					addr_mode_bus.reg_1_rw		<= RW_READ;
-					addr_mode_bus.reg_2_rw		<= RW_READ;
 					addr_mode_bus.reg_1_en		<= '1';
 					addr_mode_bus.reg_2_en		<= '1';
 					addr_mode_bus.mem_read_a	<= '0';
 					addr_mode_bus.mem_read		<= '0';
 					addr_mode_bus.mem_write		<= '0';
-					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 							
 				when AM_MRR =>
 					-- mem read for a, and reg read for b.
 					-- read reg a then use that as the
 					-- address for the memory read.
-					addr_mode_bus.reg_1_rw		<= RW_READ;
-					addr_mode_bus.reg_2_rw		<= RW_READ;
 					addr_mode_bus.reg_1_en		<= '1';
 					addr_mode_bus.reg_2_en		<= '1';
 					addr_mode_bus.mem_read_a	<= '1';
 					addr_mode_bus.mem_read		<= '1';
 					addr_mode_bus.mem_write		<= '0';
-					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 							
 				when AM_RMR =>
 					-- source a reg, source b mem. 
-					addr_mode_bus.reg_1_rw		<= RW_READ;
-					addr_mode_bus.reg_2_rw		<= RW_READ;
 					addr_mode_bus.reg_1_en		<= '1';
 					addr_mode_bus.reg_2_en		<= '1';
 					addr_mode_bus.mem_read_a	<= '0';
 					addr_mode_bus.mem_read		<= '1';
 					addr_mode_bus.mem_write		<= '0';
-					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 
 				when AM_R_R =>
 					-- Only reg a.
-					addr_mode_bus.reg_1_rw		<= RW_READ;
-					addr_mode_bus.reg_2_rw		<= RW_READ;
 					addr_mode_bus.reg_1_en		<= '1';
 					addr_mode_bus.reg_2_en		<= '0';
 					addr_mode_bus.mem_read_a	<= '0';
 					addr_mode_bus.mem_read		<= '0';
 					addr_mode_bus.mem_write		<= '0';
-					addr_mode_bus.immediate_8 	<= '0';
 					exception_flag	<= '0';
 
 				when AM_RIR =>
-					-- reg read for a, immediate for b.
-					addr_mode_bus.reg_1_rw		<= RW_READ;
-					addr_mode_bus.reg_2_rw		<= RW_READ;
 					addr_mode_bus.reg_1_en		<= '1';
 					addr_mode_bus.reg_2_en		<= '0';
 					addr_mode_bus.mem_read_a	<= '0';
 					addr_mode_bus.mem_read		<= '0';
 					addr_mode_bus.mem_write		<= '0';
-					addr_mode_bus.immediate_8 	<= '1';
 					exception_flag	<= '0';
 
 				when others =>
 					--sys_bus.exception	<= '1';		-- This is an illegal instruction.
 					exception_flag	<= '1';
-					addr_mode_bus.reg_1_rw		<= RW_READ;
-					addr_mode_bus.reg_2_rw		<= RW_READ;
 					addr_mode_bus.reg_1_en		<= '0';
 					addr_mode_bus.reg_2_en		<= '0';
 					addr_mode_bus.mem_read_a	<= '0';
 					addr_mode_bus.mem_read		<= '0';
 					addr_mode_bus.mem_write		<= '0';
-					addr_mode_bus.immediate_8 	<= '0';
 			end case;
 		end if;
 	end process;
