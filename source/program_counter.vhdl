@@ -27,7 +27,8 @@ use work.definitions.all;
 entity ProgramCounter is
 		port(
 			reset	: in std_logic;									-- reset the program counter to the default address.
-			fetch	: in std_logic;									-- the CPU signal that the next instruction is to be fetched.
+			clock	: in std_logic;									-- the clock event
+			state	: in CPU_STATE;									-- the CPU signal that the next instruction is to be fetched.
 			load	: in std_logic;									-- the counter is being loaded with an address.
 			address	: in std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address to be loaded in the program counter.
 
@@ -42,29 +43,32 @@ architecture synth of ProgramCounter is
 	signal load_addr	: std_logic;
 begin
 
-	process (reset, load, fetch, address, counter)
+	process (reset, load, clock, state, address, counter)
 	begin
 		if reset = '1'
 		then
 			counter <= (others => '0');
 
-		elsif load = '1'
+		elsif clock'event
 		then
-			counter <= address;
-		
-		elsif falling_edge(fetch)
-		then
-			counter <= std_logic_vector(unsigned(counter) + ADDR_BYTES);
+			if load = '1'
+			then
+				counter <= address;
+			
+			elsif state = CS_FETCH_DECODE
+			then
+				counter <= std_logic_vector(unsigned(counter) + ADDR_BYTES);
+			end if;
 		end if;
 	end process;
 
-	process (reset, fetch)
+	process (reset, clock, state)
 	begin
 		if reset = '1'
 		then
 			current_addr <= (others => 'Z');
 		
-		elsif rising_edge(fetch)
+		elsif clock'event and state = CS_LOAD
 		then
 			current_addr <= counter;
 		end if;

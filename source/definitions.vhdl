@@ -121,6 +121,24 @@ package definitions is
 	);
 	
 	------------------------------------------------------------
+	--- Operand bus
+	------------------------------------------------------------
+	type OPERAND_BUS is record
+		en		:	std_logic;
+		mode	:	OPERAND_MODE;
+		da		:	std_
+
+	end record OPERAND_BUS;  
+
+	constant FREE_OPERAND_BUS : OPERAND_BUS :=
+	(
+	);
+	
+	constant INIT_OPERAND_BUS : OPERAND_BUS :=
+	(
+	);
+
+	------------------------------------------------------------
 	--- Register Bus Signals
 	------------------------------------------------------------
 	type REGISTER_BUS is record

@@ -26,13 +26,10 @@ use work.definitions.all;
 use work.instructions.all;
 
 use work.MemoryUnit;
-use work.BusController;
 use work.ProgramCounter;
 use work.CPUStateMachine;
-use work.LogicUnit;
-use work.ControlUnit;
-use work.GeneralRegisters;
-use work.LoadStoreUnit;
+use work.eneralRegisters;
+use work.nstructionRegister;
 
 entity COB_Core is
 		port(
@@ -52,7 +49,7 @@ end COB_Core ;
 
 architecture synth of COB_Core is
 	---------------------------------------------------------------
-	--- Include the components
+	--- Include the registers
 	---------------------------------------------------------------
 	component ProgramCounter is
 		port(
@@ -65,41 +62,74 @@ architecture synth of COB_Core is
 			pc		: out std_logic_vector(ADDR_WIDTH-1 downto 0)	-- the value of the program counter.
 		);
 	end component ProgramCounter;
+	
+	component GeneralRegisters is
+		port(
+				reset			: in std_logic;									-- reset all the registers.
+				reg_bus			: REGISTER_BUS;									-- the register control bus.
+				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
+				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+		);
+	end component GeneralRegisters;
+	
+	component InstructionRegister is
+		port(
+				reset			: in std_logic;
+				load			: in std_logic;
+				data			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+				unit_sel		: out INSTRUCTION_UNIT_TYPE;
+				instruction		: out INSTRUCTION_TYPE;
+		);
+	end component InstructionRegister;
+	
+--	component InterruptVectorTable is
+--		port(
+--				reset			: in std_logic;									-- reset all the registers.
+--				load			: in std_logic;									-- load the interrupt.
+--				int_id			: INT_ID;										-- the register control bus.
+--				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
+--				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
+--		);
+--	end component GeneralRegisters;
 
+--	component StackRegister is
+--		port(
+--				reset			: in std_logic;
+--				load			: in std_logic;
+--				unit_sel		: out INSTRUCTION_UNIT_TYPE;
+--				instruction		: out INSTRUCTION_TYPE;
+--		);
+--	end component InstructionRegister;
+	
+--	component FlagsRegister is
+--		port (
+--				reset		: in std_logic;
+--				load		: in std_logic;
+--    			new_flags	: in CPU_FLAGS;
+--				flags		: out CPU_FLAGS;
+--		);
+--	end component FlagsRegister;
+
+	---------------------------------------------------------------
+	--- State machine for the CPU
+	---------------------------------------------------------------
 	component CPUStateMachine is
 		port(
-			reset			: in std_logic;
-			enable			: in std_logic;
-			clock			: in std_logic;
-			reg_read		: in std_logic;
-			reg_write		: in std_logic;
-			mem_read		: in std_logic;
-			mem_write		: in std_logic;
-			mem_complete	: in std_logic;
-			sys_bus			: out SYSTEM_BUS
+			reset				: in	std_logic;
+			enable				: in	std_logic;
+			clock				: in	std_logic;
+			fetch_complete		: in	std_logic;
+			load_complete		: in	std_logic;
+			write_complete		: in	std_logic;
+			execute_complete	: in	std_logic;
+			state				: out	CPU_STATE;
 		);
-	end component;
+	end component CPUStateMachine;
 
-	component BusController is
-		port(
-			sel				: in std_logic;		-- select the bus controller
-			sys_bus			: in SYSTEM_BUS;
-			addr_mode_bus	: in ADDRESS_MODE_BUS;
-			a_address		: in REG_ID;
-			b_address		: in REG_ID;
-			destination_reg	: in REG_ID;
-			pc_reg			: in std_logic_vector(ADDR_WIDTH-1 downto 0);
-			a_op			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-			b_op			: in std_logic_vector(DATA_WIDTH-1 downto 0);
-			accumulator		: in std_logic_vector(DATA_WIDTH-1 downto 0);
-			reg_bus			: out REGISTER_BUS;
-			mem_bus			: out MEMORY_BUS;
-			reg_data		: out std_logic_vector(DATA_WIDTH-1 downto 0);
-			mem_bus_data	: out std_logic_vector(DATA_WIDTH-1 downto 0)
-		);
-	end component BusController;
-
-	component MemoryUnit is
+	---------------------------------------------------------------
+	--- External Interfaces
+	---------------------------------------------------------------
+	component MemoryInterface is
 		port(
 			en				: in	std_logic;
 			clock			: in	std_logic;
@@ -113,174 +143,54 @@ architecture synth of COB_Core is
 			mem_dev_addr	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
 			mem_dev_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
-	end component MemoryUnit;
+	end component MemoryInterface;
 
-	component LogicUnit is
-		port(
-				enable		: in 	std_logic;		-- are we running?
-				da			: out	std_logic;		-- data available - the command has completed.
-				sys_bus		: in	SYSTEM_BUS;		-- the system bus controls
-				op_code		: in 	LOGIC_OP_CODE_TYPE;	-- the op code
-				flags		: out	CPU_FLAGS;		-- guess what the flags.
-				a_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
-				b_op		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
-				accumulator	: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
-		);
-	end component LogicUnit;
+	---------------------------------------------------------------
+	--- Execute Components.
+	---------------------------------------------------------------
 
-	component ControlUnit is
-		port(
-				enable			: in 	std_logic;			-- are we running?
-				da				: out	std_logic;			-- data available - the command has completed.
-				sys_bus			: in 	SYSTEM_BUS;			-- the system bus controls
-				instruction		: in	INSTRUCTION_TYPE;	-- the instruction
-				flags			: in	CPU_FLAGS;			-- guess what the flags.
-				addr_mode_bus	: out	ADDRESS_MODE_BUS;	-- drive the address bus.
-				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
-				pc				: in	std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter value
-				accumulator		: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
+	component IdleUnit is
+		port (
+				en		: in std_logic;
+				state	: in CPU_STATE;
+				flags	: out CPU_FLAGS;
 		);
-	end component ControlUnit;
-
-	component LoadStoreUnit is
-		port(
-				enable			: in 	std_logic;				-- are we running?
-				da				: out	std_logic;				-- data available - the command has completed.
-				sys_bus			: in 	SYSTEM_BUS;				-- the system bus controls
-				addr_mode_bus	: out	ADDRESS_MODE_BUS;		-- drive the address bus.
-				instruction		: in 	INSTRUCTION_TYPE;		-- the op code
-				flags			: out	CPU_FLAGS;		-- guess what the flags.
-				a_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand A
-				b_op			: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- operand B
-				accumulator		: out	std_logic_vector(DATA_WIDTH-1 downto 0)		-- The accumulator  for the results.
-		);
-	end component LoadStoreUnit;
-
-	component GeneralRegisters is
-		port(
-				reset			: in std_logic;									-- reset all the registers.
-				reg_bus			: REGISTER_BUS;									-- the register control bus.
-				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
-				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
-		);
-	end component GeneralRegisters;
+	end component IdleUnit;
 
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
+	signal	int_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
+	signal	int_addr_bus	: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- internal address bus
+	signal	current_pc_bus	: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter - current address of the instruction running.
+	signal	pc_bus			: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
 
-	signal instruction_reg	: INSTRUCTION_TYPE	:= HALT_INSTR;
-
-	-- control signal buses
-	signal sys_bus			: SYSTEM_BUS;
-	signal mem_bus			: MEMORY_BUS 		:= FREE_MEMORY_BUS;
-	signal reg_bus			: REGISTER_BUS		:= FREE_REGISTER_BUS;
-    signal addr_mode_bus	: ADDRESS_MODE_BUS	:= INIT_ADDRESS_MODE_BUS;
-    signal flags        	: CPU_FLAGS;
-
-	-- component interconnect signals
-	signal load_pc		: std_logic := '0';				-- load the program counter from somewhere (TODO)
-
-	signal mode_decode	: std_logic := '0';				-- we have and instructions that requires the data mode decoding.
-
-	signal instruction_complete	: std_logic;	-- the instruction has finished - needs to go into the CSM - TODO.
-
-	-- instruction unit selection
-	signal instruction_unit_sel	: INSTRUCTION_UNIT_TYPE;
-
-	-- component interconnect registers.
-	signal	reg_data	: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '0');
-	signal	reg_data_2	: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '0');
-	signal	mem_data	: std_logic_vector(DATA_WIDTH-1 downto 0)	:= (others => '0');
-	signal	a_op		: std_logic_vector(DATA_WIDTH-1 downto 0);
-	signal	b_op		: std_logic_vector(DATA_WIDTH-1 downto 0);
-	signal	accumulator	: std_logic_vector(DATA_WIDTH-1 downto 0);
-
-	signal int_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
-
-	signal	pc_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter interconnect.
-	signal	current_addr: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- program counter interconnect.
-
-	signal reg_read : std_logic;
-	signal reg_write : std_logic;
-	signal mem_read : std_logic;
 begin
+	---------------------------------------------------------------
+	--- State Machine.
+	---------------------------------------------------------------
+	sm: CPUStateMachine	port map ( reset => reset, clock => clock, fetch_complete => fc, load_complete => lc, write_complete => wc, execute_complete => ec, state => state);
 
-	reg_read  <= (addr_mode_bus.reg_1_en or addr_mode_bus.reg_2_en) when (addr_mode_bus.reg_1_rw = RW_READ and addr_mode_bus.reg_2_rw = RW_READ) else '0';
-	reg_write <= (addr_mode_bus.reg_1_en or addr_mode_bus.reg_2_en) when (addr_mode_bus.reg_1_rw = RW_WRITE or addr_mode_bus.reg_2_rw = RW_WRITE)
-					else '1' when addr_mode_bus.pc_update = '1'
-					else '0';
-	mem_read  <= '1' when addr_mode_bus.mem_read = '1' else '0';
+	---------------------------------------------------------------
+	--- Register Implementations
+	---------------------------------------------------------------
+	pc: ProgramCounter 		port map (reset => reset, state => state, load => pc_load, address => int_address_bus, current => current_pc_bus, pc => pc_bus);
+	ir: InstructionRegister port map (reset => reset, state => state, mem_en => mem_en, mem_rw => mem_rw, address => int_address_bus, da => mem_da, data => int_data_bus, fetch_complete => fc);
+	
+--	st: StackRegister		port map (reset => reset, load => sk_load, address => int_address_bus, stack => stack_bus);
+--	fr: FlagsRegister		port map (reset => reset, load => flags_load, data => int_data_bus, flags => flags_bus);
+--	rb: GeneralRegisters 	port map (reset => reset, rw => rw, port_1_bus => reg_1_bus, port_2_bus => reg_2_bus, port_1_data => reg_1_data, port_2_data => reg_2_data);
 
-	csm: CPUStateMachine port map ( reset => reset, enable => enable, clock => clock, mem_read => mem_read, reg_read => reg_read, reg_write => reg_write, mem_write => addr_mode_bus.mem_write, mem_complete => mem_bus.complete, sys_bus => sys_bus);
+	---------------------------------------------------------------
+	--- Execute Components.
+	---------------------------------------------------------------
+	iu:	IdleUnit			port map (en => unit_sel.idle, state => state, flags => flags);
 
-	bc: BusController port map (
-			sel				=> enable,
-			sys_bus			=> sys_bus,
-			addr_mode_bus	=> addr_mode_bus,
-			a_address		=> instruction_reg(LI_SOURCE_A),
-			b_address		=> instruction_reg(LI_SOURCE_B),
-			destination_reg	=> instruction_reg(LI_DEST),
-			pc_reg			=> pc_bus,
-			a_op			=> a_op,
-			b_op			=> b_op,
-			accumulator		=> accumulator,
-			reg_bus			=> reg_bus,
-			mem_bus			=> mem_bus,
-			reg_data		=> reg_data,
-			mem_bus_data	=> mem_data
-		);
 
-	load_pc <= '1' when addr_mode_bus.pc_update = '1' and sys_bus.write = '1' else '0';
+	---------------------------------------------------------------
+	--- Interface Components.
+	---------------------------------------------------------------
+	mi: MemoryInterface		port map ( enable => mem_en, rw => mem_rw, address => int_address_bus, data => int_data_bus, da => mem_da);	-- TODO: add the external bus signals.
 
-	pc: ProgramCounter port map (reset => reset, fetch => sys_bus.fetch, load => load_pc, address => accumulator, current => current_addr, pc => pc_bus);
-
-	-- internal registers.
-	ir: process (sys_bus.fetch, da, data)
-	begin
-		if sys_bus.fetch = '1' and da = '1'
-		then
-			instruction_reg <= data;
-		end if;
-	end process;
-
-	opra:	OperandRegister port map (enable => opra_enable, mode => opr_mode, reg_bus => reg_bus, mem_bus => mem_bus, reg_data => reg_data, mem_data => mem_data, da => opra_da, value => opra_data);
-	oprb:	OperandRegister port map (enable => oprb_enable, mode => opr_mode, reg_bus => reg_bus, mem_bus => mem_bus, reg_data => reg_data, mem_data => mem_data, da => oprb_da, value => oprb_data);
-
-	-- unit selection - which is the active processing unit.
-	us: process (reset, instruction_reg, sys_bus.fetch)
-	begin
-		if sys_bus.fetch = '0' and reset = '0'
-		then
-			case instruction_reg(INSTR_UNIT_RANGE) is
-				when IU_LOGIC		=> instruction_unit_sel <= IU_LOGIC_SEL;
-				when IU_CONTROL		=> instruction_unit_sel	<= IU_CONTROL_SEL;
-				when IU_ARITH		=> instruction_unit_sel	<= IU_ARITH_SEL;
-				when IU_LOAD_STORE	=> instruction_unit_sel <= IU_LOAD_STORE_SEL;
-				when IU_SYSTEM 		=> instruction_unit_sel <= IU_SYSTEM_SEL;
-				when others			=> instruction_unit_sel <= IU_IDLE;
-			end case;
-		else
-			instruction_unit_sel <= IU_IDLE;
-		end if;
-	end process;
-
-	-- general register bank.
-	rb: GeneralRegisters port map (reset => reset, reg_bus => reg_bus, data => reg_data, data_2 => reg_data_2);
-
-	-- instruction units
-	iu_logic:	LogicUnit		port map (enable=>instruction_unit_sel.logic,   da=>instruction_complete, sys_bus=>sys_bus, instruction=>instruction_reg, flags=>flags, addr_mode_bus=>addr_mode_bus, a_op=>a_op, b_op=>b_op,
-											accumulator=>accumulator);
-
-	cu: 		ControlUnit 	port map (enable=>instruction_unit_sel.control, da=>instruction_complete, sys_bus=>sys_bus, instruction=>instruction_reg, flags=>flags, addr_mode_bus=>addr_mode_bus, a_op=>a_op, pc=>current_addr,
-											accumulator=>accumulator);
-
-	ls: 		LoadStoreUnit 	port map (enable=>instruction_unit_sel.control, da=>instruction_complete, sys_bus=>sys_bus, instruction=>instruction_reg, flags=>flags, addr_mode_bus=>addr_mode_bus, a_op=>a_op, b_op=>b_op, 
-											accumulator=>accumulator);
-
-	-- memory bus control
-	mu: MemoryUnit	port map (	en => sys_bus.wait_read or sys_bus.wait_write or sys_bus.fetch, clock => clock, rw => sys_bus.wait_write, complete => mem_bus.complete, address => mem_bus.addr, data => int_data,
-								mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
-
-end architecture synth;
+end architecture synth;                  
 --- vi:nocin:sw=4 ts=4:fdm=marker
