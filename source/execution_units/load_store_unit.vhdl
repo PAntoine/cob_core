@@ -7,9 +7,8 @@
 --            \_____\____/|____/   \_____\___/|_|  \___|
 --
 --
--- Name  : idle_unit
--- Desc  : This is the IDLE unit that does nothing apart from make sure the
---         the bus signals are all in a safe state.
+-- Name  : load_store_unit
+-- Desc  : This unit will handle the loading and storing instructions.
 --
 -- Author: Peter Antoine
 -- Date  : 21/03/2021
@@ -25,15 +24,15 @@ use ieee.numeric_std.all;
 
 use work.definitions.all;
 
-entity IdleUnit is
+entity LoadStoreUnit is
 	port (
 		en			: in std_logic;		-- enable the idle unit.
 		state		: in CPU_STATE;		-- CPU state
-		complete	: out std_logic	-- execution complete.
+		complete	: out std_logic		-- execution complete.
 	);
-end IdleUnit;
+end LoadStoreUnit;
 
-architecture synth of IdleUnit is
+architecture synth of LoadStoreUnit is
 
 begin
 	complete	<= 'Z' when en = '0' else
@@ -43,4 +42,3 @@ begin
 end architecture synth;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker
-

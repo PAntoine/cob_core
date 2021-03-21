@@ -28,7 +28,7 @@ package logic_tb_defines is
 	--- Test structures
 	---------------------------------------------------------------
 	type TEST_CASE_TYPE is record
-		opcode	:	std_logic_vector(OP_CODE_WIDTH-1 downto 0);
+		opcode	:	LOGIC_OP_CODE_TYPE;
 		a_input	:	std_logic_vector(DATA_WIDTH-1 downto 0);
 		b_input :	std_logic_vector(DATA_WIDTH-1 downto 0);
 		output	:	std_logic_vector(DATA_WIDTH-1 downto 0);

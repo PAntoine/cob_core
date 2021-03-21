@@ -49,7 +49,7 @@ begin
 		then
 			counter <= (others => '0');
 
-		elsif clock'event
+		elsif rising_edge(clock)
 		then
 	   		if load = '1'
 			then
@@ -68,7 +68,7 @@ begin
 		then
 			current_addr <= (others => 'Z');
 		
-		elsif clock'event and state = CS_LOAD
+		elsif rising_edge(clock) and state = CS_LOAD
 		then
 			current_addr <= counter;
 		end if;

@@ -42,19 +42,20 @@ begin
 	------------------------------------------------------------
 	--- Logic state machine
 	------------------------------------------------------------
+	
 	process (reset, state, clock)
 	begin
 		if reset = '1'
 		then
 			state <= CS_IDLE;
 
-		elsif clock'event
+		elsif rising_edge(clock)
 		then
 			case state is
 				when CS_IDLE => state <= CS_FETCH_DECODE;
 				
 				when CS_FETCH_DECODE =>
-					if fetch_complete = '0'
+					if fetch_complete = '1'
 					then
 						state <= CS_LOAD;
 					end if;

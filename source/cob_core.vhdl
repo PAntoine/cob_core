@@ -176,11 +176,11 @@ architecture synth of COB_Core is
 	signal mem_da		: std_logic;
 
 	signal fc			: std_logic;
-	signal lc			: std_logic;
-	signal wc			: std_logic	:= '0';
+	signal lc			: std_logic := '1';
+	signal wc			: std_logic	:= '1';
 	signal ec			: std_logic	:= '0';
 
-	signal pc_load		: std_logic;
+	signal pc_load		: std_logic := '0';
 
 	signal state		: CPU_STATE;
 

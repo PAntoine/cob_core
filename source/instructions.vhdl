@@ -54,11 +54,12 @@ package instructions is
 	------------------------------------------------------------
 	--- Instruction Unit
 	------------------------------------------------------------
-	constant	IU_LOGIC		:	std_logic_vector(2 downto 0)	:= "000";	--- logic uinit
-	constant	IU_CONTROL		:	std_logic_vector(2 downto 0)	:= "001";	--- control unit
-	constant	IU_ARITH		:	std_logic_vector(2 downto 0)	:= "010";	--- arithmetic unit
-	constant	IU_LOAD_STORE	:	std_logic_vector(2 downto 0)	:= "011";	--- load_store unit
-	constant	IU_SYSTEM		:	std_logic_vector(2 downto 0)	:= "100";	--- system unit
+	constant	IU_IDLE			:	std_logic_vector(2 downto 0)	:= "000";	--- logic uinit
+	constant	IU_LOGIC		:	std_logic_vector(2 downto 0)	:= "001";	--- logic uinit
+	constant	IU_CONTROL		:	std_logic_vector(2 downto 0)	:= "010";	--- control unit
+	constant	IU_ARITH		:	std_logic_vector(2 downto 0)	:= "011";	--- arithmetic unit
+	constant	IU_LOAD_STORE	:	std_logic_vector(2 downto 0)	:= "100";	--- load_store unit
+	constant	IU_SYSTEM		:	std_logic_vector(2 downto 0)	:= "101";	--- system unit
 
 	type INSTRUCTION_UNIT_TYPE is record
 		idle		: std_logic;

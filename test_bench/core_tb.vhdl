@@ -71,7 +71,6 @@ architecture simulation of COB_Core_Test_Bench is
 	signal	da			: std_logic	:= '0';
 	signal	data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
-	signal meh : std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal test_a : std_logic_vector(DATA_WIDTH-1 downto 0) := x"FFFFFFFF";
 	signal test_b : std_logic_vector(DATA_WIDTH-1 downto 0) := x"00000008";
 
@@ -79,10 +78,9 @@ begin
 	-- clock signal
 	clock <= not clock after 50 ps;
 
-
 	-- start the test.
 	enable <= '1' after 25 ps;
-	reset  <= '0' after 5 ps;
+	reset  <= '0' after 10 ps;
 
 	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data);
 
@@ -95,18 +93,18 @@ begin
 		elsif bus_en = '1' and bus_rw = RW_READ
 		then
 			case bus_address(22 downto 20) is
-				when "000"	=>	data	<= GetBranchTestInstruction(bus_address);
-				when "111"	=> 
-								-- TODO: there is a hack that the bus address is trimed inside to 20 bits, shouls
+				when "000"	=> data <= GetNopTestInstruction(bus_address);
+				when "111"	=> data	<= GetBranchTestInstruction(bus_address);
+				when "110"	=> 
+								-- TODO: there is a hack that the bus address is trimmed inside to 20 bits, should
 								--       should really do it here or it's going to cause me trouble.
 								data	<= GetLogicRegisterInstruction(bus_address);
 								test_a	<= GetLogicTestValues(bus_address).a_input;
 								test_b	<= GetLogicTestValues(bus_address).b_input;
 								-- result	<= GetLogicTestValues(bus_address).output;
-				when "110"	=> data <= GetNopTestInstruction(bus_address);
-				when "101"	=> data <= GetLogicImmdiateInstruction(bus_address);
-				when "100"	=> data <= GetLogicMemoryInstruction(bus_address);
-				when "011"	=> data <= GetLogicSingleInstruction(bus_address);
+--				when "101"	=> data <= GetLogicImmdiateInstruction(bus_address);
+--				when "100"	=> data <= GetLogicMemoryInstruction(bus_address);
+--				when "011"	=> data <= GetLogicSingleInstruction(bus_address);
 
 				when others => data <= x"F0F0F0F0";
 			end case;
@@ -124,7 +122,6 @@ begin
 			da <= '1';
 		end if;
 	end process;
-	
 
 end architecture simulation;
 

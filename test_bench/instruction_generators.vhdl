@@ -31,10 +31,11 @@ package instruction_generators is
 	----------------------------------------------------
 	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetNopTestInstruction			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicImmdiateInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicMemoryInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicSingleInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+
+--	function GetLogicImmdiateInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+--	function GetLogicMemoryInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+--	function GetLogicSingleInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicTestValues 			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return TEST_CASE_TYPE;
 
 
@@ -64,7 +65,7 @@ package body instruction_generators is
 
 		if index < lsl_test_cases'length-1
 		then
-			dout := tests(index).opcode & IU_LOGIC & AM_RRR & "00001" & "00010" & "00011" & "000";
+			dout := IU_LOGIC & "0000" & tests(index).opcode & LI_AM_RRR & "00001" & "00010" & "00011" & "000";
 		else
 			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "110000000000000000000";
 		end if;
@@ -86,56 +87,56 @@ package body instruction_generators is
 		return dout;
 	end function;
 
-	function GetLogicImmdiateInstruction (a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
-		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
-		variable index : integer;
-		variable dout : INSTRUCTION_TYPE;
-	begin
-		index := to_integer(unsigned(a_in(19 downto 0)))/4;
-
-		if index < immed_test_cases'length-1
-		then
-			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
-		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
-		end if;
-		
-		return dout;
-	end function;
-
-	function GetLogicMemoryInstruction (a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
-		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
-		variable index : integer;
-		variable dout : INSTRUCTION_TYPE;
-	begin
-		index := to_integer(unsigned(a_in(19 downto 0)))/4;
-
-		if index < immed_test_cases'length-1
-		then
-			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
-		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "011000000000000000000";
-		end if;
-		
-		return dout;
-	end function;
-
-	function GetLogicSingleInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
-		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
-		variable index : integer;
-		variable dout : INSTRUCTION_TYPE;
-	begin
-		index := to_integer(unsigned(a_in(19 downto 0)))/4;
-
-		if index < immed_test_cases'length-1
-		then
-			dout := tests(index).opcode & IU_LOGIC & AM_R_R & "00001" & "00010" & "00011" & "000";
-		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "010000000000000000000";
-		end if;
-		
-		return dout;
-	end function;
+--	function GetLogicImmdiateInstruction (a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+--		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
+--		variable index : integer;
+--		variable dout : INSTRUCTION_TYPE;
+--	begin
+--		index := to_integer(unsigned(a_in(19 downto 0)))/4;
+--
+--		if index < immed_test_cases'length-1
+--		then
+--			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
+--		else
+--			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
+--		end if;
+--		
+--		return dout;
+--	end function;
+--
+--	function GetLogicMemoryInstruction (a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+--		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
+--		variable index : integer;
+--		variable dout : INSTRUCTION_TYPE;
+--	begin
+--		index := to_integer(unsigned(a_in(19 downto 0)))/4;
+--
+--		if index < immed_test_cases'length-1
+--		then
+--			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
+--		else
+--			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "011000000000000000000";
+--		end if;
+--		
+--		return dout;
+--	end function;
+--
+--	function GetLogicSingleInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+--		variable tests : TEST_CASE_ARRAY(0 to immed_test_cases'length-1) := immed_test_cases;
+--		variable index : integer;
+--		variable dout : INSTRUCTION_TYPE;
+--	begin
+--		index := to_integer(unsigned(a_in(19 downto 0)))/4;
+--
+--		if index < immed_test_cases'length-1
+--		then
+--			dout := tests(index).opcode & IU_LOGIC & AM_R_R & "00001" & "00010" & "00011" & "000";
+--		else
+--			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "010000000000000000000";
+--		end if;
+--		
+--		return dout;
+--	end function;
 	
 	function GetLogicTestValues (a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return TEST_CASE_TYPE is
 			variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;

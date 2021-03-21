@@ -65,7 +65,7 @@ begin
 	end process;
 
 	-- latch the instruction
-	process (reset, mem_da)
+	process (reset, state, mem_da)
 	begin
 		if (reset = '1')
 		then
@@ -86,7 +86,7 @@ begin
 			when IU_ARITH		=> unit_sel <= IU_ARITH_SEL;
 			when IU_LOAD_STORE	=> unit_sel <= IU_LOAD_STORE_SEL;
 			when IU_SYSTEM		=> unit_sel <= IU_SYSTEM_SEL;
-			when others			=> unit_sel <= IU_IDLE;
+			when others			=> unit_sel <= IU_IDLE_SEL;
 		end case;
 	end process;
 
