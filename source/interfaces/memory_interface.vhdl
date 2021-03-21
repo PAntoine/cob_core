@@ -26,7 +26,7 @@ use IEEE.std_logic_1164.all;
 
 use work.definitions.all;
 
-entity MemoryUnit is
+entity MemoryInterface is
 		port(
 			en				: in	std_logic;
 			clock			: in	std_logic;
@@ -42,9 +42,9 @@ entity MemoryUnit is
 			mem_dev_addr	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
 			mem_dev_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
-end MemoryUnit;
+end MemoryInterface;
 
-architecture synth of MemoryUnit is
+architecture synth of MemoryInterface is
 begin
 	-- let's set the memory bus to get the data
 	data 		<= (others => 'Z') when en = '0' or rw = RW_WRITE else mem_dev_data;

@@ -51,7 +51,7 @@ begin
 
 		elsif clock'event
 		then
-			if load = '1'
+	   		if load = '1'
 			then
 				counter <= address;
 			

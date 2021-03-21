@@ -47,7 +47,9 @@ package instructions is
 
 	subtype INSTRUCTION_TYPE 	is std_logic_vector(INSTRUCTION_WIDTH-1 downto 0);
 
-	constant	HALT_INSTR	:	INSTRUCTION_TYPE	:= (others => '0');
+	constant	HALT_INSTR		:	INSTRUCTION_TYPE	:= (others => '0');
+	constant	NOP_INSTR		:	INSTRUCTION_TYPE	:= (others => '0');
+	constant	BR_INIT_INSTR	:	INSTRUCTION_TYPE	:= (others => '0');	-- branch to the initial program address. TODO
 
 	------------------------------------------------------------
 	--- Instruction Unit
@@ -59,6 +61,7 @@ package instructions is
 	constant	IU_SYSTEM		:	std_logic_vector(2 downto 0)	:= "100";	--- system unit
 
 	type INSTRUCTION_UNIT_TYPE is record
+		idle		: std_logic;
 		logic		: std_logic;
 		control		: std_logic;
 		arith		: std_logic;
@@ -66,12 +69,12 @@ package instructions is
 		system		: std_logic;
 	end record INSTRUCTION_UNIT_TYPE;
 
-	constant	IU_IDLE				:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '0', '0');
-	constant	IU_LOGIC_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('1', '0', '0', '0', '0');
-	constant	IU_CONTROL_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0', '1', '0', '0', '0');
-	constant	IU_ARITH_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '1', '0', '0');
-	constant	IU_LOAD_STORE_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '1', '0');
-	constant	IU_SYSTEM_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0', '0', '0', '0', '1');
+	constant	IU_IDLE_SEL			:	INSTRUCTION_UNIT_TYPE	:= ('1','0', '0', '0', '0', '0');
+	constant	IU_LOGIC_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','1', '0', '0', '0', '0');
+	constant	IU_CONTROL_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '1', '0', '0', '0');
+	constant	IU_ARITH_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '1', '0', '0');
+	constant	IU_LOAD_STORE_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '1', '0');
+	constant	IU_SYSTEM_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '0', '1');
 
 	------------------------------------------------------------
 	--- Logic Instructions

@@ -49,14 +49,13 @@ package definitions is
 	------------------------------------------------------------
 	subtype		CPU_STATE is std_logic_vector(2 downto 0);
 	
-	constant	CS_FETCH		: CPU_STATE  := "000";
-	constant	CS_DECODE		: CPU_STATE  := "001";
-	constant	CS_EXECUTE		: CPU_STATE  := "010";
-	constant	CS_WRITE		: CPU_STATE  := "011";
-	constant	CS_FINISHED		: CPU_STATE  := "100";
-	constant	CS_READ_WAIT	: CPU_STATE  := "101";
-	constant	CS_WRITE_WAIT	: CPU_STATE  := "110";
-	constant	CS_HALT			: CPU_STATE  := "111";
+	constant	CS_IDLE			: CPU_STATE := "000";
+	constant	CS_FETCH_DECODE	: CPU_STATE := "001";
+	constant	CS_LOAD			: CPU_STATE := "010";
+	constant	CS_EXECUTE		: CPU_STATE := "011";
+	constant	CS_WRITE		: CPU_STATE := "100";
+	constant	CS_FINISHED		: CPU_STATE := "101";
+	constant	CS_HALT			: CPU_STATE := "111";
 
 	------------------------------------------------------------
 	--- System Register constants
@@ -121,24 +120,6 @@ package definitions is
 	);
 	
 	------------------------------------------------------------
-	--- Operand bus
-	------------------------------------------------------------
-	type OPERAND_BUS is record
-		en		:	std_logic;
-		mode	:	OPERAND_MODE;
-		da		:	std_
-
-	end record OPERAND_BUS;  
-
-	constant FREE_OPERAND_BUS : OPERAND_BUS :=
-	(
-	);
-	
-	constant INIT_OPERAND_BUS : OPERAND_BUS :=
-	(
-	);
-
-	------------------------------------------------------------
 	--- Register Bus Signals
 	------------------------------------------------------------
 	type REGISTER_BUS is record
@@ -190,6 +171,19 @@ package definitions is
 		interrupt_waiting		=> '0',
 		interrupts_masked		=> '0',
 		non_masked_interrupt	=> '0'
+	);
+
+	constant FREE_CPU_FLAGS : CPU_FLAGS :=
+	(
+		carry_flag				=> 'Z',
+		zero_flag				=> 'Z',
+		sign_flag				=> 'Z',
+		exception_flag			=> 'Z',
+		interrupt_flag			=> 'Z',
+		hardware_interrupt		=> 'Z',
+		interrupt_waiting		=> 'Z',
+		interrupts_masked		=> 'Z',
+		non_masked_interrupt	=> 'Z'
 	);
 
 end package definitions;

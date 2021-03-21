@@ -27,26 +27,24 @@ use work.definitions.all;
 entity CPUStateMachine is
 		port(
 			reset				: in	std_logic;
-			enable				: in	std_logic;
 			clock				: in	std_logic;
 			fetch_complete		: in	std_logic;
 			load_complete		: in	std_logic;
 			write_complete		: in	std_logic;
 			execute_complete	: in	std_logic;
-			state				: out	CPU_STATE;
+			state				: out	CPU_STATE
 		);
 end CPUStateMachine;
 
 architecture synth of CPUStateMachine is
-	signal 		state			: CPU_STATE;
 	
 begin
 	------------------------------------------------------------
 	--- Logic state machine
 	------------------------------------------------------------
-	process (reset, enable, state, clock)
+	process (reset, state, clock)
 	begin
-		if reset = '1' or enable = '0'
+		if reset = '1'
 		then
 			state <= CS_IDLE;
 

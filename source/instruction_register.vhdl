@@ -1,0 +1,98 @@
+-----------------------------------------------------------------------------------
+--             _____ ____  ____     _____
+--            / ____/ __ \|  _ \   / ____|
+--           | |   | |  | | |_) | | |     ___  _ __ ___
+--           | |   | |  | |  _ <  | |    / _ \| '__/ _ \
+--           | |___| |__| | |_) | | |___| (_) | | |  __/
+--            \_____\____/|____/   \_____\___/|_|  \___|
+--
+--
+-- Name  : instruction_register
+-- Desc  : This component is the instruction register and it manages the loading
+--         and top level decoding of the instruction.
+--
+-- Author: Peter Antoine
+-- Date  : 21/03/2021
+-----------------------------------------------------------------------------------
+--                     Copyright (c) 2021 Peter Antoine
+--                            All rights Reserved.
+--                    Released Under the Artistic Licence
+-----------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+use work.definitions.all;
+use work.instructions.all;
+
+entity InstructionRegister is
+	port(
+			reset			: in std_logic;
+			state			: in CPU_STATE;
+			pc				: in std_logic_vector(ADDR_WIDTH-1 downto 0);
+			data			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_da			: in std_logic;
+
+			mem_en			: out std_logic;								-- assert the read flag
+			mem_rw			: out std_logic;								-- assert the read states (will always be RW_READ)
+			address			: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- assert the PC address on the memory bus.
+			fetch_complete	: out std_logic;								-- assert that the instruction register has been updated.
+			unit_sel		: out INSTRUCTION_UNIT_TYPE;					-- partial decode, select the execution unit.
+			instruction		: out INSTRUCTION_TYPE							-- output the captured instruction.
+	);
+end entity InstructionRegister;
+	
+architecture synth of InstructionRegister is
+
+	signal int_instr_reg : INSTRUCTION_TYPE;
+
+begin
+	-- control the memory read.
+	process (reset, state, pc)
+	begin 
+		if reset = '1' or state /= CS_FETCH_DECODE
+		then
+			mem_en		<= 'Z';
+			mem_rw		<= 'Z';
+			address		<= (others => 'Z');
+
+		else
+			mem_en	<= '1';			-- we want to read the next instruction from the memory bus.
+			mem_rw	<= RW_READ;
+			address	<= pc;
+		end if;
+	end process;
+
+	-- latch the instruction
+	process (reset, mem_da)
+	begin
+		if (reset = '1')
+		then
+			int_instr_reg <= BR_INIT_INSTR;
+
+		elsif state = CS_FETCH_DECODE and mem_da = '1'
+		then
+			int_instr_reg <= data;
+		end if;
+	end process;
+
+	-- decode the unit sel
+	process (reset, int_instr_reg)
+	begin
+		case int_instr_reg(INSTR_UNIT_RANGE) is
+			when IU_LOGIC		=> unit_sel <= IU_LOGIC_SEL;
+			when IU_CONTROL		=> unit_sel <= IU_CONTROL_SEL;
+			when IU_ARITH		=> unit_sel <= IU_ARITH_SEL;
+			when IU_LOAD_STORE	=> unit_sel <= IU_LOAD_STORE_SEL;
+			when IU_SYSTEM		=> unit_sel <= IU_SYSTEM_SEL;
+			when others			=> unit_sel <= IU_IDLE;
+		end case;
+	end process;
+
+	fetch_complete	<= '1' when state = CS_FETCH_DECODE and mem_da = '1' else '0';
+	instruction		<= int_instr_reg;
+
+end architecture synth;
+
+--- vi:nocin:sw=4 ts=4:fdm=marker
