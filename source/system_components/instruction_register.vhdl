@@ -34,9 +34,7 @@ entity InstructionRegister is
 			data			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 			mem_da			: in std_logic;
 
-			mem_en			: out std_logic;								-- assert the read flag
-			mem_rw			: out std_logic;								-- assert the read states (will always be RW_READ)
-			address			: out std_logic_vector(ADDR_WIDTH-1 downto 0);	-- assert the PC address on the memory bus.
+			mem_bus			: out MEMORY_BUS;								-- memory bus controls
 			fetch_complete	: out std_logic;								-- assert that the instruction register has been updated.
 			unit_sel		: out INSTRUCTION_UNIT_TYPE;					-- partial decode, select the execution unit.
 			instruction		: out INSTRUCTION_TYPE							-- output the captured instruction.
@@ -53,14 +51,14 @@ begin
 	begin 
 		if reset = '1' or state /= CS_FETCH_DECODE
 		then
-			mem_en		<= 'Z';
-			mem_rw		<= 'Z';
-			address		<= (others => 'Z');
+			mem_bus.en		<= 'Z';
+			mem_bus.rw		<= 'Z';
+			mem_bus.addr	<= (others => 'Z');
 
 		else
-			mem_en	<= '1';			-- we want to read the next instruction from the memory bus.
-			mem_rw	<= RW_READ;
-			address	<= pc;
+			mem_bus.en		<= '1';			-- we want to read the next instruction from the memory bus.
+			mem_bus.rw		<= RW_READ;
+			mem_bus.addr	<= pc;
 		end if;
 	end process;
 

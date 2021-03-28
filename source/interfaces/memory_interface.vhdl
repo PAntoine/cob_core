@@ -28,11 +28,9 @@ use work.definitions.all;
 
 entity MemoryInterface is
 		port(
-			en				: in	std_logic;
+			mem_bus			: in	MEMORY_BUS;
 			clock			: in	std_logic;
-			rw				: in	std_logic;
 			complete		: out	std_logic;	-- the data has been read and is available,
-			address			: in 	std_logic_vector(ADDR_WIDTH-1 downto 0);
 			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 
 			-- external memory device
@@ -47,17 +45,17 @@ end MemoryInterface;
 architecture synth of MemoryInterface is
 begin
 	-- let's set the memory bus to get the data
-	data 		<= (others => 'Z') when en = '0' or rw = RW_WRITE else mem_dev_data;
-	complete	<= '0' 			   when en = '0' else mem_dev_da;
+	data 		<= (others => 'Z') when mem_bus.en = '0' or mem_bus.rw = RW_WRITE else mem_dev_data;
+	complete	<= '0' 			   when mem_bus.en = '0' else mem_dev_da;
 
 	-- lets control the memory bus.
-	mem_dev_rw		<= RW_READ			when en = '0' or rw = RW_READ else RW_WRITE;
-	mem_dev_data	<= (others => 'Z')	when en = '0' or rw = RW_READ else data;
-	mem_dev_addr	<= (others => 'Z')	when en = '0' else address;
+	mem_dev_rw		<= RW_READ			when mem_bus.en = '0' or mem_bus.rw = RW_READ else RW_WRITE;
+	mem_dev_data	<= (others => 'Z')	when mem_bus.en = '0' or mem_bus.rw = RW_READ else data;
+	mem_dev_addr	<= (others => 'Z')	when mem_bus.en = '0' else address;
 
 	process (en, clock)
 	begin
-		if en = '0'
+		if mem_bus.en = '0'
 		then
 			mem_dev_en <= '0';
 

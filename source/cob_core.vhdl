@@ -28,6 +28,7 @@ use work.instructions.all;
 use work.MemoryInterface;
 use work.CPUStateMachine;
 use work.ProgramCounter;
+use work.OperandRegister;
 -- use work.GeneralRegisters;
 use work.InstructionRegister;
 
@@ -89,6 +90,22 @@ architecture synth of COB_Core is
 			instruction		: out INSTRUCTION_TYPE
 		);
 	end component InstructionRegister;
+	
+	component OperandRegister is
+		port (
+			en			: in std_logic;										-- enable the idle unit.
+			address		: in std_logic_vector(ADDR_WIDTH-1 downto 0);		-- the address to read.
+			mode		: in LS_AM_TYPE;									-- The type of the address load.
+
+			reg_bus		: out	REGISTER_BUS;								-- the control bus for the register
+			reg_data	: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- register data
+
+			mem_bus		: out	MEMORY_BUS;									-- the memory control bus
+			mem_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- memory data
+
+			complete	: out std_logic										-- execution complete.
+		);
+	end component OperandRegister;
 
 --	component InterruptVectorTable is
 --		port(
@@ -138,11 +155,9 @@ architecture synth of COB_Core is
 	---------------------------------------------------------------
 	component MemoryInterface is
 		port(
-			en				: in	std_logic;
+			mem_bus			: in	MEMORY_BUS;
 			clock			: in	std_logic;
-			rw				: in	std_logic;
-			complete		: out	std_logic;
-			address			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
+			complete		: out	std_logic;	-- the data has been read and is available,
 			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
 			mem_dev_da		: in	std_logic;
 			mem_dev_rw		: out	std_logic;
@@ -171,9 +186,8 @@ architecture synth of COB_Core is
 	signal current_pc	: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter - current address of the instruction running.
 	signal pc_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
 	
-	signal mem_en		: std_logic;
-	signal mem_rw		: std_logic;
-	signal mem_da		: std_logic;
+	signal mem_bus		: MEMORY_BUS;
+	signal reg_bus		: REGISTER_BUS;
 
 	signal fc			: std_logic;
 	signal lc			: std_logic := '1';
@@ -197,7 +211,7 @@ begin
 	--- Register Implementations
 	---------------------------------------------------------------
 	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => int_data_bus, current => current_pc, pc => pc_bus);
-	ir: InstructionRegister port map (reset => reset, state => state, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_en => mem_en, mem_rw => mem_rw, address => int_addr_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
+	ir: InstructionRegister port map (reset => reset, state => state, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
 
 --	st: StackRegister		port map (reset => reset, load => sk_load, address => int_address_bus, stack => stack_bus);
 --	fr: FlagsRegister		port map (reset => reset, load => flags_load, data => int_data_bus, flags => flags_bus);
@@ -206,13 +220,17 @@ begin
 	---------------------------------------------------------------
 	--- Execute Components.
 	---------------------------------------------------------------
-	iu:	IdleUnit			port map (en => unit_sel_bus.idle, state => state, complete => ec);
+	opr_a:	OperandRegister	port map (op_bus => op_a_bus, reg_bus => reg_1_bus, reg_data, reg_1_data, mem_bus => mem_bus, mem_data => int_data_bus, complete => op_a_da);
+	opr_b:	OperandRegister	port map (op_bus => op_b_bus, reg_bus => reg_2_bus, reg_data, reg_2_data, mem_bus => mem_bus, mem_data => int_data_bus, complete => op_b_da);
+
+	iu:	IdleUnit			port map (en => unit_sel_bus.idle, 		state => state, complete => ec);
+	ls: LoadStoreUnit		port map (en => unit_sel_bus.load_store,state => state, complete => ec, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	---------------------------------------------------------------
 	--- Interface Components.
 	---------------------------------------------------------------
-	mi: MemoryInterface		port map ( en => mem_en, clock => clock, rw => mem_rw, address => int_addr_bus, data => int_data_bus, complete => mem_da,
-										mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
+	mi: MemoryInterface		port map ( mem_bus => mem_bus, data => int_data_bus, complete => mem_da, mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
+										
 
 end architecture synth;
 --- vi:nocin:sw=4 ts=4:fdm=marker

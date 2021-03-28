@@ -122,6 +122,22 @@ package definitions is
 	------------------------------------------------------------
 	--- Register Bus Signals
 	------------------------------------------------------------
+	type OPERAND_BUS is record
+		en			: std_logic;								-- enable the idle unit.
+		mode		: LS_AM_TYPE;								-- The type of the address load.
+		address		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address to read.
+	end record OPERAND_BUS;
+
+	constant FREE_OPERAND_BUS : OPERAND_BUS :=
+	(
+		en			=> 'Z',
+		rw			=> 'Z',
+		address		=> (others => 'Z'),
+	);
+
+	------------------------------------------------------------
+	--- Register Bus Signals
+	------------------------------------------------------------
 	type REGISTER_BUS is record
 		reg_1_en	:	std_logic;
 		reg_1_addr	:	REG_ID;
