@@ -51,9 +51,9 @@ begin
 	-- lets control the memory bus.
 	mem_dev_rw		<= RW_READ			when mem_bus.en = '0' or mem_bus.rw = RW_READ else RW_WRITE;
 	mem_dev_data	<= (others => 'Z')	when mem_bus.en = '0' or mem_bus.rw = RW_READ else data;
-	mem_dev_addr	<= (others => 'Z')	when mem_bus.en = '0' else address;
+	mem_dev_addr	<= (others => 'Z')	when mem_bus.en = '0' else mem_bus.address;
 
-	process (en, clock)
+	process (mem_bus, clock)
 	begin
 		if mem_bus.en = '0'
 		then

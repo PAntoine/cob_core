@@ -29,16 +29,35 @@ entity IdleUnit is
 	port (
 		en			: in std_logic;		-- enable the idle unit.
 		state		: in CPU_STATE;		-- CPU state
-		complete	: out std_logic	-- execution complete.
+		load_comp	: out std_logic;	-- load complete
+		complete	: out std_logic		-- execution complete.
 	);
 end IdleUnit;
 
 architecture synth of IdleUnit is
 
 begin
-	complete	<= 'Z' when en = '0' else
-				   '1' when state = CS_EXECUTE else
-				   '0';
+	process (en, state)
+	begin
+		if en = '0'
+		then
+			complete	<= 'Z';
+			load_comp	<= 'Z';
+
+		else
+			case state is
+				when CS_LOAD =>
+						complete	<= '0';
+						load_comp	<= '1';
+				when CS_EXECUTE	=>
+						complete	<= '1';
+						load_comp	<= '0';
+				when others =>
+						complete	<= '0';
+						load_comp	<= '0';
+			end case;
+		end if;
+	end process;
 
 end architecture synth;
 

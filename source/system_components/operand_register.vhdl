@@ -1,10 +1,10 @@
 -----------------------------------------------------------------------------------
---             _____ ____  ____     _____
---            / ____/ __ \|  _ \   / ____|
---           | |   | |  | | |_) | | |     ___  _ __ ___
---           | |   | |  | |  _ <  | |    / _ \| '__/ _ \
---           | |___| |__| | |_) | | |___| (_) | | |  __/
---            \_____\____/|____/   \_____\___/|_|  \___|
+--			   _____ ____  ____		_____
+--			  / ____/ __ \|  _ \   / ____|
+--			 | |   | |	| | |_) | | |	  ___  _ __ ___
+--			 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
+--			 | |___| |__| | |_) | | |___| (_) | | |  __/
+--			  \_____\____/|____/   \_____\___/|_|  \___|
 --
 --
 -- Name  : operand_register
@@ -13,9 +13,9 @@
 -- Author: Peter Antoine
 -- Date  : 27/03/2021
 -----------------------------------------------------------------------------------
---                     Copyright (c) 2021 Peter Antoine
---                            All rights Reserved.
---                    Released Under the Artistic Licence
+--					   Copyright (c) 2021 Peter Antoine
+--							  All rights Reserved.
+--					  Released Under the Artistic Licence
 -----------------------------------------------------------------------------------
 
 library ieee;
@@ -26,49 +26,59 @@ use work.definitions.all;
 
 entity OperandRegister is
 	port (
-		op_bus		: in	OPERAND_BUS:								-- the control signals.
-
+		reset		: in	std_logic;
+		clock		: in	std_logic;	  
+		op_bus		: in	OPERAND_BUS;								-- the control signals.
+		cstate		: in	CPU_STATE;									-- the cpu state.
 		reg_bus		: out	REGISTER_BUS;								-- the control bus for the register
 		reg_data	: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- register data
+		reg_da		: in	std_logic;									-- the reg data is available.
+		data		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- data from other sources to load.
 
 		mem_bus		: out	MEMORY_BUS;									-- the memory control bus
-		mem_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- memory data
+		mem_data	: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- memory data
+		mem_da		: in	std_logic;									-- mem data available.
 
+		output		: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- the result of the register.
 		complete	: out std_logic										-- execution complete.
 	);
 end OperandRegister;
 
 architecture synth of OperandRegister is
 
-	subtype OP_STATE_TYPE is std_logic_vector(1 downto 0);
-	constant OP_START		: OP_STATE_TYPE	:= "00";
-	constant OP_LATCH_REG	: OP_STATE_TYPE := "01";
-	constant OP_MEM_LATCH	: OP_STATE_TYPE := "10";
-	constant OP_FINISHED	: OP_STATE_TYPE := "11";
+	subtype OP_STATE_TYPE is std_logic_vector(2 downto 0);
+	constant OP_START		: OP_STATE_TYPE	:= "000";
+	constant OP_LATCH_IMM	: OP_STATE_TYPE := "001";
+	constant OP_LATCH_REG	: OP_STATE_TYPE := "010";
+	constant OP_MEM_LATCH	: OP_STATE_TYPE := "011";
+	constant OP_FINISHED	: OP_STATE_TYPE := "100";
+
+	constant LATCH_NONE : std_logic_vector(1 downto 0) := "00";
+	constant LATCH_IMM	: std_logic_vector(1 downto 0) := "01";
+	constant LATCH_REG	: std_logic_vector(1 downto 0) := "10";
+	constant LATCH_MEM	: std_logic_vector(1 downto 0) := "11";
+
+	signal latch : std_logic_vector(1 downto 0);
+	
+	signal state : OP_STATE_TYPE;
 
 	signal op_reg	: std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
 
-	process (op_bus)
+	process (op_bus, cstate, state, mem_da, mem_data, data, reg_da, reg_data)
 	begin
-		if op_bus.en = '0'
+		if op_bus.en = '1' and cstate = CS_LOAD
 		then
-			reg_bus		<= FREE_REGISTER_BUS;
-			mem_bus		<= FREE_REGISTER_BUS;
-			complete	<= '0';
-			state		<= OP_START;
-
-		else
 			case state is
-				when OP_START	=>	if op_bus.mode = LS_AM_REG_INDIRECT or op_bus.mode = LS_AM_REGISTER
+				when OP_START	=>	if op_bus.mode = OP_AM_REGISTER_INDIRECT or op_bus.mode = OP_AM_REGISTER
 									then
 										-- load the register value
-										reg_bus.reg_addr	<= op_bus.address(4 downto 0);
-										reg_bus.reg_rw		<= RW_READ;
-										reg_bus.reg_en		<= '1';
-										state				<= OP_LATCH_REG;
+										reg_bus.address	<= op_bus.address(4 downto 0);
+										reg_bus.rw		<= RW_READ;
+										reg_bus.en		<= '1';
+										state			<= OP_LATCH_REG;
 
-									elsif mode = LS_AM_MEMORY_DIRECT
+									elsif op_bus.mode = OP_AM_MEMORY_DIRECT
 									then
 										-- use the address to directly read memory
 										mem_bus.address	<= op_bus.address;
@@ -78,35 +88,76 @@ begin
 
 									else
 										-- latch the immediate value
-										op_reg				<= op_bus.address;
-										state				<= OP_FINISHED;
+										state			<= OP_FINISHED;
+										latch			<= LATCH_IMM;
 									end if;
 
 				when OP_LATCH_REG =>
-									if op_bus.mode = LS_AM_REG_INDIRECT and reg_bus.da = '1'
+									if reg_da = '1'
 									then
-										mem_bus.address	<= reg_data;
-										mem_bus.rw		<= RW_READ;
-										mem_bus.en		<= '1';
-										state			<= OP_MEM_LATCH;
+										if op_bus.mode = OP_AM_REGISTER_INDIRECT
+										then
+											mem_bus.address	<= reg_data;
+											mem_bus.rw		<= RW_READ;
+											mem_bus.en		<= '1';
+											state			<= OP_MEM_LATCH;
+										else
+											latch			<= LATCH_REG;
+											state			<= OP_FINISHED;
+										end if;
 									end if;
 
 				when OP_MEM_LATCH =>
-									if mem_bus.da = '1'
+									if mem_da = '1'
 									then
-										mem_bus.en	<= '0';
-										op_reg		<= mem_data;
+										mem_bus		<= INIT_MEMORY_BUS;
+										latch		<= LATCH_MEM;
 										state		<= OP_FINISHED;
 									end if;
 
 				when OP_FINISHED =>
-									mem_bus.en	<= '0';
-									reg_bus.en	<= '0';
-									complete	<= '1';
+									mem_bus		<= INIT_MEMORY_BUS;
+									reg_bus		<= INIT_REGISTER_BUS;
+			
+				when others =>
+									mem_bus		<= INIT_MEMORY_BUS;
+									reg_bus		<= INIT_REGISTER_BUS;
 			end case;
+		
+		else
+			reg_bus		<= FREE_REGISTER_BUS;
+			mem_bus		<= FREE_MEMORY_BUS;
+			state		<= OP_START;
+			latch		<= LATCH_NONE;
+
+		end if;
+	end process;
+	
+	process (reset, op_bus.en, clock, latch)
+	begin
+		if reset = '1'
+		then
+			op_reg <= (others => '0');
+			complete <= '0';
+		
+		elsif op_bus.en = '0'
+		then
+			complete <= '0';
+
+		elsif latch /= LATCH_NONE and falling_edge(clock)
+		then
+			case latch is
+				when LATCH_REG => op_reg <= reg_data;
+				when LATCH_MEM => op_reg <= mem_data;
+				when LATCH_IMM => op_reg <= data;
+				when others => null;
+			end case;
+
+			complete <= '1';
+		end if;
 	end process;
 
-	output <= op_reg when en = '1' else 'Z';
+	output <= op_reg when op_bus.en = '1' else (others => 'Z');
 
 end synth;
 -- vi:nocin:sw=4 ts=4:fdm=marker

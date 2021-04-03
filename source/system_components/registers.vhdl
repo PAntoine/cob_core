@@ -10,7 +10,7 @@
 -- Name  : registers
 -- Desc  : This file defines the registers for the cob project.
 --
---         This register block can be read/write to via port 1 (reg_1) and be read
+--         This register block can be read/write to via port 1 (port_1) and be read
 --         on the 
 --
 -- Author: Peter Antoine
@@ -30,7 +30,8 @@ use work.definitions.all;
 	entity GeneralRegisters is
 		port(
 				reset			: in std_logic;									-- reset all the registers.
-				reg_bus			: REGISTER_BUS;									-- the register control bus.
+				port_1_bus		: REGISTER_BUS;									-- the register control bus.
+				port_2_bus		: REGISTER_BUS;									-- the register control bus.
 
 				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
@@ -48,13 +49,13 @@ architecture synth of GeneralRegisters is
 begin
 
 	-- handle the reading the data from the registers.
-	data <= register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) when (reg_bus.reg_1_en='1' and reset='0' and reg_bus.reg_1_rw=RW_READ) else (others => 'Z');
+	data <= register_bank(to_integer(unsigned(port_1_bus.address))) when (port_1_bus.en='1' and reset='0' and port_1_bus.rw=RW_READ) else (others => 'Z');
 
-	data_2 <= register_bank(to_integer(unsigned(reg_bus.reg_2_addr))) when (reg_bus.reg_2_en='1' and reset='0' and reg_bus.reg_2_rw=RW_READ) else (others => 'Z');
+	data_2 <= register_bank(to_integer(unsigned(port_2_bus.address))) when (port_2_bus.en='1' and reset='0' and port_2_bus.rw=RW_READ) else (others => 'Z');
 	
-	data_w_clock <= '1' when reg_bus.reg_1_en = '1' and reg_bus.reg_1_rw = '1' else '0';
+	data_w_clock <= '1' when port_1_bus.en = '1' and port_1_bus.rw = '1' else '0';
 	
-	process (reset, data_w_clock, reg_bus, register_bank)
+	process (reset, data_w_clock, port_1_bus, register_bank)
 	begin
 		if reset = '1'
 		then
@@ -62,7 +63,7 @@ begin
 			
 		elsif rising_edge(data_w_clock)
 		then
-			register_bank(to_integer(unsigned(reg_bus.reg_1_addr))) <= data;
+			register_bank(to_integer(unsigned(port_1_bus.address))) <= data;
 		end if;
 	end process;
 

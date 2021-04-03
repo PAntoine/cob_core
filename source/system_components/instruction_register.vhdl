@@ -49,21 +49,20 @@ begin
 	-- control the memory read.
 	process (reset, state, pc)
 	begin 
-		if reset = '1' or state /= CS_FETCH_DECODE
+		if reset = '0' and state = CS_FETCH_DECODE
 		then
-			mem_bus.en		<= 'Z';
-			mem_bus.rw		<= 'Z';
-			mem_bus.addr	<= (others => 'Z');
-
+			mem_bus.en			<= '1';			-- we want to read the next instruction from the memory bus.
+			mem_bus.rw			<= RW_READ;
+			mem_bus.address		<= pc;
 		else
-			mem_bus.en		<= '1';			-- we want to read the next instruction from the memory bus.
-			mem_bus.rw		<= RW_READ;
-			mem_bus.addr	<= pc;
+			mem_bus.en			<= 'Z';
+			mem_bus.rw			<= 'Z';
+			mem_bus.address		<= (others => 'Z');
 		end if;
 	end process;
 
 	-- latch the instruction
-	process (reset, state, mem_da)
+	process (reset, state, mem_da, data)
 	begin
 		if (reset = '1')
 		then

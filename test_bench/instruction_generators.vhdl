@@ -29,6 +29,7 @@ package instruction_generators is
 	----------------------------------------------------
 	--- functions
 	----------------------------------------------------
+	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetNopTestInstruction			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
@@ -42,15 +43,50 @@ package instruction_generators is
 end package instruction_generators;
 
 package body instruction_generators is
+
+	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+		variable dout : INSTRUCTION_TYPE;
+	begin
+		case a_in(17 downto 14) is
+			when "0000" =>	-- immediate load register tests (load register from immediate data).
+				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_IMMEDIATE & OP_AM_REGISTER & a_in(6 downto 2) & "101010101010101010";
+
+			when "0001" =>	-- Register to register moves.
+				case a_in(7 downto 0) is
+					-- register to register tests.
+					when x"00" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00001" & "0000000000000";
+					when x"04" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00001" & "00010" & "0000000000000";
+					when x"08" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00000" & "0000000000000";
+					when x"0c" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "10000" & "00000" & "0000000000000";
+					when x"10" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "11111" & "10101" & "0000000000000";
+					when others => null;
+				end case;
+
+			-- register to register indirect.
+
+			-- register indirect to register.
+
+			-- memory to register.
+
+			-- register to memory.
+
+			-- immediate to register.
+
+			when others	 => dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "111000000000000000000";
+        end case;
+
+		return dout;
+	end function;
+
 	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
 		
 		if a_in = x"00400800"
 		then
-			dout := CI_AM_IMMEDIATE_REL & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
+			dout := OP_AM_MEMORY_DIRECT & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
 		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "111000000000000000000";
+			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "111000000000000000000";
 		end if;
 
 		return dout;
@@ -67,7 +103,7 @@ package body instruction_generators is
 		then
 			dout := IU_LOGIC & "0000" & tests(index).opcode & LI_AM_RRR & "00001" & "00010" & "00011" & "000";
 		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "110000000000000000000";
+			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "110000000000000000000";
 		end if;
 
 		return dout;
@@ -81,7 +117,7 @@ package body instruction_generators is
 		then
 			dout := CI_NOP & "0000" & IU_CONTROL & ZEROS(20 downto 0);
 		else
-			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "101000000000000000000";
+			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "101000000000000000000";
 		end if;
 
 		return dout;
@@ -98,7 +134,7 @@ package body instruction_generators is
 --		then
 --			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 --		else
---			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
+--			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "100000000000000000000";
 --		end if;
 --		
 --		return dout;
@@ -115,7 +151,7 @@ package body instruction_generators is
 --		then
 --			dout := tests(index).opcode & IU_LOGIC & AM_RIR & "00001" & "00011" & tests(index).b_input(7 downto 0);
 --		else
---			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "011000000000000000000";
+--			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "011000000000000000000";
 --		end if;
 --		
 --		return dout;
@@ -132,7 +168,7 @@ package body instruction_generators is
 --		then
 --			dout := tests(index).opcode & IU_LOGIC & AM_R_R & "00001" & "00010" & "00011" & "000";
 --		else
---			dout := CI_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "010000000000000000000";
+--			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "010000000000000000000";
 --		end if;
 --		
 --		return dout;

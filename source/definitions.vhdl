@@ -53,7 +53,7 @@ package definitions is
 	constant	CS_FETCH_DECODE	: CPU_STATE := "001";
 	constant	CS_LOAD			: CPU_STATE := "010";
 	constant	CS_EXECUTE		: CPU_STATE := "011";
-	constant	CS_WRITE		: CPU_STATE := "100";
+	constant	CS_STORE		: CPU_STATE := "100";
 	constant	CS_FINISHED		: CPU_STATE := "101";
 	constant	CS_HALT			: CPU_STATE := "111";
 
@@ -99,66 +99,98 @@ package definitions is
 	type MEMORY_BUS is record
 		en			:	std_logic;
 		rw			:	std_logic;
-		complete	:	std_logic;
-		addr		:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+		address		:	std_logic_vector(ADDR_WIDTH-1 downto 0);
 	end record MEMORY_BUS;  
 
 	constant FREE_MEMORY_BUS : MEMORY_BUS :=
 	(
 		en			=> 'Z',
 		rw			=> 'Z',
-		complete	=> 'Z',
-		addr		=> (others => 'Z')
+		address		=> (others => 'Z')
 	);
 	
 	constant INIT_MEMORY_BUS : MEMORY_BUS :=
 	(
 		en			=> '0',
 		rw			=> '0',
-		complete	=> '0',
-		addr		=> (others => '0')
+		address		=> (others => '0')
 	);
 	
 	------------------------------------------------------------
 	--- Register Bus Signals
 	------------------------------------------------------------
+	subtype OP_AM_TYPE is std_logic_vector(1 downto 0);
+	
+	subtype OP_AM_MODE	is natural range 28 downto 27;	-- Address mode
+	constant	OP_AM_IMMEDIATE			:	OP_AM_TYPE := "00";
+	constant	OP_AM_MEMORY_DIRECT		:	OP_AM_TYPE := "01";
+	constant	OP_AM_REGISTER			:	OP_AM_TYPE := "10";
+	constant	OP_AM_REGISTER_INDIRECT	:	OP_AM_TYPE := "11";
+
 	type OPERAND_BUS is record
 		en			: std_logic;								-- enable the idle unit.
-		mode		: LS_AM_TYPE;								-- The type of the address load.
+		mode		: OP_AM_TYPE;								-- The type of the address load.
 		address		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- the address to read.
 	end record OPERAND_BUS;
 
 	constant FREE_OPERAND_BUS : OPERAND_BUS :=
 	(
 		en			=> 'Z',
-		rw			=> 'Z',
-		address		=> (others => 'Z'),
+		mode		=> (others => 'Z'),
+		address		=> (others => 'Z')
+	);
+	
+	constant INIT_OPERAND_BUS : OPERAND_BUS :=
+	(
+		en			=> '0',
+		mode		=> (others => '0'),
+		address		=> (others => '0')
+	);
+	
+	------------------------------------------------------------
+	--- Store Unit Bus Signals.
+	------------------------------------------------------------
+	type STORE_BUS is record
+		en		:	std_logic;
+		mode	:	OP_AM_TYPE;
+		address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+	end record STORE_BUS;
+
+	constant FREE_STORE_BUS : STORE_BUS :=
+	(
+		en		=> 'Z',
+		mode	=> (others => 'Z'),
+		address	=> (others => 'Z')
+	);
+	
+	constant INIT_STORE_BUS : STORE_BUS :=
+	(
+		en		=> '0',
+		mode	=> (others => '0'),
+		address	=> (others => '0')
 	);
 
 	------------------------------------------------------------
 	--- Register Bus Signals
 	------------------------------------------------------------
 	type REGISTER_BUS is record
-		reg_1_en	:	std_logic;
-		reg_1_addr	:	REG_ID;
-		reg_2_en	:	std_logic;
-		reg_2_addr	:	REG_ID;
+		en		:	std_logic;
+		rw		:	std_logic;
+		address	:	REG_ID;
 	end record REGISTER_BUS;  
 
 	constant FREE_REGISTER_BUS : REGISTER_BUS :=
 	(
-		reg_1_en	=> 'Z',
-		reg_1_addr	=> (others => 'Z'),
-		reg_2_en	=> 'Z',
-		reg_2_addr	=> (others => 'Z')
+		en		=> 'Z',
+		rw		=> 'Z',
+		address	=> (others => 'Z')
 	);
 	
 	constant INIT_REGISTER_BUS : REGISTER_BUS :=
 	(
-		reg_1_en	=> '0',
-		reg_1_addr	=> (others => '0'),
-		reg_2_en	=> '0',
-		reg_2_addr	=> (others => '0')
+		en		=> '0',
+		rw		=> '0',
+		address	=> (others => '0')
 	);
 
 	------------------------------------------------------------

@@ -158,13 +158,7 @@ package instructions is
 	---         10		| Register Indirect	 xxxxxxxxxxxxxxxxxxRRRRR
 	---
 	------------------------------------------------------------
-	subtype CI_AM_TYPE is std_logic_vector(1 downto 0);
-
 	subtype CI_AM_MODE	is natural range 28 downto 27;	-- Address mode
-	constant	CI_AM_IMMEDIATE			:	CI_AM_TYPE := "00";
-	constant	CI_AM_IMMEDIATE_REL		:	CI_AM_TYPE := "01";
-	constant	CI_AM_REGISTER_DIRECT	:	CI_AM_TYPE := "10";
-	constant	CI_AM_REGISTER_INDIRECT	:	CI_AM_TYPE := "11";
 
 	subtype CONTROL_OP_CODE_TYPE		is std_logic_vector(3 downto 0);
 	subtype CONTROL_OPCODE_RANGE		is natural range 26 downto 23;
@@ -190,7 +184,7 @@ package instructions is
 	---           3         2         1
 	---          10987654321098765432109876543210
 	---          -+---------+---------+----------
-    ---          UUUOOMMMMAAAAABBBBBCCCCCxxxxxxxx	move		-- move
+    ---          UUUOOMMMMAAAAABBBBBxxxxxxxxxxxxx	move		-- move
     ---          UUUOOMMMMAAAAAiiiiiiiiiiiiiiiiii	moveimm		-- move immediate
     ---          UUUOOMMMMAAAAASSS000000000000000	movesys		-- move sys to/from system register
     ---          UUUOOMMMMSSSiiiiiiiiiiiiiiiiiiii	movesysimm	-- move sys to/from immediate
@@ -207,8 +201,6 @@ package instructions is
 	---   10 01       | Immediate         | Register-Indirect
 	---
 	------------------------------------------------------------
-	subtype		LS_AM_TYPE is std_logic_vector(2 downto 0);
-
 	-- TODO: tidy this up -- sort out the source and destination stuff.
 
 	subtype LOAD_STORE_OPCODE_RANGE			is natural range 28 downto 27;
@@ -220,11 +212,6 @@ package instructions is
 	subtype	LOAD_STORE_SYSREG_ID_RANGE		is natural range 22 downto 20;
 	subtype	LOAD_STORE_IMMED_18_RANGE		is natural range 17 downto 0;
 	subtype	LOAD_STORE_IMMED_20_RANGE		is natural range 19 downto 0;
-
-	subtype LS_AM_TYPE is std_logic_vector(1 downto 0);
-	constant	LS_AM_REGISTER		: LS_AM_TYPE	:= "00";
-	constant	LS_AM_REG_INDIRECT	: LS_AM_TYPE	:= "01";
-	constant	LS_AM_IMMEDIATE 	: LS_AM_TYPE	:= "10";
 
 	subtype LOAD_STORE_OPCODE_TYPE is std_logic_vector(1 downto 0);
 	constant	LS_MOVE			:	std_logic_vector(1 downto 0)	:= "00";	--- Memory to load_store

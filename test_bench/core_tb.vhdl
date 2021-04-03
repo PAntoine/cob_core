@@ -93,9 +93,10 @@ begin
 		elsif bus_en = '1' and bus_rw = RW_READ
 		then
 			case bus_address(22 downto 20) is
-				when "000"	=> data <= GetNopTestInstruction(bus_address);
-				when "111"	=> data	<= GetBranchTestInstruction(bus_address);
-				when "110"	=> 
+				when "000"	=> data <= GetLoadStoreTestInstruction(bus_address);
+				when "111"	=> data <= GetNopTestInstruction(bus_address);
+				when "110"	=> data	<= GetBranchTestInstruction(bus_address);
+				when "101"	=> 
 								-- TODO: there is a hack that the bus address is trimmed inside to 20 bits, should
 								--       should really do it here or it's going to cause me trouble.
 								data	<= GetLogicRegisterInstruction(bus_address);

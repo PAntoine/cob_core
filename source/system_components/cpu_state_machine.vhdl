@@ -32,7 +32,7 @@ entity CPUStateMachine is
 			load_complete		: in	std_logic;
 			write_complete		: in	std_logic;
 			execute_complete	: in	std_logic;
-			state				: out	CPU_STATE
+			state				: inout	CPU_STATE
 		);
 end CPUStateMachine;
 
@@ -70,10 +70,10 @@ begin
 					if execute_complete = '1'
 					then
 						-- TODO: check the flags - this is where exceptions should cause a branch or the halt state should happen.
-						state <= CS_WRITE;
+						state <= CS_STORE;
 					end if;
 
-				when CS_WRITE =>
+				when CS_STORE =>
 					if write_complete = '1'
 					then
 						state <= CS_FETCH_DECODE;

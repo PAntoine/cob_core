@@ -29,7 +29,9 @@ use work.MemoryInterface;
 use work.CPUStateMachine;
 use work.ProgramCounter;
 use work.OperandRegister;
--- use work.GeneralRegisters;
+use work.LoadStoreUnit;
+use work.StoreUnit;
+use work.GeneralRegisters;
 use work.InstructionRegister;
 
 entity COB_Core is
@@ -65,14 +67,15 @@ architecture synth of COB_Core is
 		);
 	end component ProgramCounter;
 
---	component GeneralRegisters is
---		port(
---			reset	: in std_logic;
---			reg_bus	: REGISTER_BUS;
---			data	: inout std_logic_vector(REG_WIDTH-1 downto 0);
---			data_2	: out std_logic_vector(REG_WIDTH-1 downto 0)
---		);
---	end component GeneralRegisters;
+	component GeneralRegisters is
+		port(
+			reset		: in std_logic;
+			port_1_bus	: REGISTER_BUS;
+			port_2_bus	: REGISTER_BUS;
+			data		: inout std_logic_vector(REG_WIDTH-1 downto 0);
+			data_2		: out std_logic_vector(REG_WIDTH-1 downto 0)
+		);
+	end component GeneralRegisters;
 
 	component InstructionRegister is
 		port(
@@ -81,10 +84,7 @@ architecture synth of COB_Core is
 			pc				: in std_logic_vector(ADDR_WIDTH-1 downto 0);
 			data			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 			mem_da			: in std_logic;
-
-			mem_en			: out std_logic;
-			mem_rw			: out std_logic;
-			address			: out std_logic_vector(ADDR_WIDTH-1 downto 0);
+			mem_bus			: out MEMORY_BUS;								-- memory bus controls
 			fetch_complete	: out std_logic;
 			unit_sel		: out INSTRUCTION_UNIT_TYPE;
 			instruction		: out INSTRUCTION_TYPE
@@ -93,20 +93,41 @@ architecture synth of COB_Core is
 	
 	component OperandRegister is
 		port (
-			en			: in std_logic;										-- enable the idle unit.
-			address		: in std_logic_vector(ADDR_WIDTH-1 downto 0);		-- the address to read.
-			mode		: in LS_AM_TYPE;									-- The type of the address load.
-
+			reset		: in	std_logic;
+			clock		: in	std_logic;
+			op_bus		: in	OPERAND_BUS;								-- the control signals.
+			cstate		: in	CPU_STATE;
 			reg_bus		: out	REGISTER_BUS;								-- the control bus for the register
 			reg_data	: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- register data
+			reg_da		: in	std_logic;									-- the reg data is available.
+			data		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- data from other sources to load.
 
 			mem_bus		: out	MEMORY_BUS;									-- the memory control bus
-			mem_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- memory data
+			mem_data	: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- memory data
+			mem_da		: in	std_logic;									-- mem data available.
 
+			output		: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- the data from the operand reg.
 			complete	: out std_logic										-- execution complete.
 		);
 	end component OperandRegister;
+	
+	component StoreUnit is
+		port (
+			store_bus	: in	STORE_BUS;
+			data		: in	std_logic_vector(DATA_WIDTH-1 downto 0);	-- the data to write.
 
+			reg_bus		: out	REGISTER_BUS;								-- the control bus for the register
+			reg_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- register data
+			reg_da		: in	std_logic;									-- the reg data is available.
+
+			mem_bus		: out	MEMORY_BUS;									-- the memory control bus
+			mem_data	: out	std_logic_vector(DATA_WIDTH-1 downto 0);	-- memory data
+			mem_da		: in	std_logic;									-- mem data available.
+
+			complete	: out std_logic										-- execution complete.
+		);
+	end component StoreUnit;
+			
 --	component InterruptVectorTable is
 --		port(
 --				reset			: in std_logic;									-- reset all the registers.
@@ -115,7 +136,7 @@ architecture synth of COB_Core is
 --				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
 --				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
 --		);
---	end component GeneralRegisters;
+--	end component InterruptVectorTable;
 
 --	component StackRegister is
 --		port(
@@ -146,7 +167,7 @@ architecture synth of COB_Core is
 			load_complete		: in	std_logic;
 			write_complete		: in	std_logic;
 			execute_complete	: in	std_logic;
-			state				: out	CPU_STATE
+			state				: inout	CPU_STATE
 		);
 	end component CPUStateMachine;
 
@@ -174,33 +195,76 @@ architecture synth of COB_Core is
 		port (
 			en			: in std_logic;
 			state		: in CPU_STATE;
+			load_comp	: out std_logic;	-- load complete
 			complete	: out std_logic
 		);
 	end component IdleUnit;
 
+	component LoadStoreUnit is
+		port (
+			en			: in std_logic;			-- enable the idle unit.
+			state		: in CPU_STATE;			-- CPU state
+			load_comp	: out std_logic;	-- load complete
+			complete	: out std_logic;		-- execution complete.
+			instruction	: in INSTRUCTION_TYPE;	-- the instruction
+
+			op_a		: out OPERAND_BUS;	-- Operand A bus controls
+			op_b		: out OPERAND_BUS;	-- for B
+			data		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- data that needs to goto the operand reg.
+		
+			write		: out STORE_BUS;		-- controls for writing out the data.
+
+			op_a_da		: in std_logic;
+			op_b_da		: in std_logic;
+			op_a_data	: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			op_b_data	: in std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component LoadStoreUnit;
+
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
-	signal int_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
-	signal int_addr_bus	: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- internal address bus
-	signal current_pc	: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter - current address of the instruction running.
-	signal pc_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
+	signal store_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- connection to the store unit.
+	signal op_a_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
+	signal int_data_bus		: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
+	signal int_addr_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- internal address bus
+	signal current_pc		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter - current address of the instruction running.
+	signal pc_bus			: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
 	
-	signal mem_bus		: MEMORY_BUS;
-	signal reg_bus		: REGISTER_BUS;
+	signal op_a_bus			: OPERAND_BUS;
+	signal op_b_bus			: OPERAND_BUS;
+	signal mem_bus			: MEMORY_BUS;
+	signal reg_bus			: REGISTER_BUS;
+	signal write_bus		: STORE_BUS;
 
-	signal fc			: std_logic;
-	signal lc			: std_logic := '1';
-	signal wc			: std_logic	:= '1';
-	signal ec			: std_logic	:= '0';
+	signal op_a_da			: std_logic;
+	signal op_b_da			: std_logic;
 
-	signal pc_load		: std_logic := '0';
+	signal reg_1_bus		: REGISTER_BUS;
+	signal reg_2_bus		: REGISTER_BUS;
+	signal reg_1_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal reg_2_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
-	signal state		: CPU_STATE;
+	signal op_a_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal op_b_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
-	signal instruction	: INSTRUCTION_TYPE;
+	signal fc				: std_logic;
+	signal lc				: std_logic;
+	signal wc				: std_logic;
+	signal ec				: std_logic	:= '0';
 
-	signal unit_sel_bus	: INSTRUCTION_UNIT_TYPE;
+	signal pc_load			: std_logic := '0';
+
+	signal mem_da			: std_logic;
+	signal reg_da			: std_logic;
+
+	signal state			: CPU_STATE;
+
+	signal instruction		: INSTRUCTION_TYPE;
+
+	signal unit_sel_bus		: INSTRUCTION_UNIT_TYPE;
+
+	signal axxxx_problem	: std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
 	---------------------------------------------------------------
 	--- State Machine.
@@ -213,24 +277,26 @@ begin
 	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => int_data_bus, current => current_pc, pc => pc_bus);
 	ir: InstructionRegister port map (reset => reset, state => state, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
 
---	st: StackRegister		port map (reset => reset, load => sk_load, address => int_address_bus, stack => stack_bus);
+--	st: StackRegister		port map (reset => reset  , load => sk_load, address => int_address_bus, stack => stack_bus);
 --	fr: FlagsRegister		port map (reset => reset, load => flags_load, data => int_data_bus, flags => flags_bus);
---	rb: GeneralRegisters	port map (reset => reset, rw => rw, port_1_bus => reg_1_bus, port_2_bus => reg_2_bus, port_1_data => reg_1_data, port_2_data => reg_2_data);
+	rb: GeneralRegisters	port map (reset => reset, port_1_bus => reg_1_bus, port_2_bus => reg_2_bus, data => reg_1_data, data_2 => reg_2_data);
 
 	---------------------------------------------------------------
 	--- Execute Components.
 	---------------------------------------------------------------
-	opr_a:	OperandRegister	port map (op_bus => op_a_bus, reg_bus => reg_1_bus, reg_data, reg_1_data, mem_bus => mem_bus, mem_data => int_data_bus, complete => op_a_da);
-	opr_b:	OperandRegister	port map (op_bus => op_b_bus, reg_bus => reg_2_bus, reg_data, reg_2_data, mem_bus => mem_bus, mem_data => int_data_bus, complete => op_b_da);
+	opr_a:	OperandRegister	port map (reset => reset, clock => clock, op_bus => op_a_bus, cstate => state, reg_bus => reg_1_bus, reg_data => reg_1_data, reg_da => reg_da, data => store_data_bus, mem_bus => mem_bus, mem_data => int_data_bus, mem_da => mem_da, complete => op_a_da, output => op_a_data);
+	opr_b:	OperandRegister	port map (reset => reset, clock => clock, op_bus => op_b_bus, cstate => state, reg_bus => reg_2_bus, reg_data => reg_2_data, reg_da => reg_da, data => int_data_bus, mem_bus => mem_bus, mem_data => int_data_bus, mem_da => mem_da, complete => op_b_da, output => op_b_data);
+	store:	StoreUnit		port map (store_bus => write_bus, complete => wc,  data => store_data_bus, reg_bus => reg_1_bus, reg_data => reg_1_data, reg_da => reg_da, mem_bus => mem_bus, mem_data => axxxx_problem, mem_da => mem_da);
 
-	iu:	IdleUnit			port map (en => unit_sel_bus.idle, 		state => state, complete => ec);
-	ls: LoadStoreUnit		port map (en => unit_sel_bus.load_store,state => state, complete => ec, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
+	-- execute the commands
+	iu:	IdleUnit			port map (en => unit_sel_bus.idle, 		state => state, complete => ec, load_comp => lc);
+	ls: LoadStoreUnit		port map (en => unit_sel_bus.load_store,state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
+										op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	---------------------------------------------------------------
 	--- Interface Components.
 	---------------------------------------------------------------
-	mi: MemoryInterface		port map ( mem_bus => mem_bus, data => int_data_bus, complete => mem_da, mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
-										
+	mi: MemoryInterface		port map ( mem_bus => mem_bus, clock => clock, data => int_data_bus, complete => mem_da, mem_dev_da => da, mem_dev_en => bus_en, mem_dev_rw => bus_rw, mem_dev_addr => bus_address, mem_dev_data => data);
 
 end architecture synth;
 --- vi:nocin:sw=4 ts=4:fdm=marker
