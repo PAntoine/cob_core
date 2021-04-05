@@ -47,11 +47,17 @@ package body instruction_generators is
 	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		case a_in(17 downto 14) is
+		case a_in(9 downto 6) is
 			when "0000" =>	-- immediate load register tests (load register from immediate data).
-				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_IMMEDIATE & OP_AM_REGISTER & a_in(6 downto 2) & "101010101010101010";
+				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_IMMEDIATE & OP_AM_REGISTER & a_in(6 downto 2) & "0000000000000" & a_in(6 downto 2);
 
-			when "0001" =>	-- Register to register moves.
+			when "0001" =>	-- Register indirect.
+				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_IMMEDIATE & OP_AM_REGISTER_INDIRECT & a_in(6 downto 2) & "1111111111000" & a_in(6 downto 2);
+			
+			when "0010" =>	-- Register indirect.
+				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_REGISTER  & OP_AM_MEMORY_DIRECT & a_in(6 downto 2) & "111100001111000011";
+
+			when "0100" =>	-- Register to register moves.
 				case a_in(7 downto 0) is
 					-- register to register tests.
 					when x"00" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00001" & "0000000000000";

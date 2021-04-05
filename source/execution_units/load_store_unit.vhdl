@@ -65,6 +65,8 @@ begin
 
 		elsif state = CS_LOAD
 		then
+			write 	<= INIT_STORE_BUS;
+
 			-- handle the load store phase of the operation
 			case instruction(LOAD_STORE_OPCODE_RANGE) is
 				when LS_MOVE			=>	op_a.en			<= '1';
@@ -107,6 +109,7 @@ begin
 				when LS_MOVE_SYS_IMM	=> null;
 				when others				=> null;
 			end case;
+			complete <= '0';
 		
 		elsif state = CS_EXECUTE
 		then
@@ -135,7 +138,7 @@ begin
 												write.address	<= op_b_data;
 											else
 												write.mode		<= instruction(LOAD_STORE_ADDR_MODE_DST_RANGE);
-												write.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LOAD_STORE_OPERAND_B_RANGE);
+												write.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LOAD_STORE_OPERAND_A_RANGE);
 											end if;
 
 											data		<= op_a_data;
@@ -145,6 +148,7 @@ begin
 				when LS_MOVE_SYS_IMM	=> null;
 				when others				=> null;
 			end case;
+			complete <= '0';
 
 		else
 			op_a 	<= INIT_OPERAND_BUS;

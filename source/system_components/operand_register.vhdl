@@ -46,12 +46,11 @@ end OperandRegister;
 
 architecture synth of OperandRegister is
 
-	subtype OP_STATE_TYPE is std_logic_vector(2 downto 0);
-	constant OP_START		: OP_STATE_TYPE	:= "000";
-	constant OP_LATCH_IMM	: OP_STATE_TYPE := "001";
-	constant OP_LATCH_REG	: OP_STATE_TYPE := "010";
-	constant OP_MEM_LATCH	: OP_STATE_TYPE := "011";
-	constant OP_FINISHED	: OP_STATE_TYPE := "100";
+	subtype OP_STATE_TYPE is std_logic_vector(1 downto 0);
+	constant OP_START		: OP_STATE_TYPE	:= "00";
+	constant OP_LATCH_REG	: OP_STATE_TYPE := "01";
+	constant OP_MEM_LATCH	: OP_STATE_TYPE := "10";
+	constant OP_FINISHED	: OP_STATE_TYPE := "11";
 
 	constant LATCH_NONE : std_logic_vector(1 downto 0) := "00";
 	constant LATCH_IMM	: std_logic_vector(1 downto 0) := "01";
@@ -60,7 +59,8 @@ architecture synth of OperandRegister is
 
 	signal latch : std_logic_vector(1 downto 0);
 	
-	signal state : OP_STATE_TYPE;
+	signal state 		: OP_STATE_TYPE;
+	signal data_latched	: std_logic;
 
 	signal op_reg	: std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
@@ -103,7 +103,11 @@ begin
 											state			<= OP_MEM_LATCH;
 										else
 											latch			<= LATCH_REG;
-											state			<= OP_FINISHED;
+
+											if data_latched = '1'
+											then
+												state			<= OP_FINISHED;
+											end if;
 										end if;
 									end if;
 
@@ -137,12 +141,14 @@ begin
 	begin
 		if reset = '1'
 		then
-			op_reg <= (others => '0');
-			complete <= '0';
+			op_reg			<= (others => '0');
+			complete		<= '0';
+			data_latched	<= '0';
 		
 		elsif op_bus.en = '0'
 		then
-			complete <= '0';
+			complete		<= '0';
+			data_latched	<= '0';
 
 		elsif latch /= LATCH_NONE and falling_edge(clock)
 		then
@@ -153,7 +159,8 @@ begin
 				when others => null;
 			end case;
 
-			complete <= '1';
+			complete		<= '1';
+			data_latched	<= '0';
 		end if;
 	end process;
 

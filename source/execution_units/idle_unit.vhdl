@@ -29,6 +29,9 @@ entity IdleUnit is
 	port (
 		en			: in std_logic;		-- enable the idle unit.
 		state		: in CPU_STATE;		-- CPU state
+		op_a		: out OPERAND_BUS;	-- Operand A bus controls
+		op_b		: out OPERAND_BUS;	-- for B
+		write		: out STORE_BUS;	-- controls for writing out the data.
 		load_comp	: out std_logic;	-- load complete
 		complete	: out std_logic		-- execution complete.
 	);
@@ -43,6 +46,9 @@ begin
 		then
 			complete	<= 'Z';
 			load_comp	<= 'Z';
+			write		<= FREE_STORE_BUS;
+			op_a		<= FREE_OPERAND_BUS;
+			op_b		<= FREE_OPERAND_BUS;
 
 		else
 			case state is
@@ -56,6 +62,10 @@ begin
 						complete	<= '0';
 						load_comp	<= '0';
 			end case;
+
+			write	<= INIT_STORE_BUS;
+			op_a	<= INIT_OPERAND_BUS;
+			op_b	<= INIT_OPERAND_BUS;
 		end if;
 	end process;
 

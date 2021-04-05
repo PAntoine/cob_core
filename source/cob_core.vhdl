@@ -80,6 +80,7 @@ architecture synth of COB_Core is
 	component InstructionRegister is
 		port(
 			reset			: in std_logic;
+			clock			: in std_logic;
 			state			: in CPU_STATE;
 			pc				: in std_logic_vector(ADDR_WIDTH-1 downto 0);
 			data			: in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -195,7 +196,10 @@ architecture synth of COB_Core is
 		port (
 			en			: in std_logic;
 			state		: in CPU_STATE;
-			load_comp	: out std_logic;	-- load complete
+			op_a		: out OPERAND_BUS;
+			op_b		: out OPERAND_BUS;
+			write		: out STORE_BUS;
+			load_comp	: out std_logic;
 			complete	: out std_logic
 		);
 	end component IdleUnit;
@@ -256,15 +260,13 @@ architecture synth of COB_Core is
 	signal pc_load			: std_logic := '0';
 
 	signal mem_da			: std_logic;
-	signal reg_da			: std_logic;
+	signal reg_da			: std_logic := '1';		-- TODO: will need this later for pipelining -- a bit previous. :)
 
 	signal state			: CPU_STATE;
 
 	signal instruction		: INSTRUCTION_TYPE;
 
 	signal unit_sel_bus		: INSTRUCTION_UNIT_TYPE;
-
-	signal axxxx_problem	: std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
 	---------------------------------------------------------------
 	--- State Machine.
@@ -275,7 +277,7 @@ begin
 	--- Register Implementations
 	---------------------------------------------------------------
 	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => int_data_bus, current => current_pc, pc => pc_bus);
-	ir: InstructionRegister port map (reset => reset, state => state, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
+	ir: InstructionRegister port map (reset => reset, state => state, clock => clock, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
 
 --	st: StackRegister		port map (reset => reset  , load => sk_load, address => int_address_bus, stack => stack_bus);
 --	fr: FlagsRegister		port map (reset => reset, load => flags_load, data => int_data_bus, flags => flags_bus);
@@ -286,10 +288,13 @@ begin
 	---------------------------------------------------------------
 	opr_a:	OperandRegister	port map (reset => reset, clock => clock, op_bus => op_a_bus, cstate => state, reg_bus => reg_1_bus, reg_data => reg_1_data, reg_da => reg_da, data => store_data_bus, mem_bus => mem_bus, mem_data => int_data_bus, mem_da => mem_da, complete => op_a_da, output => op_a_data);
 	opr_b:	OperandRegister	port map (reset => reset, clock => clock, op_bus => op_b_bus, cstate => state, reg_bus => reg_2_bus, reg_data => reg_2_data, reg_da => reg_da, data => int_data_bus, mem_bus => mem_bus, mem_data => int_data_bus, mem_da => mem_da, complete => op_b_da, output => op_b_data);
-	store:	StoreUnit		port map (store_bus => write_bus, complete => wc,  data => store_data_bus, reg_bus => reg_1_bus, reg_data => reg_1_data, reg_da => reg_da, mem_bus => mem_bus, mem_data => axxxx_problem, mem_da => mem_da);
+	store:	StoreUnit		port map (store_bus => write_bus, complete => wc,  data => store_data_bus, reg_bus => reg_1_bus, reg_data => reg_1_data, reg_da => reg_da, mem_bus => mem_bus, mem_data => int_data_bus, mem_da => mem_da);
+
+	-- don't let the mem_bus float when not in use.
+	mem_bus <= FREE_MEMORY_BUS when write_bus.en = '1' or state = CS_FETCH_DECODE else INIT_MEMORY_BUS;
 
 	-- execute the commands
-	iu:	IdleUnit			port map (en => unit_sel_bus.idle, 		state => state, complete => ec, load_comp => lc);
+	iu:	IdleUnit			port map (en => unit_sel_bus.idle, 		state => state, complete => ec, load_comp => lc, op_a => op_a_bus, op_b => op_b_bus, write => write_bus);
 	ls: LoadStoreUnit		port map (en => unit_sel_bus.load_store,state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
 										op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 

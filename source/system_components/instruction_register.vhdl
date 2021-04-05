@@ -29,6 +29,7 @@ use work.instructions.all;
 entity InstructionRegister is
 	port(
 			reset			: in std_logic;
+			clock			: in std_logic;
 			state			: in CPU_STATE;
 			pc				: in std_logic_vector(ADDR_WIDTH-1 downto 0);
 			data			: in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -62,7 +63,7 @@ begin
 	end process;
 
 	-- latch the instruction
-	process (reset, state, mem_da, data)
+	process (reset, state, mem_da, data, clock)
 	begin
 		if (reset = '1')
 		then
@@ -75,16 +76,22 @@ begin
 	end process;
 
 	-- decode the unit sel
-	process (reset, int_instr_reg)
+	process (reset, state, int_instr_reg)
 	begin
-		case int_instr_reg(INSTR_UNIT_RANGE) is
-			when IU_LOGIC		=> unit_sel <= IU_LOGIC_SEL;
-			when IU_CONTROL		=> unit_sel <= IU_CONTROL_SEL;
-			when IU_ARITH		=> unit_sel <= IU_ARITH_SEL;
-			when IU_LOAD_STORE	=> unit_sel <= IU_LOAD_STORE_SEL;
-			when IU_SYSTEM		=> unit_sel <= IU_SYSTEM_SEL;
-			when others			=> unit_sel <= IU_IDLE_SEL;
-		end case;
+		if state = CS_FETCH_DECODE
+		then
+			unit_sel <= IU_IDLE_SEL;
+
+		else
+			case int_instr_reg(INSTR_UNIT_RANGE) is
+				when IU_LOGIC		=> unit_sel <= IU_LOGIC_SEL;
+				when IU_CONTROL		=> unit_sel <= IU_CONTROL_SEL;
+				when IU_ARITH		=> unit_sel <= IU_ARITH_SEL;
+				when IU_LOAD_STORE	=> unit_sel <= IU_LOAD_STORE_SEL;
+				when IU_SYSTEM		=> unit_sel <= IU_SYSTEM_SEL;
+				when others			=> unit_sel <= IU_IDLE_SEL;
+			end case;
+		end if;
 	end process;
 
 	fetch_complete	<= '1' when state = CS_FETCH_DECODE and mem_da = '1' else '0';

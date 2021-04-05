@@ -67,13 +67,15 @@ architecture simulation of COB_Core_Test_Bench is
 	signal	ds			: std_logic;
 	signal	bus_rw		: std_logic;
 	signal	bus_en		: std_logic;
-	signal	bus_address	: std_logic_vector(ADDR_WIDTH-1 downto 0);
+	signal	bus_address	: std_logic_vector(ADDR_WIDTH-1 downto 0) := (others => '0');
 	signal	da			: std_logic	:= '0';
 	signal	data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
+	signal write_data : std_logic_vector(DATA_WIDTH-1 downto 0);
+
 	signal test_a : std_logic_vector(DATA_WIDTH-1 downto 0) := x"FFFFFFFF";
 	signal test_b : std_logic_vector(DATA_WIDTH-1 downto 0) := x"00000008";
-
+	
 begin
 	-- clock signal
 	clock <= not clock after 50 ps;
@@ -84,13 +86,13 @@ begin
 
 	core: COB_Core port map (reset => reset, enable => enable, clock => clock, as => as, ds => ds, bus_rw => bus_rw, bus_en => bus_en, bus_address => bus_address, da => da, data => data);
 
-	process (bus_en, bus_rw)
+	process (bus_en, bus_rw, bus_address)
 	begin
-		if bus_en = '0'
+		if bus_en = '0' or bus_rw = RW_WRITE
 		then
 			data 	<= (others => 'Z');
 
-		elsif bus_en = '1' and bus_rw = RW_READ
+		elsif bus_rw = RW_READ
 		then
 			case bus_address(22 downto 20) is
 				when "000"	=> data <= GetLoadStoreTestInstruction(bus_address);
@@ -100,9 +102,6 @@ begin
 								-- TODO: there is a hack that the bus address is trimmed inside to 20 bits, should
 								--       should really do it here or it's going to cause me trouble.
 								data	<= GetLogicRegisterInstruction(bus_address);
-								test_a	<= GetLogicTestValues(bus_address).a_input;
-								test_b	<= GetLogicTestValues(bus_address).b_input;
-								-- result	<= GetLogicTestValues(bus_address).output;
 --				when "101"	=> data <= GetLogicImmdiateInstruction(bus_address);
 --				when "100"	=> data <= GetLogicMemoryInstruction(bus_address);
 --				when "011"	=> data <= GetLogicSingleInstruction(bus_address);
@@ -118,11 +117,20 @@ begin
 		then
 			da <= '0';
 
-		elsif bus_en = '1' and bus_rw = RW_READ
+		elsif falling_edge(clock)
 		then
 			da <= '1';
 		end if;
 	end process;
+
+	process (bus_en, bus_rw, clock)
+	begin
+		if falling_edge(clock) and bus_rw = '1' and bus_en = '1'
+		then
+			write_data <= data;
+		end if;
+	end process;
+
 
 end architecture simulation;
 

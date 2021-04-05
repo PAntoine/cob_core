@@ -47,7 +47,6 @@ end StoreUnit;
 architecture synth of StoreUnit is
 
 begin
-	
 	process (store_bus, data)
 	begin
 		if (store_bus.en = '0')
@@ -57,22 +56,21 @@ begin
 			
 			reg_data	<= (others => 'Z');
 			mem_data	<= (others => 'Z');
-
-			complete	<= 'Z';
 		else
 			case store_bus.mode is
 				when OP_AM_MEMORY_DIRECT	=>
+						reg_data		<= (others => 'Z');
 						mem_data		<= data;
 						mem_bus.address	<= store_bus.address;
 						mem_bus.rw		<= RW_WRITE;
 						mem_bus.en		<= '1';
 
 				when OP_AM_REGISTER			=>
+						mem_data		<= (others => 'Z');
 						reg_data		<= data;
 						reg_bus.address	<= store_bus.address(4 downto 0);
 						reg_bus.rw		<= RW_WRITE;
 						reg_bus.en		<= '1';
-						complete		<= '1';
 
 --				when OP_AM_IMMEDIATE			=>		Can't store immediate -- only data to reg or memory.
 --				when OP_AM_REGISTER_INDIRECT	=>		INVALID INSTRUCTION -- the load part should have been handled already.
@@ -80,9 +78,27 @@ begin
 				when others =>
 						reg_bus		<= INIT_REGISTER_BUS;
 						mem_bus		<= INIT_MEMORY_BUS;
-						complete	<= '0';
+						mem_data	<= (others => 'Z');
 			end case;
+		end if;
+	end process;
 
+	process (store_bus.en, store_bus.mode, reg_da, mem_da)
+	begin
+		if store_bus.en = '0'
+		then
+			complete <= '0';		-- should be the only unit doing writes.
+
+		elsif store_bus.mode = OP_AM_MEMORY_DIRECT and mem_da = '1'
+		then
+			complete <= '1';
+
+		elsif store_bus.mode = OP_AM_REGISTER and reg_da = '1'
+		then
+			complete <= '1';
+
+		else
+			complete <= '0';
 		end if;
 	end process;
 

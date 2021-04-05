@@ -66,7 +66,7 @@ begin
 	begin
 		if reset = '1'
 		then
-			current_addr <= (others => 'Z');
+			current_addr <= (others => '0');
 		
 		elsif rising_edge(clock) and state = CS_LOAD
 		then
