@@ -151,7 +151,7 @@ package instructions is
     ---          UUUmmOOOOxxxxxxxxxxxxxxxxxxxxxxx
 	---
 	---    Address Mode |
-	---     oo = mode   |  Meaning of X
+	---     mm = mode   |  Meaning of X
 	---   --------------+--------------------------------------------
 	---         00      | Immediate relative sxxxxxxxxxxxxxxxxxxxxxx
 	---         01		| Register Direct	 xxxxxxxxxxxxxxxxxxRRRRR

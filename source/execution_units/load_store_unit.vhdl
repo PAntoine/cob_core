@@ -52,6 +52,8 @@ begin
 	-- set load complete after the op is loaded.
 	load_comp <= op_a_da when en = '1' else 'Z';
 
+	-- TODO: need to check in the instruction is valid.
+
 	-- handle the load state
 	process (en, state, instruction)
 	begin
@@ -100,9 +102,10 @@ begin
 											then
 												op_a.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LOAD_STORE_OPERAND_A_RANGE);
 												data			<= ZEROS(DATA_WIDTH-1 downto 18) & instruction(LOAD_STORE_IMMED_18_RANGE);
-											else
-												-- invalid instr
-												null;
+											
+											elsif instruction(LOAD_STORE_ADDR_MODE_SRC_RANGE) = OP_AM_REGISTER
+											then
+												op_a.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LOAD_STORE_OPERAND_A_RANGE);
 											end if;
 
 				when LS_MOVE_SYS		=> null;
@@ -136,6 +139,11 @@ begin
 											then
 												write.mode  	<= OP_AM_MEMORY_DIRECT;
 												write.address	<= op_b_data;
+
+											elsif instruction(LOAD_STORE_ADDR_MODE_DST_RANGE) = OP_AM_MEMORY_DIRECT
+											then
+												write.mode  	<= OP_AM_MEMORY_DIRECT;
+												write.address	<= ZEROS(DATA_WIDTH-1 downto 18) & instruction(LOAD_STORE_IMMED_18_RANGE);
 											else
 												write.mode		<= instruction(LOAD_STORE_ADDR_MODE_DST_RANGE);
 												write.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LOAD_STORE_OPERAND_A_RANGE);

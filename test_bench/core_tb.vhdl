@@ -72,10 +72,6 @@ architecture simulation of COB_Core_Test_Bench is
 	signal	data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
 	signal write_data : std_logic_vector(DATA_WIDTH-1 downto 0);
-
-	signal test_a : std_logic_vector(DATA_WIDTH-1 downto 0) := x"FFFFFFFF";
-	signal test_b : std_logic_vector(DATA_WIDTH-1 downto 0) := x"00000008";
-	
 begin
 	-- clock signal
 	clock <= not clock after 50 ps;
@@ -95,13 +91,11 @@ begin
 		elsif bus_rw = RW_READ
 		then
 			case bus_address(22 downto 20) is
-				when "000"	=> data <= GetLoadStoreTestInstruction(bus_address);
-				when "111"	=> data <= GetNopTestInstruction(bus_address);
-				when "110"	=> data	<= GetBranchTestInstruction(bus_address);
-				when "101"	=> 
-								-- TODO: there is a hack that the bus address is trimmed inside to 20 bits, should
-								--       should really do it here or it's going to cause me trouble.
-								data	<= GetLogicRegisterInstruction(bus_address);
+				when TO_LOAD_STORE	=> data <= GetLoadStoreTestInstruction(bus_address, TO_BRANCH);
+				when TO_BRANCH		=> data <= GetNopTestInstruction(bus_address,		TO_LOGIC);
+				when TO_LOGIC		=> data	<= GetBranchTestInstruction(bus_address,	TO_NOP);
+				when TO_NOP			=> data	<= GetLogicRegisterInstruction(bus_address,	TO_HALT);
+
 --				when "101"	=> data <= GetLogicImmdiateInstruction(bus_address);
 --				when "100"	=> data <= GetLogicMemoryInstruction(bus_address);
 --				when "011"	=> data <= GetLogicSingleInstruction(bus_address);

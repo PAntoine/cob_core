@@ -26,65 +26,76 @@ use ieee.numeric_std.all;
 use work.logic_tb_defines.all;
 
 package instruction_generators is
+
+	----------------------------------------------------
+	--- test offsets
+	----------------------------------------------------
+	subtype TEST_OFFSET is std_logic_vector(2 downto 0);
+	constant	TO_LOAD_STORE	:	TEST_OFFSET := "000";
+	constant	TO_BRANCH		:	TEST_OFFSET := "001";
+	constant	TO_LOGIC		:	TEST_OFFSET := "010";
+	constant	TO_NOP			:	TEST_OFFSET := "011";
+	constant	TO_HALT			:	TEST_OFFSET := "111";
+
 	----------------------------------------------------
 	--- functions
 	----------------------------------------------------
-	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetNopTestInstruction			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
+	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr:	TEST_OFFSET) return INSTRUCTION_TYPE;
+	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr:	TEST_OFFSET) return INSTRUCTION_TYPE;
+	function GetNopTestInstruction			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr:	TEST_OFFSET) return INSTRUCTION_TYPE;
+	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr:	TEST_OFFSET) return INSTRUCTION_TYPE;
 
 --	function GetLogicImmdiateInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 --	function GetLogicMemoryInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
 --	function GetLogicSingleInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE;
-	function GetLogicTestValues 			(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return TEST_CASE_TYPE;
+	function GetLogicTestValues				(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return TEST_CASE_TYPE;
 
 
 end package instruction_generators;
 
 package body instruction_generators is
 
-	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+	function GetLoadStoreTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr: TEST_OFFSET) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
-		case a_in(9 downto 6) is
+		case a_in(10 downto 7) is
 			when "0000" =>	-- immediate load register tests (load register from immediate data).
 				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_IMMEDIATE & OP_AM_REGISTER & a_in(6 downto 2) & "0000000000000" & a_in(6 downto 2);
 
 			when "0001" =>	-- Register indirect.
 				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_IMMEDIATE & OP_AM_REGISTER_INDIRECT & a_in(6 downto 2) & "1111111111000" & a_in(6 downto 2);
 			
-			when "0010" =>	-- Register indirect.
-				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_REGISTER  & OP_AM_MEMORY_DIRECT & a_in(6 downto 2) & "111100001111000011";
+			when "0010" =>	-- Register to memory (immediate address).
+				dout := IU_LOAD_STORE & LS_MOVE_IMM & OP_AM_REGISTER  & OP_AM_MEMORY_DIRECT & a_in(6 downto 2) & "1111000011110" & a_in(6 downto 2);
 
-			when "0100" =>	-- Register to register moves.
+			when "0011" =>	-- register indirect to register indirect.
+				dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER_INDIRECT & OP_AM_REGISTER_INDIRECT & a_in(6 downto 2) & "00001" & "0000000000000";
+
+			when "0100" =>	-- register to register indirect.
+				dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER_INDIRECT & a_in(6 downto 2) & "00001" & "0000000000000";
+
+			when "0101" =>	-- Register to memory (immediate address).
+				dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER_INDIRECT & OP_AM_MEMORY_DIRECT & a_in(6 downto 2) & "000000000000000000";
+
+			-- this should be the last one - now goto next instruction (at the end).
+			when "0110" =>	-- Register to register moves.
 				case a_in(7 downto 0) is
 					-- register to register tests.
-					when x"00" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00001" & "0000000000000";
-					when x"04" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00001" & "00010" & "0000000000000";
-					when x"08" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00000" & "0000000000000";
-					when x"0c" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "10000" & "00000" & "0000000000000";
-					when x"10" => dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "11111" & "10101" & "0000000000000";
-					when others => null;
+					when x"00" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00001" & "0000000000000";
+					when x"04" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00001" & "00010" & "0000000000000";
+					when x"08" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00000" & "0000000000000";
+					when x"0c" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "10000" & "00000" & "0000000000000";
+					when x"10" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "11111" & "10101" & "0000000000000";
+					when others =>	dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
 				end case;
-
-			-- register to register indirect.
-
-			-- register indirect to register.
-
-			-- memory to register.
-
-			-- register to memory.
-
-			-- immediate to register.
-
-			when others	 => dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "111000000000000000000";
-        end case;
+			
+			when others	 => dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
+		end case;
 
 		return dout;
 	end function;
 
-	function GetBranchTestInstruction		(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+	function GetBranchTestInstruction	(a_in: in std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr: in TEST_OFFSET) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
 		
@@ -92,13 +103,13 @@ package body instruction_generators is
 		then
 			dout := OP_AM_MEMORY_DIRECT & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
 		else
-			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "111000000000000000000";
+			dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
 		end if;
 
 		return dout;
 	end function;
 	
-	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+	function GetLogicRegisterInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr: TEST_OFFSET) return INSTRUCTION_TYPE is
 		variable tests : TEST_CASE_ARRAY(0 to lsl_test_cases'length-1) := lsl_test_cases;
 		variable index : integer;
 		variable dout : INSTRUCTION_TYPE;
@@ -109,21 +120,21 @@ package body instruction_generators is
 		then
 			dout := IU_LOGIC & "0000" & tests(index).opcode & LI_AM_RRR & "00001" & "00010" & "00011" & "000";
 		else
-			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "110000000000000000000";
+			dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
 		end if;
 
 		return dout;
 	end function;
 
 
-	function GetNopTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0)) return INSTRUCTION_TYPE is
+	function GetNopTestInstruction	(a_in: std_logic_vector(ADDR_WIDTH-1 downto 0); n_addr: TEST_OFFSET) return INSTRUCTION_TYPE is
 		variable dout : INSTRUCTION_TYPE;
 	begin
 		if unsigned(a_in) < 255
 		then
 			dout := CI_NOP & "0000" & IU_CONTROL & ZEROS(20 downto 0);
 		else
-			dout := OP_AM_IMMEDIATE & "00" & CI_BRANCH & IU_CONTROL & "101000000000000000000";
+			dout := IU_CONTROL & OP_AM_IMMEDIATE & CI_BRANCH & n_addr & "00000000000000000000";
 		end if;
 
 		return dout;
