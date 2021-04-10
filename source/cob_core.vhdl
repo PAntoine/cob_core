@@ -30,7 +30,9 @@ use work.CPUStateMachine;
 use work.ProgramCounter;
 use work.OperandRegister;
 use work.LoadStoreUnit;
+use work.LogicUnit;
 use work.StoreUnit;
+use work.ControlUnit;
 use work.GeneralRegisters;
 use work.InstructionRegister;
 
@@ -200,6 +202,7 @@ architecture synth of COB_Core is
 			op_b		: out OPERAND_BUS;
 			write		: out STORE_BUS;
 			load_comp	: out std_logic;
+			store_comp	: out std_logic;
 			complete	: out std_logic
 		);
 	end component IdleUnit;
@@ -225,13 +228,52 @@ architecture synth of COB_Core is
 		);
 	end component LoadStoreUnit;
 
+	component LogicUnit is
+		port(
+			en			: in std_logic;			-- enable the idle unit.
+			state		: in CPU_STATE;			-- CPU state
+			load_comp	: out std_logic;		-- load phase is complete.
+			complete	: out std_logic;		-- execution complete.
+			instruction	: in INSTRUCTION_TYPE;	-- the instruction
+
+			op_a		: out OPERAND_BUS;	-- Operand A bus controls
+			op_b		: out OPERAND_BUS;	-- for B
+			data		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- data that needs to goto the operand reg.
+
+			write		: out STORE_BUS;		-- controls for writing out the data.
+
+			op_a_da		: in std_logic;
+			op_b_da		: in std_logic;
+			op_a_data	: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			op_b_data	: in std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component LogicUnit;
+
+	component ControlUnit is
+		port(
+			en			: in std_logic;
+			state		: in CPU_STATE;
+			load_comp	: out std_logic;
+			store_comp	: out std_logic;
+			complete	: out std_logic;
+			instruction	: in INSTRUCTION_TYPE;
+			op_a		: out OPERAND_BUS;
+			op_b		: out OPERAND_BUS;
+			data		: out std_logic_vector(DATA_WIDTH-1 downto 0);
+			write		: out STORE_BUS;
+			flags		: in CPU_FLAGS;
+			pc_load		: out std_logic;
+			pc			: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			op_a_da		: in std_logic;
+			op_a_data	: in std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component ControlUnit;
+
 	---------------------------------------------------------------
 	--- now the internal signals.
 	---------------------------------------------------------------
 	signal store_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- connection to the store unit.
-	signal op_a_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
 	signal int_data_bus		: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
-	signal int_addr_bus		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- internal address bus
 	signal current_pc		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter - current address of the instruction running.
 	signal pc_bus			: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
 	
@@ -240,6 +282,8 @@ architecture synth of COB_Core is
 	signal mem_bus			: MEMORY_BUS;
 	signal reg_bus			: REGISTER_BUS;
 	signal write_bus		: STORE_BUS;
+
+	signal flags			: CPU_FLAGS := INIT_CPU_FLAGS;
 
 	signal op_a_da			: std_logic;
 	signal op_b_da			: std_logic;
@@ -276,7 +320,7 @@ begin
 	---------------------------------------------------------------
 	--- Register Implementations
 	---------------------------------------------------------------
-	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => int_data_bus, current => current_pc, pc => pc_bus);
+	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => store_data_bus, current => current_pc, pc => pc_bus);
 	ir: InstructionRegister port map (reset => reset, state => state, clock => clock, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
 
 --	st: StackRegister		port map (reset => reset  , load => sk_load, address => int_address_bus, stack => stack_bus);
@@ -291,12 +335,16 @@ begin
 	store:	StoreUnit		port map (store_bus => write_bus, complete => wc,  data => store_data_bus, reg_bus => reg_1_bus, reg_data => reg_1_data, reg_da => reg_da, mem_bus => mem_bus, mem_data => int_data_bus, mem_da => mem_da);
 
 	-- don't let the mem_bus float when not in use.
-	mem_bus <= FREE_MEMORY_BUS when write_bus.en = '1' or state = CS_FETCH_DECODE else INIT_MEMORY_BUS;
+	mem_bus <= FREE_MEMORY_BUS when state = CS_STORE or state = CS_FETCH_DECODE else INIT_MEMORY_BUS;
 
 	-- execute the commands
-	iu:	IdleUnit			port map (en => unit_sel_bus.idle, 		state => state, complete => ec, load_comp => lc, op_a => op_a_bus, op_b => op_b_bus, write => write_bus);
-	ls: LoadStoreUnit		port map (en => unit_sel_bus.load_store,state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
-										op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
+	iu:	IdleUnit		port map (en => unit_sel_bus.idle,		state => state, complete => ec, load_comp => lc, store_comp => wc, op_a => op_a_bus, op_b => op_b_bus, write => write_bus);
+	ls: LoadStoreUnit	port map (en => unit_sel_bus.load_store,state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
+									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
+	li: LogicUnit		port map (en => unit_sel_bus.logic,		state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
+									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
+	cu: ControlUnit		port map (en => unit_sel_bus.control,	state => state, complete => ec, load_comp => lc, store_comp => wc, write => write_bus, instruction => instruction, flags => flags, pc => pc_bus, pc_load => pc_load, data => store_data_bus,
+									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_a_data => op_a_data); 
 
 	---------------------------------------------------------------
 	--- Interface Components.

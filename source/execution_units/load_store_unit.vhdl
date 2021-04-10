@@ -54,7 +54,6 @@ begin
 
 	-- TODO: need to check in the instruction is valid.
 
-	-- handle the load state
 	process (en, state, instruction)
 	begin
 		if en = '0'

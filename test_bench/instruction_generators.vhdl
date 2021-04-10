@@ -86,10 +86,11 @@ package body instruction_generators is
 					when x"08" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "00000" & "00000" & "0000000000000";
 					when x"0c" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "10000" & "00000" & "0000000000000";
 					when x"10" =>	dout := IU_LOAD_STORE & LS_MOVE & OP_AM_REGISTER & OP_AM_REGISTER & "11111" & "10101" & "0000000000000";
-					when others =>	dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
+					when others =>
+						dout := IU_CONTROL & OP_AM_IMMEDIATE & CI_BRANCH & n_addr & "00000000000000000000";
 				end case;
 			
-			when others	 => dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
+			when others	 => dout := IU_CONTROL & OP_AM_IMMEDIATE & CI_BRANCH & n_addr & "00000000000000000000";
 		end case;
 
 		return dout;
@@ -103,7 +104,7 @@ package body instruction_generators is
 		then
 			dout := OP_AM_MEMORY_DIRECT & "00" & CI_BRANCH & IU_CONTROL & "000000000001000000000";
 		else
-			dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
+			dout := IU_CONTROL & OP_AM_IMMEDIATE & CI_BRANCH & n_addr & "00000000000000000000";
 		end if;
 
 		return dout;
@@ -118,7 +119,7 @@ package body instruction_generators is
 
 		if index < lsl_test_cases'length-1
 		then
-			dout := IU_LOGIC & "0000" & tests(index).opcode & LI_AM_RRR & "00001" & "00010" & "00011" & "000";
+			dout := IU_LOGIC & tests(index).opcode & OP_AM_REGISTER & OP_AM_REGISTER & OP_AM_REGISTER & "00001" & "00010" & "00011" & "0000";
 		else
 			dout := IU_CONTROL & "00" & CI_BRANCH & n_addr & "00000000000000000000";
 		end if;

@@ -21,7 +21,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use STD.textio.all;
+use std.textio.all;
 use ieee.std_logic_textio.all; 
 
 use work.definitions.all;
@@ -90,7 +90,9 @@ begin
 
 		elsif bus_rw = RW_READ
 		then
-			case bus_address(22 downto 20) is
+			report "address:" & std_logic'image(bus_address(24))(2) & std_logic'image(bus_address(23))(2) & std_logic'image(bus_address(22))(2) severity warning;
+
+			case bus_address(24 downto 22) is
 				when TO_LOAD_STORE	=> data <= GetLoadStoreTestInstruction(bus_address, TO_BRANCH);
 				when TO_BRANCH		=> data <= GetNopTestInstruction(bus_address,		TO_LOGIC);
 				when TO_LOGIC		=> data	<= GetBranchTestInstruction(bus_address,	TO_NOP);

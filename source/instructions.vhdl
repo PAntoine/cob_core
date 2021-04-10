@@ -83,57 +83,48 @@ package instructions is
 	---           3         2         1
 	---          10987654321098765432109876543210
 	---          -+---------+---------+----------
-    ---          UUUOOOO....RRRxxxxxxxxxxxxxxxxxx
+    ---          UUUOOOOAABBCCaaaaabbbbbcccccxxxx	-- three operand formats (a op b -> c - and a op imm -> c where imm < 32)
+    ---          UUUOOOOAABBaaaaaiiiiiiiiiiiiiiii   -- One operand instruction (a op -> a and a op imm -> a)
 	---
-	--- R - Register or Memory
-	--- 1 - register Address (5 bits - 32 registers) - a
-	--- 2 - register Address (5 bits - 32 registers) - b
-	--- d - register Address (5 bits - 32 registers) - destination reg
-	--- i - immediate value
+	---  UUU   = Unit selector
+	---  OOOO  = op code
+	---  AA    = operand a address mode
+	---  BB    = operand b address mode
+	---  CC    = operand c address mode
+	---  aaaaa = op_id for instruction operand_a
+	---  bbbbb = op_id for instruction operand_b
+	---  ccccc = op_id for instruction operand_c
 	---
-	-- data access modes
-	---    Code |  a  |  b  |  d  | Meaning of X
-	---   ------+-----+-----+-----+-------------------
-	---    000  | reg | reg | reg | 1111122222ddddd000
-	---    001  | mem | reg | reg | mmmmm22222ddddd000
-	---    010  | reg | mem | reg | 11111mmmmmddddd000
-	---    011  | reg |  -  | reg | 1111100000ddddd000
-	---    100  | reg |imm8 | reg | 11111dddddiiiiiiii
 	------------------------------------------------------------
-	subtype		LI_AM_TYPE is std_logic_vector(2 downto 0);
-	constant	LI_AM_XXX	:	std_logic_vector(2 downto 0)	:= "000";
-	constant	LI_AM_RRR	:	std_logic_vector(2 downto 0)	:= "001";
-	constant	LI_AM_MRR	:	std_logic_vector(2 downto 0)	:= "010";
-	constant	LI_AM_RMR	:	std_logic_vector(2 downto 0)	:= "011";
-	constant	LI_AM_R_R	:	std_logic_vector(2 downto 0)	:= "100";
-	constant	LI_AM_RIR	:	std_logic_vector(2 downto 0)	:= "101";
-
-	-- TODO: this is incorrectly named
-	subtype LI_IMM21	is natural range  20 downto  0;	-- immediate instruction value
 
 	-- TODO: add range to the end of the names.
 	subtype LI_OP_CODE_RANGE	is natural range 28 downto 25;	-- the opcode for the logic instructions.
-	subtype LI_AM_CODE			is natural range 20 downto 18;	-- The addresing modes.
-	subtype LI_SOURCE_A			is natural range 17 downto 13;	-- Source for A
-	subtype LI_SOURCE_B			is natural range 12 downto 08;	-- Source for B (destination for instructions with Immediate values)
-	subtype LI_DEST				is natural range  7 downto  3;	-- destination
-	subtype LI_IMM8				is natural range  7 downto  0;	-- destination
+	subtype LI_OPR_A_MODE		is natural range 24 downto 23;
+	subtype LI_OPR_B_MODE		is natural range 22 downto 21;
+	subtype LI_OPR_DST_MODE		is natural range 20 downto 19;
+	subtype LI_SOURCE_A			is natural range 18 downto 14;	-- Source for A
+	subtype LI_SOURCE_B			is natural range 13 downto  9;	-- Source for B (or IMM value for shifts)
+	subtype LI_DEST				is natural range  8 downto  4;	-- destination
+
+	subtype LI_SINGLE_A			is natural range 22 downto 18;	-- source for A for single instructions.
+	subtype LI_SINGLE_IMM		is natural range 15 downto  0;	-- immediate value
 
 	-- op codes
 	subtype LOGIC_OP_CODE_TYPE is std_logic_vector(3 downto 0);
-	constant	LI_AND		:	LOGIC_OP_CODE_TYPE	:= "0001";	--- logical and
-	constant	LI_OR		:	LOGIC_OP_CODE_TYPE	:= "0010";	--- logical or
-	constant	LI_XOR		:	LOGIC_OP_CODE_TYPE	:= "0011";	--- logical xor
-	constant	LI_NOT		:	LOGIC_OP_CODE_TYPE	:= "0100";	--- logical not
-	constant	LI_NEG		:	LOGIC_OP_CODE_TYPE	:= "0101";	--- logical neg
-	constant	LI_LSL		:	LOGIC_OP_CODE_TYPE	:= "0110";	--- logical shift left
-	constant	LI_LSR		:	LOGIC_OP_CODE_TYPE	:= "0111";	--- logical shift right
-	constant	LI_ROR		:	LOGIC_OP_CODE_TYPE	:= "1000";	--- rotate right
-	constant	LI_ROL		:	LOGIC_OP_CODE_TYPE	:= "1001";	--- rotate left
+	constant	LI_AND		:	LOGIC_OP_CODE_TYPE	:= "0000";	--- logical and
+	constant	LI_OR		:	LOGIC_OP_CODE_TYPE	:= "0001";	--- logical or
+	constant	LI_XOR		:	LOGIC_OP_CODE_TYPE	:= "0010";	--- logical xor
+	constant	LI_NOT		:	LOGIC_OP_CODE_TYPE	:= "0011";	--- logical not
+	constant	LI_LSL		:	LOGIC_OP_CODE_TYPE	:= "0100";	--- logical shift left
+	constant	LI_LSR		:	LOGIC_OP_CODE_TYPE	:= "0101";	--- logical shift right
+	constant	LI_ROR		:	LOGIC_OP_CODE_TYPE	:= "0110";	--- rotate right
+	constant	LI_ROL		:	LOGIC_OP_CODE_TYPE	:= "0111";	--- rotate left
 
 	------------------------------------------------------------
 	--- Arithmetic Instructions
 	------------------------------------------------------------
+	constant	AI_INC		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
+	constant	AI_DEC		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
 	constant	AI_ADD		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
 	constant	AI_ADC		:	std_logic_vector(7 downto 0)	:= "00000010";	--- add with carry
 	constant	AI_SUB		:	std_logic_vector(7 downto 0)	:= "00000011";	--- subtract
@@ -153,14 +144,16 @@ package instructions is
 	---    Address Mode |
 	---     mm = mode   |  Meaning of X
 	---   --------------+--------------------------------------------
-	---         00      | Immediate relative sxxxxxxxxxxxxxxxxxxxxxx
-	---         01		| Register Direct	 xxxxxxxxxxxxxxxxxxRRRRR
-	---         10		| Register Indirect	 xxxxxxxxxxxxxxxxxxRRRRR
+	---         00      | Immediate 		 iiiiiiiiiiiiiiiiiiiiiii
+	---         01      | Immediate relative siiiiiiiiiiiiiiiiiiiiii
+	---         10		| Register Direct	 xxxxxxxxxxxxxxxxxxRRRRR
+	---         11		| Register Indirect	 xxxxxxxxxxxxxxxxxxRRRRR
 	---
 	------------------------------------------------------------
 	subtype CI_AM_MODE	is natural range 28 downto 27;	-- Address mode
 
 	subtype CONTROL_OP_CODE_TYPE		is std_logic_vector(3 downto 0);
+	subtype CONTROL_AM_RANGE			is natural range 28 downto 27;
 	subtype CONTROL_OPCODE_RANGE		is natural range 26 downto 23;
 	subtype CONTROL_IMMED_RANGE			is natural range 22 downto 0;
 	subtype CONTROL_REG_ID_RANGE		is natural range 4 downto 0;

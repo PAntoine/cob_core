@@ -33,6 +33,7 @@ entity IdleUnit is
 		op_b		: out OPERAND_BUS;	-- for B
 		write		: out STORE_BUS;	-- controls for writing out the data.
 		load_comp	: out std_logic;	-- load complete
+		store_comp	: out std_logic;	-- store compete
 		complete	: out std_logic		-- execution complete.
 	);
 end IdleUnit;
@@ -46,6 +47,7 @@ begin
 		then
 			complete	<= 'Z';
 			load_comp	<= 'Z';
+			store_comp	<= 'Z';
 			write		<= FREE_STORE_BUS;
 			op_a		<= FREE_OPERAND_BUS;
 			op_b		<= FREE_OPERAND_BUS;
@@ -55,12 +57,19 @@ begin
 				when CS_LOAD =>
 						complete	<= '0';
 						load_comp	<= '1';
+						store_comp	<= '0';
 				when CS_EXECUTE	=>
 						complete	<= '1';
 						load_comp	<= '0';
+						store_comp	<= '0';
+				when CS_STORE =>
+						complete	<= '0';
+						load_comp	<= '0';
+						store_comp	<= '1';
 				when others =>
 						complete	<= '0';
 						load_comp	<= '0';
+						store_comp	<= '0';
 			end case;
 
 			write	<= INIT_STORE_BUS;
