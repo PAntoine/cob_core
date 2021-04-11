@@ -1,17 +1,18 @@
 -----------------------------------------------------------------------------------
---					   _____ ____  ____		_____
---					  / ____/ __ \|  _ \   / ____|
---					 | |   | |	| | |_) | | |	  ___  _ __ ___
---					 | |   | |	| |  _ <  | |	 / _ \| '__/ _ \
---					 | |___| |__| | |_) | | |___| (_) | | |  __/
---					  \_____\____/|____/   \_____\___/|_|  \___|
+--             _____ ____  ____     _____
+--            / ____/ __ \|  _ \   / ____|
+--           | |   | |  | | |_) | | |     ___  _ __ ___
+--           | |   | |  | |  _ <  | |    / _ \| '__/ _ \
+--           | |___| |__| | |_) | | |___| (_) | | |  __/
+--            \_____\____/|____/   \_____\___/|_|  \___|
 --
 --
--- Name  : logic unit
--- Desc  : This entity handles the logic instructions.
+-- Name  : arithmetic_unit
+-- Desc  : This is the ALU of the cob core. It is a integer unit for simple
+--         mathematics operations.
 --
 -- Author: Peter Antoine
--- Date  : 24/01/2021
+-- Date  : 10/04/2021
 -----------------------------------------------------------------------------------
 --                     Copyright (c) 2021 Peter Antoine
 --                            All rights Reserved.
@@ -25,13 +26,12 @@ use ieee.numeric_std.all;
 use work.definitions.all;
 use work.instructions.all;
 
-entity LogicUnit is
+entity ArithmeticUnit is
 	port(
 		en			: in std_logic;			-- enable the idle unit.
 		state		: in CPU_STATE;			-- CPU state
 		load_comp	: out std_logic;		-- load phase is complete.
 		complete	: out std_logic;		-- execution complete.
-		store_comp	: out std_logic;		-- store complete.
 		instruction	: in INSTRUCTION_TYPE;	-- the instruction
 
 		op_a		: out OPERAND_BUS;	-- Operand A bus controls
@@ -46,20 +46,19 @@ entity LogicUnit is
 		op_a_data	: in std_logic_vector(DATA_WIDTH-1 downto 0);
 		op_b_data	: in std_logic_vector(DATA_WIDTH-1 downto 0)
 	);
-end LogicUnit;
+end ArithmeticUnit;
 
-architecture synth of LogicUnit is
+architecture synth of ArithmeticUnit is
 
-	signal op_code		: LOGIC_OP_CODE_TYPE;
+	signal op_code		: ARITH_OP_CODE_TYPE;
 	signal intermediate	: std_logic_vector(DATA_WIDTH downto 0); -- +1 for the carry flag.
-
 begin
 	load_comp <= op_a_da when en = '1' else 'Z';
 	op_code <= instruction(LI_OP_CODE_RANGE);
 
 	-- handle the load state
 	process (en, state, instruction)
-		variable temp : std_logic_vector(DATA_WIDTH downto 0);	-- extra bit for the carry.
+		variable temp : std_logic_vector(63 downto 0);
 	begin
 		if en = '0'
 		then
@@ -68,13 +67,9 @@ begin
 			data 		<= (others => 'Z');
 			write		<= FREE_STORE_BUS;
 			complete	<= 'Z';
-			store_comp	<= 'Z';
 
 		elsif state = CS_LOAD
 		then
-			complete	<= '0';
-			store_comp	<= '0';
-
 			write 	<= INIT_STORE_BUS;
 			
 			op_a.mode		<= instruction(LI_OPR_A_MODE);
@@ -91,23 +86,30 @@ begin
 		elsif state = CS_EXECUTE
 		then
 			case op_code is
-				when LI_LSL => intermediate <= '0' & std_logic_vector(shift_left(unsigned(op_a_data), to_integer(unsigned(op_b_data(4 downto 0)))));
-				when LI_LSR => intermediate <= '0' & std_logic_vector(shift_right(unsigned(op_a_data), to_integer(unsigned(op_b_data(4 downto 0)))));
+				when AI_INC	=> intermediate	<= '0' & std_logic_vector(unsigned(op_a_data) + 1);
+				when AI_DEC	=> intermediate	<= '0' & std_logic_vector(unsigned(op_a_data) - 1);
+				when AI_ADD	=> Intermediate	<= std_logic_vector(unsigned('0' & op_a_data) + unsigned('0' & op_b_data));
+				when AI_SUB	=> intermediate <= std_logic_vector(unsigned('0' & op_a_data) - unsigned('0' & op_b_data));
+				when AI_MOD	=> intermediate <= '0' & std_logic_vector(unsigned(op_a_data) mod unsigned(op_b_data));
+				when AI_DIV	=> intermediate <= '0' & std_logic_vector(unsigned(op_a_data) / unsigned(op_b_data));
 
-				when LI_SCL => 	temp := std_logic_vector(shift_left(unsigned(op_a_data & flags.carry_flag), to_integer(unsigned(op_b_data(4 downto 0)))));
-								intermediate <= '0' & temp(DATA_WIDTH downto 1);
+				when AI_ADC	=>	if flags.carry_flag = '0'
+				                then
+				                	intermediate <=	std_logic_vector(unsigned('0' & op_a_data) + unsigned('0' & op_b_data));
+								else
+				                	intermediate <=	std_logic_vector(unsigned('0' & op_a_data) + unsigned('0' & op_b_data) + 1);
+								end if;
 
-				when LI_SCR =>	temp := std_logic_vector(shift_left(unsigned(flags.carry_flag & op_a_data), to_integer(unsigned(op_b_data(4 downto 0)))));
+				when AI_SBC	=>	if flags.carry_flag = '0'
+				                then
+									intermediate <=	std_logic_vector(unsigned('1' & op_a_data) - unsigned(op_b_data));
+								else
+									intermediate <=	std_logic_vector(unsigned('1' & op_a_data) - unsigned(op_b_data) + 1);
+								end if;
+				
+				when AI_MUL	=>	temp := std_logic_vector(unsigned(op_a_data) * unsigned(op_b_data));
 								intermediate <= '0' & temp(DATA_WIDTH-1 downto 0);
 
-				when LI_ASL	=> intermediate <= '0' & std_logic_vector(shift_left(unsigned(op_a_data), to_integer(unsigned(op_b_data(4 downto 0)))));
-				when LI_ASR	=> intermediate <= '0' & op_a_data(DATA_WIDTH-1) & std_logic_vector(shift_right(unsigned(op_a_data(DATA_WIDTH-1 downto 1)), to_integer(unsigned(op_b_data(4 downto 0)))));
-				when LI_AND	=> intermediate <= '0' & (op_a_data and op_b_data);
-				when LI_OR	=> intermediate <= '0' & (op_a_data or  op_b_data);
-				when LI_XOR	=> intermediate <= '0' & (op_a_data xor op_b_data);
-				when LI_NOT	=> intermediate <= '0' & (not op_a_data);
-				when LI_ROL	=> intermediate <= '0' & std_logic_vector(rotate_left(unsigned(op_a_data), to_integer(unsigned(op_b_data(4 downto 0)))));
-				when LI_ROR	=> intermediate <= '0' & std_logic_vector(rotate_right(unsigned(op_a_data), to_integer(unsigned(op_b_data(4 downto 0)))));
 				when others	=> intermediate <= (others => '0');
 			end case;
 
@@ -115,23 +117,18 @@ begin
 
 		elsif state = CS_STORE
 		then
-			if op_code = LI_BT or op_code = LI_BTS or op_code = LI_TEST
-			then
-				store_comp	<= '1';
-			else
-				write.mode		<= instruction(LOAD_STORE_ADDR_MODE_DST_RANGE);
-				write.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LI_SOURCE_B);
-				write.en		<= '1';
-			end if;
+			write.mode		<= instruction(LOAD_STORE_ADDR_MODE_DST_RANGE);
+			write.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LI_SOURCE_B);
+			write.en		<= '1';
 
 		end if;
 	end process;
-
+	
 	process (en, intermediate)
 	begin
 		if en = '1' and state = CS_EXECUTE
 		then
-			if intermediate = ZEROS
+			if intermediate(DATA_WIDTH-1 downto 0) = ZEROS
 			then
 				flags.zero_flag <= '1';
 			end if;
@@ -140,9 +137,9 @@ begin
 			flags.carry_flag	<= intermediate(DATA_WIDTH);
 		end if;
 	end process;
-	
+
 	data <= intermediate(DATA_WIDTH-1 downto 0) when en = '1' else (others => 'Z');
 
 end architecture synth;
 
---- vi:nocin:ai:sw=4 ts=4:fdm=marker
+-- vi:nocin:sw=4 ts=4:fdm=marker

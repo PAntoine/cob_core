@@ -119,19 +119,55 @@ package instructions is
 	constant	LI_LSR		:	LOGIC_OP_CODE_TYPE	:= "0101";	--- logical shift right
 	constant	LI_ROR		:	LOGIC_OP_CODE_TYPE	:= "0110";	--- rotate right
 	constant	LI_ROL		:	LOGIC_OP_CODE_TYPE	:= "0111";	--- rotate left
+	constant	LI_ASL		:	LOGIC_OP_CODE_TYPE	:= "1000";	--- arithmetic shift left
+	constant	LI_ASR		:	LOGIC_OP_CODE_TYPE	:= "1001";	--- arithmetic shift right
+	constant	LI_SCL		:	LOGIC_OP_CODE_TYPE	:= "1010";	--- shift with carry left
+	constant	LI_SCR		:	LOGIC_OP_CODE_TYPE	:= "1011";	--- shift with carry right
+	constant	LI_BT		:	LOGIC_OP_CODE_TYPE	:= "1100";	--- bit test
+	constant	LI_BTS		:	LOGIC_OP_CODE_TYPE	:= "1101";	--- bit test and set
+	constant	LI_TEST		:	LOGIC_OP_CODE_TYPE	:= "1110";	--- bit test and set
 
 	------------------------------------------------------------
 	--- Arithmetic Instructions
+	---
+	---           3         2         1
+	---          10987654321098765432109876543210
+	---          -+---------+---------+----------
+    ---          UUUOOOOAABBCCaaaaabbbbbcccccxxxx	-- three operand formats (a op b -> c - and a op imm -> c where imm < 32)
+    ---          UUUOOOOAABBaaaaaiiiiiiiiiiiiiiii   -- One operand instruction (a op -> a and a op imm -> a)
+	---
+	---  UUU   = Unit selector
+	---  OOOO  = op code
+	---  AA    = operand a address mode
+	---  BB    = operand b address mode
+	---  CC    = operand c address mode
+	---  aaaaa = op_id for instruction operand_a
+	---  bbbbb = op_id for instruction operand_b
+	---  ccccc = op_id for instruction operand_c
 	------------------------------------------------------------
-	constant	AI_INC		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
-	constant	AI_DEC		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
-	constant	AI_ADD		:	std_logic_vector(7 downto 0)	:= "00000001";	--- add
-	constant	AI_ADC		:	std_logic_vector(7 downto 0)	:= "00000010";	--- add with carry
-	constant	AI_SUB		:	std_logic_vector(7 downto 0)	:= "00000011";	--- subtract
-	constant	AI_SBC		:	std_logic_vector(7 downto 0)	:= "00000100";	--- subtract with carry
-	constant	AI_MUL		:	std_logic_vector(7 downto 0)	:= "00000101";	--- logical not
-	constant	AI_DIV		:	std_logic_vector(7 downto 0)	:= "00000110";	--- logical neg
-	constant	AI_TEST		:	std_logic_vector(7 downto 0)	:= "00000111";	--- logical test
+
+	subtype AI_OP_CODE_RANGE	is natural range 28 downto 25;	-- the opcode for the logic instructions.
+	subtype AI_OPR_A_MODE		is natural range 24 downto 23;
+	subtype AI_OPR_B_MODE		is natural range 22 downto 21;
+	subtype AI_OPR_DST_MODE		is natural range 20 downto 19;
+	subtype AI_SOURCE_A			is natural range 18 downto 14;	-- Source for A
+	subtype AI_SOURCE_B			is natural range 13 downto  9;	-- Source for B (or IMM value for shifts)
+	subtype AI_DEST				is natural range  8 downto  4;	-- destination
+
+	subtype AI_SINGLE_A			is natural range 22 downto 18;	-- source for A for single instructions.
+	subtype AI_SINGLE_IMM		is natural range 15 downto  0;	-- immediate value
+
+	-- op codes
+	subtype ARITH_OP_CODE_TYPE is std_logic_vector(3 downto 0);
+	constant	AI_INC		: ARITH_OP_CODE_TYPE	:= "0000";	--- add
+	constant	AI_DEC		: ARITH_OP_CODE_TYPE	:= "0001";	--- add
+	constant	AI_ADD		: ARITH_OP_CODE_TYPE	:= "0010";	--- add
+	constant	AI_ADC		: ARITH_OP_CODE_TYPE	:= "0011";	--- add with carry
+	constant	AI_SUB		: ARITH_OP_CODE_TYPE	:= "0100";	--- subtract
+	constant	AI_SBC		: ARITH_OP_CODE_TYPE	:= "0101";	--- subtract with carry
+	constant	AI_MUL		: ARITH_OP_CODE_TYPE	:= "0110";	--- logical not
+	constant	AI_DIV		: ARITH_OP_CODE_TYPE	:= "0111";	--- logical neg
+	constant	AI_MOD		: ARITH_OP_CODE_TYPE	:= "1000";	--- logical test
 
 	------------------------------------------------------------
 	--- Control Instructions

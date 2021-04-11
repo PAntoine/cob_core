@@ -33,6 +33,7 @@ use work.LoadStoreUnit;
 use work.LogicUnit;
 use work.StoreUnit;
 use work.ControlUnit;
+use work.ArithmeticUnit;
 use work.GeneralRegisters;
 use work.InstructionRegister;
 
@@ -234,6 +235,7 @@ architecture synth of COB_Core is
 			state		: in CPU_STATE;			-- CPU state
 			load_comp	: out std_logic;		-- load phase is complete.
 			complete	: out std_logic;		-- execution complete.
+			store_comp	: out std_logic;
 			instruction	: in INSTRUCTION_TYPE;	-- the instruction
 
 			op_a		: out OPERAND_BUS;	-- Operand A bus controls
@@ -241,6 +243,7 @@ architecture synth of COB_Core is
 			data		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- data that needs to goto the operand reg.
 
 			write		: out STORE_BUS;		-- controls for writing out the data.
+			flags		: inout CPU_FLAGS;
 
 			op_a_da		: in std_logic;
 			op_b_da		: in std_logic;
@@ -268,6 +271,28 @@ architecture synth of COB_Core is
 			op_a_data	: in std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component ControlUnit;
+
+	component ArithmeticUnit is
+		port(
+			en			: in std_logic;			-- enable the idle unit.
+			state		: in CPU_STATE;			-- CPU state
+			load_comp	: out std_logic;		-- load phase is complete.
+			complete	: out std_logic;		-- execution complete.
+			instruction	: in INSTRUCTION_TYPE;	-- the instruction
+
+			op_a		: out OPERAND_BUS;	-- Operand A bus controls
+			op_b		: out OPERAND_BUS;	-- for B
+			data		: out std_logic_vector(DATA_WIDTH-1 downto 0);	-- data that needs to goto the operand reg.
+
+			write		: out STORE_BUS;		-- controls for writing out the data.
+			flags		: inout CPU_FLAGS;
+
+			op_a_da		: in std_logic;
+			op_b_da		: in std_logic;
+			op_a_data	: in std_logic_vector(DATA_WIDTH-1 downto 0);
+			op_b_data	: in std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component ArithmeticUnit;
 
 	---------------------------------------------------------------
 	--- now the internal signals.
@@ -339,12 +364,18 @@ begin
 
 	-- execute the commands
 	iu:	IdleUnit		port map (en => unit_sel_bus.idle,		state => state, complete => ec, load_comp => lc, store_comp => wc, op_a => op_a_bus, op_b => op_b_bus, write => write_bus);
+
 	ls: LoadStoreUnit	port map (en => unit_sel_bus.load_store,state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
 									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
-	li: LogicUnit		port map (en => unit_sel_bus.logic,		state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
-									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
-	cu: ControlUnit		port map (en => unit_sel_bus.control,	state => state, complete => ec, load_comp => lc, store_comp => wc, write => write_bus, instruction => instruction, flags => flags, pc => pc_bus, pc_load => pc_load, data => store_data_bus,
-									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_a_data => op_a_data); 
+
+	cu: ControlUnit		port map (en => unit_sel_bus.control,	state => state, complete => ec, load_comp => lc, store_comp => wc, write => write_bus, instruction => instruction,
+									flags => flags, pc => pc_bus, pc_load => pc_load, data => store_data_bus, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_a_data => op_a_data); 
+
+	li: LogicUnit		port map (en => unit_sel_bus.logic,		state => state, complete => ec, load_comp => lc, store_comp => wc, instruction => instruction, write => write_bus, data => store_data_bus,
+									flags => flags, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
+
+	au: ArithmeticUnit	port map (en => unit_sel_bus.arith,		state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
+									flags => flags, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	---------------------------------------------------------------
 	--- Interface Components.
