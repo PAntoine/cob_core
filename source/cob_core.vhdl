@@ -151,15 +151,6 @@ architecture synth of COB_Core is
 --		);
 --	end component StackRegister;
 
---	component FlagsRegister is
---		port (
---				reset		: in std_logic;
---				load		: in std_logic;
---   			new_flags	: in CPU_FLAGS;
---				flags		: out CPU_FLAGS;
---		);
---	end component FlagsRegister;
-
 	---------------------------------------------------------------
 	--- State machine for the CPU
 	---------------------------------------------------------------
@@ -171,6 +162,9 @@ architecture synth of COB_Core is
 			load_complete		: in	std_logic;
 			write_complete		: in	std_logic;
 			execute_complete	: in	std_logic;
+			exception_complete	: in	std_logic;
+			interrupt_complete	: in	std_logic;
+			flags				: in	CPU_FLAGS;
 			state				: inout	CPU_STATE
 		);
 	end component CPUStateMachine;
@@ -325,6 +319,8 @@ architecture synth of COB_Core is
 	signal lc				: std_logic;
 	signal wc				: std_logic;
 	signal ec				: std_logic	:= '0';
+	signal exc				: std_logic := '0';
+	signal ic				: std_logic := '0';
 
 	signal pc_load			: std_logic := '0';
 
@@ -340,7 +336,7 @@ begin
 	---------------------------------------------------------------
 	--- State Machine.
 	---------------------------------------------------------------
-	sm: CPUStateMachine	port map ( reset => reset, clock => clock, fetch_complete => fc, load_complete => lc, write_complete => wc, execute_complete => ec, state => state);
+	sm: CPUStateMachine	port map ( reset => reset, clock => clock, fetch_complete => fc, load_complete => lc, write_complete => wc, execute_complete => ec, exception_complete => exc, interrupt_complete => ic, flags => flags, state => state);
 
 	---------------------------------------------------------------
 	--- Register Implementations

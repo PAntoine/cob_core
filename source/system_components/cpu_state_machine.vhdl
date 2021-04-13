@@ -32,6 +32,9 @@ entity CPUStateMachine is
 			load_complete		: in	std_logic;
 			write_complete		: in	std_logic;
 			execute_complete	: in	std_logic;
+			exception_complete	: in	std_logic;
+			interrupt_complete	: in	std_logic;
+			flags				: in	CPU_FLAGS;
 			state				: inout	CPU_STATE
 		);
 end CPUStateMachine;
@@ -58,6 +61,14 @@ begin
 					if fetch_complete = '1'
 					then
 						state <= CS_LOAD;
+
+					elsif flags.interrupt_flag = '1'
+					then
+						state <= CS_INTERRUPT;
+
+					elsif flags.exception_flag = '1'
+					then
+						state <= CS_EXCEPTION;
 					end if;
 
 				when CS_LOAD =>
@@ -78,8 +89,20 @@ begin
 					then
 						state <= CS_FETCH_DECODE;
 					end if;
+
+				when CS_EXCEPTION =>
+					if exception_complete = '1'
+					then
+						state <= CS_FETCH_DECODE;
+					end if;
+
+				when CS_INTERRUPT =>
+					if interrupt_complete = '1'
+					then
+						state <= CS_FETCH_DECODE;
+					end if;
 				
-				when others => state <= CS_HALT;
+				when others => null;
 			end case;
 		end if;
 	end process;

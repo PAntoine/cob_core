@@ -126,7 +126,11 @@ begin
 	
 	process (en, intermediate)
 	begin
-		if en = '1' and state = CS_EXECUTE
+		if en = '0'
+		then
+			flags <= FREE_CPU_FLAGS;
+
+		elsif state = CS_EXECUTE
 		then
 			if intermediate(DATA_WIDTH-1 downto 0) = ZEROS
 			then

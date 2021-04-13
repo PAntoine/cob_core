@@ -54,8 +54,9 @@ package definitions is
 	constant	CS_LOAD			: CPU_STATE := "010";
 	constant	CS_EXECUTE		: CPU_STATE := "011";
 	constant	CS_STORE		: CPU_STATE := "100";
-	constant	CS_FINISHED		: CPU_STATE := "101";
-	constant	CS_HALT			: CPU_STATE := "111";
+	constant	CS_EXCEPTION	: CPU_STATE := "101";
+	constant	CS_INTERRUPT	: CPU_STATE := "110";
+	constant	CS_FINISHED		: CPU_STATE := "111";
 
 	------------------------------------------------------------
 	--- System Register constants

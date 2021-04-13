@@ -84,6 +84,7 @@ package instructions is
 	---          10987654321098765432109876543210
 	---          -+---------+---------+----------
     ---          UUUOOOOAABBCCaaaaabbbbbcccccxxxx	-- three operand formats (a op b -> c - and a op imm -> c where imm < 32)
+    ---          UUUOOOOAABBCCaaaaaiiiiicccccxxxx	-- three operand formats (and a op imm -> c where imm < 32)
     ---          UUUOOOOAABBaaaaaiiiiiiiiiiiiiiii   -- One operand instruction (a op -> a and a op imm -> a)
 	---
 	---  UUU   = Unit selector
@@ -125,7 +126,7 @@ package instructions is
 	constant	LI_SCR		:	LOGIC_OP_CODE_TYPE	:= "1011";	--- shift with carry right
 	constant	LI_BT		:	LOGIC_OP_CODE_TYPE	:= "1100";	--- bit test
 	constant	LI_BTS		:	LOGIC_OP_CODE_TYPE	:= "1101";	--- bit test and set
-	constant	LI_TEST		:	LOGIC_OP_CODE_TYPE	:= "1110";	--- bit test and set
+	constant	LI_TEST		:	LOGIC_OP_CODE_TYPE	:= "1110";	--- compare op a and op b.
 
 	------------------------------------------------------------
 	--- Arithmetic Instructions

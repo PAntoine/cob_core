@@ -83,6 +83,7 @@ begin
 			
 			if op_code /= LI_NOT	-- don't waste time loading op_b
 			then
+				data			<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LI_SOURCE_B);
 				op_b.mode		<= instruction(LI_OPR_B_MODE);
 				op_b.address	<= ZEROS(DATA_WIDTH-1 downto 5) & instruction(LI_SOURCE_B);
 				op_b.en			<= '1';
@@ -129,7 +130,11 @@ begin
 
 	process (en, intermediate)
 	begin
-		if en = '1' and state = CS_EXECUTE
+		if en = '0'
+		then
+			flags <= FREE_CPU_FLAGS;
+
+		elsif state = CS_EXECUTE
 		then
 			if intermediate = ZEROS
 			then
