@@ -60,6 +60,7 @@ package instructions is
 	constant	IU_ARITH		:	std_logic_vector(2 downto 0)	:= "011";	--- arithmetic unit
 	constant	IU_LOAD_STORE	:	std_logic_vector(2 downto 0)	:= "100";	--- load_store unit
 	constant	IU_SYSTEM		:	std_logic_vector(2 downto 0)	:= "101";	--- system unit
+	constant	IU_INT_EXCEPT	:	std_logic_vector(2 downto 0)	:= "110";	--- interrupt or exception.
 
 	type INSTRUCTION_UNIT_TYPE is record
 		idle		: std_logic;
@@ -68,14 +69,16 @@ package instructions is
 		arith		: std_logic;
 		load_store	: std_logic;
 		system		: std_logic;
+		int_except	: std_logic;
 	end record INSTRUCTION_UNIT_TYPE;
 
-	constant	IU_IDLE_SEL			:	INSTRUCTION_UNIT_TYPE	:= ('1','0', '0', '0', '0', '0');
-	constant	IU_LOGIC_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','1', '0', '0', '0', '0');
-	constant	IU_CONTROL_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '1', '0', '0', '0');
-	constant	IU_ARITH_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '1', '0', '0');
-	constant	IU_LOAD_STORE_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '1', '0');
-	constant	IU_SYSTEM_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '0', '1');
+	constant	IU_IDLE_SEL			:	INSTRUCTION_UNIT_TYPE	:= ('1','0', '0', '0', '0', '0', '0');
+	constant	IU_LOGIC_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','1', '0', '0', '0', '0', '0');
+	constant	IU_CONTROL_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '1', '0', '0', '0', '0');
+	constant	IU_ARITH_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '1', '0', '0', '0');
+	constant	IU_LOAD_STORE_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '1', '0', '0');
+	constant	IU_SYSTEM_SEL		:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '0', '1', '0');
+	constant	IU_INT_EXCPT_SEL	:	INSTRUCTION_UNIT_TYPE	:= ('0','0', '0', '0', '0', '0', '1');
 
 	------------------------------------------------------------
 	--- Logic Instructions

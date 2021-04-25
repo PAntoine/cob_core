@@ -70,6 +70,8 @@ package definitions is
 	constant	SYS_REG_ADDR		:	std_logic	:= '0';		-- system register address mode
 	constant	SYS_REG_DATA		:	std_logic	:= '1';		-- system register data mode
 
+	subtype		INT_ID_TYPE is std_logic_vector(3 downto 0);	-- 16 interrupt vectors - 00 and 01.
+
 	subtype		SYSTEM_REG	is std_logic_vector(2 downto 0);
 	
 	------------------------------------------------------------
@@ -207,6 +209,7 @@ package definitions is
 		interrupt_waiting		: std_logic;
 		interrupts_masked		: std_logic;
 		non_masked_interrupt	: std_logic;
+		interrupt_id			: INT_ID_TYPE;
 	end record CPU_FLAGS;  
 
 	constant INIT_CPU_FLAGS : CPU_FLAGS :=
@@ -219,7 +222,8 @@ package definitions is
 		hardware_interrupt		=> '0',
 		interrupt_waiting		=> '0',
 		interrupts_masked		=> '0',
-		non_masked_interrupt	=> '0'
+		non_masked_interrupt	=> '0',
+		interrupt_id			=> (others => '0')
 	);
 
 	constant FREE_CPU_FLAGS : CPU_FLAGS :=
@@ -232,7 +236,8 @@ package definitions is
 		hardware_interrupt		=> 'Z',
 		interrupt_waiting		=> 'Z',
 		interrupts_masked		=> 'Z',
-		non_masked_interrupt	=> 'Z'
+		non_masked_interrupt	=> 'Z',
+		interrupt_id			=> (others => 'Z')
 	);
 
 end package definitions;

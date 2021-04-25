@@ -36,6 +36,7 @@ use work.ControlUnit;
 use work.ArithmeticUnit;
 use work.GeneralRegisters;
 use work.InstructionRegister;
+use work.StackRegister;
 
 entity COB_Core is
 		port(
@@ -132,24 +133,25 @@ architecture synth of COB_Core is
 		);
 	end component StoreUnit;
 			
---	component InterruptVectorTable is
---		port(
---				reset			: in std_logic;									-- reset all the registers.
---				load			: in std_logic;									-- load the interrupt.
---				int_id			: INT_ID;										-- the register control bus.
---				data			: inout std_logic_vector(REG_WIDTH-1 downto 0);	-- The data width of the register.
---				data_2			: out std_logic_vector(REG_WIDTH-1 downto 0)	-- The data width of the register.
---		);
---	end component InterruptVectorTable;
+	component StackRegister is
+		port(
+				reset		: in std_logic;
+				enable		: in std_logic;
+				clock		: in std_logic;
+				write		: in std_logic;
+				int_id		: in INT_ID;									-- the interrupt vector to jump/write to.
+				flags		: in CPU_FLAGS;
+				pc			: in std_logic_vector(ADDR_WIDTH-1 downto 0);
 
---	component StackRegister is
---		port(
---				reset			: in std_logic;
---				load			: in std_logic;
---				unit_sel		: out INSTRUCTION_UNIT_TYPE;
---				instruction		: out INSTRUCTION_TYPE;
---		);
---	end component StackRegister;
+				mem_bus		: out MEMORY_BUS;
+				mem_data	: out std_logic_vector(DATA_WIDTH-1 downto 0);
+				mem_da		: in  std_logic;
+
+				complete	: out std_logic;
+				pc_load		: out std_logic;
+				data		: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component StackRegister;
 
 	---------------------------------------------------------------
 	--- State machine for the CPU
@@ -344,8 +346,7 @@ begin
 	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => store_data_bus, current => current_pc, pc => pc_bus);
 	ir: InstructionRegister port map (reset => reset, state => state, clock => clock, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
 
---	st: StackRegister		port map (reset => reset  , load => sk_load, address => int_address_bus, stack => stack_bus);
---	fr: FlagsRegister		port map (reset => reset, load => flags_load, data => int_data_bus, flags => flags_bus);
+	st: StackRegister		port map (reset <= reset, enable <= stack_en, clock <= clock, write <= stack_write, flags <= flags, pc <= pc_bus, mem_bus <= mem_bus, mem_data <= mem_data, mem_da <= mem_da, complete <= stack_comp, pc_load <= pc_load, data <= int_data_bus);
 	rb: GeneralRegisters	port map (reset => reset, port_1_bus => reg_1_bus, port_2_bus => reg_2_bus, data => reg_1_data, data_2 => reg_2_data);
 
 	---------------------------------------------------------------

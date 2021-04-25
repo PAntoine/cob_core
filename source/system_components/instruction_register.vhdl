@@ -82,6 +82,10 @@ begin
 		then
 			unit_sel <= IU_IDLE_SEL;
 
+		elsif state = CS_INTERRUPT or state = CS_EXCEPTION
+		then
+			unit_sel <= IU_INT_EXCPT_SEL;
+
 		else
 			case int_instr_reg(INSTR_UNIT_RANGE) is
 				when IU_LOGIC		=> unit_sel <= IU_LOGIC_SEL;
