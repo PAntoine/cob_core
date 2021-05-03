@@ -212,16 +212,14 @@ package definitions is
 
 	type STACK_BUS is record
 		en		:	std_logic;
-		rw		:	std_logic;
-		id		:	INT_ID_TYPE;
 		mode	:	STACK_MODE_TYPE;
+		id		:	INT_ID_TYPE;
 		address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
 	end record STACK_BUS;  
 
 	constant FREE_STACK_BUS : STACK_BUS :=
 	(
 		en		=> 'Z',
-		rw		=> 'Z',
 		mode	=> (others => 'Z'),
 		id		=> (others => 'Z'),
 		address	=> (others => 'Z')
@@ -230,7 +228,6 @@ package definitions is
 	constant INIT_STACK_BUS : STACK_BUS :=
 	(
 		en		=> '0',
-		rw		=> '0',
 		mode	=> (others => '0'),
 		id		=> (others => '0'),
 		address	=> (others => '0')
@@ -306,7 +303,7 @@ package body definitions is
 		dout.interrupt_waiting		:= vector_value(6);
 		dout.interrupts_masked		:= vector_value(7);
 		dout.non_masked_interrupt	:= vector_value(8);
-		dout.interrupt_id			:= vector_value(11 downto 9);
+		dout.interrupt_id			:= vector_value(12 downto 9);
 
 		return dout;
 	end function;
