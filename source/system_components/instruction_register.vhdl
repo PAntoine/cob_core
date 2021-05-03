@@ -69,7 +69,7 @@ begin
 		then
 			int_instr_reg <= BR_INIT_INSTR;
 
-		elsif state = CS_FETCH_DECODE and mem_da = '1'
+		elsif state = CS_FETCH_DECODE and rising_edge(mem_da)
 		then
 			int_instr_reg <= data;
 		end if;

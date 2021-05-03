@@ -37,6 +37,7 @@ use work.ArithmeticUnit;
 use work.GeneralRegisters;
 use work.InstructionRegister;
 use work.StackRegister;
+use work.InterruptExceptionUnit;
 
 entity COB_Core is
 		port(
@@ -132,24 +133,38 @@ architecture synth of COB_Core is
 			complete	: out std_logic										-- execution complete.
 		);
 	end component StoreUnit;
+
+	component InterruptExceptionUnit is
+		port(
+			reset			: in std_logic;
+			enable			: in std_logic;
+			clock			: in std_logic;
+			write			: in std_logic;
+			int_id			: in INT_ID_TYPE;									-- the interrupt vector to jump/write to.
+			flags			: in CPU_FLAGS;
+			complete		: out std_logic;
+			sr_bus			: out STACK_BUS;
+			stack_complete	: in  std_logic;
+			data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+		);
+	end component InterruptExceptionUnit;
 			
 	component StackRegister is
 		port(
-				reset		: in std_logic;
-				enable		: in std_logic;
-				clock		: in std_logic;
-				write		: in std_logic;
-				int_id		: in INT_ID;									-- the interrupt vector to jump/write to.
-				flags		: in CPU_FLAGS;
-				pc			: in std_logic_vector(ADDR_WIDTH-1 downto 0);
+			reset		: in	std_logic;
+			clock		: in	std_logic;
+			sr_bus		: in	STACK_BUS;
+			flags		: in	CPU_FLAGS;
+			pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
 
-				mem_bus		: out MEMORY_BUS;
-				mem_data	: out std_logic_vector(DATA_WIDTH-1 downto 0);
-				mem_da		: in  std_logic;
+			mem_bus		: out	MEMORY_BUS;
+			mem_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
+			mem_da		: in	std_logic;
 
-				complete	: out std_logic;
-				pc_load		: out std_logic;
-				data		: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+			complete	: out	std_logic;
+			pc_load		: out	std_logic;
+			stack_value	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
+			data		: inout std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component StackRegister;
 
@@ -296,18 +311,22 @@ architecture synth of COB_Core is
 	signal store_data_bus	: std_logic_vector(DATA_WIDTH-1 downto 0);	-- connection to the store unit.
 	signal int_data_bus		: std_logic_vector(DATA_WIDTH-1 downto 0);	-- internal data base
 	signal current_pc		: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter - current address of the instruction running.
-	signal pc_bus			: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
-	
+	signal pc_value			: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- Program counter bus.
+	signal sr_value			: std_logic_vector(ADDR_WIDTH-1 downto 0);	-- current stack register value.
+
 	signal op_a_bus			: OPERAND_BUS;
 	signal op_b_bus			: OPERAND_BUS;
 	signal mem_bus			: MEMORY_BUS;
 	signal reg_bus			: REGISTER_BUS;
 	signal write_bus		: STORE_BUS;
+	signal sr_bus			: STACK_BUS;
 
 	signal flags			: CPU_FLAGS := INIT_CPU_FLAGS;
 
 	signal op_a_da			: std_logic;
 	signal op_b_da			: std_logic;
+
+	signal int_vect_write	: std_logic;	-- load the interrupt vector.
 
 	signal reg_1_bus		: REGISTER_BUS;
 	signal reg_2_bus		: REGISTER_BUS;
@@ -317,12 +336,13 @@ architecture synth of COB_Core is
 	signal op_a_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal op_b_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
 
-	signal fc				: std_logic;
-	signal lc				: std_logic;
-	signal wc				: std_logic;
-	signal ec				: std_logic	:= '0';
-	signal exc				: std_logic := '0';
-	signal ic				: std_logic := '0';
+	signal sc				: std_logic;	-- stack complete
+	signal fc				: std_logic;	-- fetch complete
+	signal lc				: std_logic;	-- load complete
+	signal wc				: std_logic;	-- write complete	
+	signal ec				: std_logic	:= '0';	-- execution complete (shared signal)
+	signal exc				: std_logic := '0'; -- exception complete
+	signal ic				: std_logic := '0'; -- interrupt compelte
 
 	signal pc_load			: std_logic := '0';
 
@@ -343,10 +363,10 @@ begin
 	---------------------------------------------------------------
 	--- Register Implementations
 	---------------------------------------------------------------
-	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => store_data_bus, current => current_pc, pc => pc_bus);
-	ir: InstructionRegister port map (reset => reset, state => state, clock => clock, pc => pc_bus, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
+	pc: ProgramCounter		port map (reset => reset, state => state, clock => clock, load => pc_load, address => store_data_bus, current => current_pc, pc => pc_value);
+	ir: InstructionRegister port map (reset => reset, state => state, clock => clock, pc => pc_value, data => int_data_bus, mem_da => mem_da, mem_bus => mem_bus, fetch_complete => fc, unit_sel => unit_sel_bus, instruction => instruction);
 
-	st: StackRegister		port map (reset <= reset, enable <= stack_en, clock <= clock, write <= stack_write, flags <= flags, pc <= pc_bus, mem_bus <= mem_bus, mem_data <= mem_data, mem_da <= mem_da, complete <= stack_comp, pc_load <= pc_load, data <= int_data_bus);
+	st: StackRegister		port map (reset => reset, clock => clock, sr_bus => sr_bus, flags => flags, complete => sc, pc => pc_value, mem_da => mem_da, mem_bus => mem_bus, mem_data => int_data_bus, pc_load => pc_load, stack_value => sr_value, data => store_data_bus);
 	rb: GeneralRegisters	port map (reset => reset, port_1_bus => reg_1_bus, port_2_bus => reg_2_bus, data => reg_1_data, data_2 => reg_2_data);
 
 	---------------------------------------------------------------
@@ -366,13 +386,16 @@ begin
 									op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	cu: ControlUnit		port map (en => unit_sel_bus.control,	state => state, complete => ec, load_comp => lc, store_comp => wc, write => write_bus, instruction => instruction,
-									flags => flags, pc => pc_bus, pc_load => pc_load, data => store_data_bus, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_a_data => op_a_data); 
+									flags => flags, pc => pc_value, pc_load => pc_load, data => store_data_bus, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_a_data => op_a_data); 
 
 	li: LogicUnit		port map (en => unit_sel_bus.logic,		state => state, complete => ec, load_comp => lc, store_comp => wc, instruction => instruction, write => write_bus, data => store_data_bus,
 									flags => flags, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	au: ArithmeticUnit	port map (en => unit_sel_bus.arith,		state => state, complete => ec, load_comp => lc, instruction => instruction, write => write_bus, data => store_data_bus,
 									flags => flags, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
+
+	-- interrupt and exceptions
+	ie: InterruptExceptionUnit port map (reset => reset, enable => unit_sel_bus.int_except, clock => clock, write => int_vect_write, int_id => store_data_bus(INT_ID_RANGE), flags => flags, complete => exc, sr_bus => sr_bus, stack_complete => sc, data => store_data_bus);
 
 	---------------------------------------------------------------
 	--- Interface Components.

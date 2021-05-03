@@ -70,8 +70,6 @@ package definitions is
 	constant	SYS_REG_ADDR		:	std_logic	:= '0';		-- system register address mode
 	constant	SYS_REG_DATA		:	std_logic	:= '1';		-- system register data mode
 
-	subtype		INT_ID_TYPE is std_logic_vector(3 downto 0);	-- 16 interrupt vectors - 00 and 01.
-
 	subtype		SYSTEM_REG	is std_logic_vector(2 downto 0);
 	
 	------------------------------------------------------------
@@ -197,6 +195,48 @@ package definitions is
 	);
 
 	------------------------------------------------------------
+	--- Stack Bus Signals
+	------------------------------------------------------------
+	subtype		INT_ID_TYPE		is std_logic_vector(3 downto 0);	-- 16 interrupt vectors - 00 and 01.
+	subtype		INT_ID_RANGE	is natural range 3 downto 0;
+	
+	subtype		STACK_MODE_TYPE is std_logic_vector(2 downto 0);
+	constant	SR_READ		:	STACK_MODE_TYPE := "000";
+	constant	SR_PUSH		:	STACK_MODE_TYPE := "001";
+	constant	SR_CALL		:	STACK_MODE_TYPE := "010";
+	constant	SR_SAVE		:	STACK_MODE_TYPE := "011";
+	constant	SR_POP		:	STACK_MODE_TYPE := "100";
+	constant	SR_RET		:	STACK_MODE_TYPE := "101";
+	constant	SR_RESTORE	:	STACK_MODE_TYPE := "110";
+	constant	SR_SET		:	STACK_MODE_TYPE := "111";
+
+	type STACK_BUS is record
+		en		:	std_logic;
+		rw		:	std_logic;
+		id		:	INT_ID_TYPE;
+		mode	:	STACK_MODE_TYPE;
+		address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+	end record STACK_BUS;  
+
+	constant FREE_STACK_BUS : STACK_BUS :=
+	(
+		en		=> 'Z',
+		rw		=> 'Z',
+		mode	=> (others => 'Z'),
+		id		=> (others => 'Z'),
+		address	=> (others => 'Z')
+	);
+	
+	constant INIT_STACK_BUS : STACK_BUS :=
+	(
+		en		=> '0',
+		rw		=> '0',
+		mode	=> (others => '0'),
+		id		=> (others => '0'),
+		address	=> (others => '0')
+	);
+
+	------------------------------------------------------------
 	--- CPU Flags
 	------------------------------------------------------------
 	type CPU_FLAGS is record
@@ -240,6 +280,37 @@ package definitions is
 		interrupt_id			=> (others => 'Z')
 	);
 
+	function flagsToVector ( flags : CPU_FLAGS ) return std_logic_vector;
+	function vectorToFlags ( vector_value : std_logic_vector(DATA_WIDTH-1 downto 0 )) return CPU_FLAGS;
+
 end package definitions;
+
+package body definitions is
+
+	function flagsToVector ( flags : CPU_FLAGS ) return std_logic_vector is
+	begin
+		return	flags.carry_flag & flags.zero_flag & flags.sign_flag & flags.exception_flag & flags.interrupt_flag & flags.hardware_interrupt &
+				flags.interrupt_waiting & flags.interrupts_masked & flags.non_masked_interrupt & flags.interrupt_id & ZEROS(31 downto 13);
+	end function;
+
+
+	function vectorToFlags ( vector_value : std_logic_vector(DATA_WIDTH-1 downto 0) ) return CPU_FLAGS is
+		variable dout : CPU_FLAGS;
+	begin
+		dout.carry_flag				:= vector_value(0);
+		dout.zero_flag				:= vector_value(1);
+		dout.sign_flag				:= vector_value(2);
+		dout.exception_flag			:= vector_value(3);
+		dout.interrupt_flag			:= vector_value(4);
+		dout.hardware_interrupt		:= vector_value(5);
+		dout.interrupt_waiting		:= vector_value(6);
+		dout.interrupts_masked		:= vector_value(7);
+		dout.non_masked_interrupt	:= vector_value(8);
+		dout.interrupt_id			:= vector_value(11 downto 9);
+
+		return dout;
+	end function;
+
+end definitions;
 
 --- vi:nocin:sw=4 ts=4:fdm=marker
