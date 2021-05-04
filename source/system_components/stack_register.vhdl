@@ -117,15 +117,15 @@ begin
 		then
 			st_reg <= ZEROS;
 
+		elsif sr_bus.en = '1' and mem_da = '1' and sr_loads = '1'
+		then
+			st_reg <= mem_data;
+
 		elsif sr_bus.en = '1' and rising_edge(st_event)
 		then
 			if sr_load = '1'
 			then
 				st_reg <= sr_bus.address;
-
-			elsif sr_loads = '1'
-			then
-				st_reg <= mem_data;
 
 			elsif sr_inc = '1'
 			then
@@ -148,6 +148,8 @@ begin
 			sr_load		<= '0';
 			sr_loads	<= '0';
 			complete	<= '0';
+			pc_load		<= 'Z';
+			da			<= '0';
 			data		<= (others => 'Z');
 			mem_bus		<= FREE_MEMORY_BUS;
 			mem_data	<= (others => 'Z');

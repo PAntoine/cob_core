@@ -78,28 +78,27 @@ begin
 	begin
 		if enable = '0'
 		then
-			complete	<= 'Z';
+			complete	<= '0';
 			state		:= "00";
 			sr_bus		<= FREE_STACK_BUS;
-			data		<= (others => 'Z');
 		
 		else
 			case state is
-				when "00" =>	complete	<= '0';
-					   			sr_bus.en	<= '1';
-					   			state		:= "01";
-								sr_bus.mode	<= SR_SAVE;
+				when "00" =>	complete		<= '0';
+					   			sr_bus.en		<= '1';
+					   			state			:= "01";
+								sr_bus.id		<= flags.interrupt_id;
+								sr_bus.address	<= interrupt_vector(to_integer(unsigned(flags.interrupt_id)));
+								sr_bus.mode		<= SR_SAVE;
 
 				when "01" =>	if stack_complete = '1'
 								then
-									data	<= interrupt_vector(to_integer(unsigned(flags.interrupt_id)));
 									state	:= "10";
 									sr_bus	<= INIT_STACK_BUS;
 								end if;
 
 				when "10" =>	complete	<= '1';
 								state		:= "11";
-								data		<= (others => 'Z');
 
 				when others =>	null;
 			end case;
