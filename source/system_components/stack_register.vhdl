@@ -65,7 +65,7 @@ entity StackRegister is
 			reset		: in	std_logic;
 			clock		: in	std_logic;
 			sr_bus		: in	STACK_BUS;
-			flags		: in	CPU_FLAGS;
+			flags		: inout	CPU_FLAGS;
 			pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
 
 			mem_bus		: out	MEMORY_BUS;
@@ -81,11 +81,12 @@ entity StackRegister is
 end entity StackRegister;
 
 architecture synth of StackRegister is
-	signal st_reg	: std_logic_vector(ADDR_WIDTH-1 downto 0);
+	signal st_reg			: std_logic_vector(ADDR_WIDTH-1 downto 0);
+	signal st_reg_current	: std_logic_vector(ADDR_WIDTH-1 downto 0);
+	
 	signal sr_inc	: std_logic;
 	signal sr_dec	: std_logic;
 	signal sr_load	: std_logic;
-	signal sr_loads	: std_logic;
 
 	subtype		STACK_STATE_TYPE is std_logic_vector(3 downto 0);
 	constant	SR_START		:	STACK_STATE_TYPE := "0000";
@@ -108,16 +109,16 @@ begin
 
 	stack_value <= st_reg;
 
-	st_event <= '1' when (sr_load = '1' or sr_loads = '1' or sr_inc = '1' or sr_dec = '1') and sr_bus.en = '1' else '0';
+	st_event <= '1' when (sr_load = '1' or sr_inc = '1' or sr_dec = '1') and sr_bus.en = '1' else '0';
 
 	-- manage the stack register.
-	process (reset, sr_inc, sr_dec, mem_da, sr_bus, st_event, mem_data)
+	process (reset, sr_inc, sr_dec, mem_da, state, sr_bus, st_event, mem_data)
 	begin
 		if reset = '1'
 		then
 			st_reg <= ZEROS;
 
-		elsif sr_bus.en = '1' and mem_da = '1' and sr_loads = '1'
+		elsif sr_bus.en = '1' and state = SR_STACK_READ and mem_da = '1'
 		then
 			st_reg <= mem_data;
 
@@ -146,16 +147,15 @@ begin
 			sr_inc		<= '0';
 			sr_dec		<= '0';
 			sr_load		<= '0';
-			sr_loads	<= '0';
 			complete	<= '0';
-			pc_load		<= 'Z';
 			da			<= '0';
-			data		<= (others => 'Z');
 			mem_bus		<= FREE_MEMORY_BUS;
-			mem_data	<= (others => 'Z');
 
 		elsif rising_edge(clock)
 		then
+			-- latch it at start as it may change during the operation.
+			st_reg_current <= st_reg;
+
 			case state is
 				when SR_START =>
 					case sr_bus.mode is
@@ -176,8 +176,6 @@ begin
 				when SR_DATA_WRITE =>
 					if sr_dec = '0'
 					then
-						mem_data		<= sr_bus.address;
-						mem_bus.address	<= st_reg;
 						mem_bus.rw		<= '1';
 						mem_bus.en		<= '1';
 						sr_dec			<= '1';
@@ -185,13 +183,11 @@ begin
 					elsif mem_da = '1'
 					then
 						sr_dec		<= '0';
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 						state		<= SR_FINISHED;
 					end if;
 
 				when SR_FLAGS_WRITE =>
-					mem_data		<= flagsToVector(flags);
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= '1';
 					mem_bus.en		<= '1';
 					sr_dec			<= '1';
@@ -199,13 +195,11 @@ begin
 					if mem_da = '1'
 					then
 						sr_dec		<= '0';
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 						state		<= SR_PC_WRITE;
 					end if;
 
 				when SR_PC_WRITE =>
-					mem_data		<= pc;
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= '1';
 					mem_bus.en		<= '1';
 					sr_dec			<= '1';
@@ -213,7 +207,7 @@ begin
 					if mem_da = '1'
 					then
 						sr_dec		<= '0';
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 
 						if sr_bus.mode = SR_CALL
 						then
@@ -224,8 +218,6 @@ begin
 					end if;
 
 				when SR_STACK_WRITE =>
-					mem_data		<= st_reg;
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= '1';
 					mem_bus.en		<= '1';
 					sr_dec			<= '1';
@@ -233,13 +225,11 @@ begin
 					if mem_da = '1'
 					then
 						sr_dec		<= '0';
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 						state		<= SR_FINISHED;
 					end if;
 
 				when SR_DATA_READ =>
-					mem_data		<= (others => 'Z');
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en  	<= '1';
 					sr_inc   		<= '1';
@@ -247,15 +237,12 @@ begin
 					if mem_da = '1'
 					then
 						sr_inc		<= '0';
-						data		<= mem_data;
 						da			<= '1';		-- the data is available to when it is needed.
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 						state		<= SR_FINISHED;
 					end if;
 
 				when SR_FLAGS_READ =>
-					mem_data		<= (others => 'Z');
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en  	<= '1';
 					sr_inc   		<= '1';
@@ -263,15 +250,11 @@ begin
 					if mem_da = '1'
 					then
 						sr_inc		<= '0';
-						data		<= mem_data;
-						da			<= '1';		-- the data is available to when it is needed.
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 						state		<= SR_FINISHED;
 					end if;
 
 				when SR_PC_READ =>
-					mem_data		<= (others => 'Z');
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en		<= '1';
 					sr_inc   		<= '1';
@@ -279,9 +262,7 @@ begin
 					if mem_da = '1'
 					then
 						sr_inc		<= '0';
-						data		<= mem_data;
-						pc_load		<= '1';
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 
 						if sr_bus.mode = SR_CALL
 						then
@@ -292,17 +273,13 @@ begin
 					end if;
 
 				when SR_STACK_READ =>
-					mem_data		<= (others => 'Z');
-					mem_bus.address	<= st_reg;
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en		<= '1';
-					sr_inc			<= '1';
+					sr_inc			<= '0';
 
 					if mem_da = '1'
 					then
-						sr_inc		<= '0';
-						sr_loads	<= '1';		-- the data is available to when it is needed.
-						mem_bus		<= INIT_MEMORY_BUS;
+						mem_bus.en	<= '0';
 						state		<= SR_PC_READ;
 					end if;
 
@@ -310,8 +287,7 @@ begin
 					sr_inc		<= '0';
 					sr_dec		<= '0';
 					sr_load		<= '0';
-					sr_loads	<= '0';
-					mem_bus		<= INIT_MEMORY_BUS;
+					mem_bus.en	<= '0';
 					complete	<= '1';
 
 				when others => null;
@@ -319,6 +295,26 @@ begin
 		end if;
 
 	end process;
+
+	-- flags data
+	flags <= FREE_CPU_FLAGS when sr_bus.en = '0' or state /= SR_FLAGS_READ else vectorToFlags(mem_data);
+
+	-- memory writes
+	mem_bus.address	<= (others => 'Z') when sr_bus.en = '0' else st_reg_current;
+
+	mem_data <= (others => 'Z')			when sr_bus.en = '0'		else
+				pc						when state = SR_PC_WRITE	else
+				st_reg					when state = SR_STACK_WRITE	else
+				flagsToVector(flags)	when state = SR_FLAGS_WRITE	else
+				sr_bus.address			when state = SR_DATA_WRITE	else
+				(others => 'Z');
+
+	-- PC load value
+	pc_load <=	'Z' when sr_bus.en = '0' else
+				'1' when state = SR_PC_READ and mem_da = '1' else
+				'0';
+
+	data <= mem_data when state = SR_PC_READ or state = SR_DATA_READ else (others => 'Z');
 
 	-- stack value should always be available.
 	stack_value <= st_reg;

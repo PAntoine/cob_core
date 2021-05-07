@@ -41,7 +41,7 @@ entity InterruptExceptionUnit is
 			complete		: out std_logic;
 			sr_bus			: out STACK_BUS;
 			stack_complete	: in  std_logic;
-			data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+			data			: in  std_logic_vector(DATA_WIDTH-1 downto 0)
 	);
 end entity InterruptExceptionUnit;
 	

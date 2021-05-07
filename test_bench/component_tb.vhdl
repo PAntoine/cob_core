@@ -42,7 +42,7 @@ architecture simulation of Components_Test_Bench is
 				reset		: in	std_logic;
 				clock		: in	std_logic;
 				sr_bus		: in	STACK_BUS;
-				flags		: in	CPU_FLAGS;
+				flags		: inout	CPU_FLAGS;
 				pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
 
 				mem_bus		: out	MEMORY_BUS;
@@ -68,7 +68,7 @@ architecture simulation of Components_Test_Bench is
 				complete		: out std_logic;
 				sr_bus			: out STACK_BUS;
 				stack_complete	: in  std_logic;
-				data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+				data			: in  std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component InterruptExceptionUnit;
 
@@ -136,7 +136,7 @@ begin
  			test		<= TEST_SET_VALUE;
 			ieu_int_id	<= (others => '0');
 			ieu_enable	<= '0';
-
+	
 		elsif trigger = '0'
 		then
 			case test is
@@ -169,6 +169,7 @@ begin
 					sr_bus.address	<= x"F0F0F0F0";
 
 				when TEST_SR_RESTORE =>
+					flags			<= FREE_CPU_FLAGS;
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_RESTORE;
 					sr_bus.id		<= (others => '0');
@@ -180,13 +181,13 @@ begin
 					-- TODO - set the FF interrupt vector
 
 				when TEST_IEU_INT_00 =>
-					sr_bus			<= FREE_STACK_BUS;
+					sr_bus			<= INIT_STACK_BUS;
 					flags			<= vectorToFlags(x"00000000");
 					ieu_int_id		<= (others => '0');
 					ieu_enable		<= '1';
 				
 				when TEST_IEU_INT_FF =>
-					sr_bus			<= FREE_STACK_BUS;
+					sr_bus			<= INIT_STACK_BUS;
 					ieu_int_id		<= (others => '1');
 					ieu_enable		<= '1';
 				
@@ -216,6 +217,7 @@ begin
 			end case;
 
 			sr_bus.en <= '0';
+			ieu_enable <= '0';
 		end if;
 	end process;
 
@@ -241,7 +243,9 @@ begin
 		elsif mem_bus.en = '1'
 		then
 			case mem_bus.address is
-				when x"0000ffec"	=> mem_data <= x"0F0F0F0F";
+				when x"0000ffec"	=> mem_data <= x"0F0F0F00";
+				when x"0F0F0F00"	=> mem_data <= x"00000004";
+				when x"0F0F0F04"	=> mem_data <= x"0F0F0F0F";
 				when others 		=> mem_data <= x"FFFFFFFF";
 			end case;
 		end if;

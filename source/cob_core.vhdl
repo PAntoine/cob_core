@@ -154,7 +154,7 @@ architecture synth of COB_Core is
 			reset		: in	std_logic;
 			clock		: in	std_logic;
 			sr_bus		: in	STACK_BUS;
-			flags		: in	CPU_FLAGS;
+			flags		: inout	CPU_FLAGS;
 			pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
 
 			mem_bus		: out	MEMORY_BUS;
@@ -164,7 +164,8 @@ architecture synth of COB_Core is
 			complete	: out	std_logic;
 			pc_load		: out	std_logic;
 			stack_value	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
-			data		: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+			da			: out	std_logic;
+			data		: out	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component StackRegister;
 
