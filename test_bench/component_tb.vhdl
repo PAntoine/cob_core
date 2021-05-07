@@ -42,7 +42,7 @@ architecture simulation of Components_Test_Bench is
 				reset		: in	std_logic;
 				clock		: in	std_logic;
 				sr_bus		: in	STACK_BUS;
-				flags		: inout	CPU_FLAGS;
+				flags		: in	CPU_FLAGS;
 				pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
 
 				mem_bus		: out	MEMORY_BUS;
@@ -51,6 +51,7 @@ architecture simulation of Components_Test_Bench is
 
 				complete	: out	std_logic;
 				pc_load		: out	std_logic;
+				flags_load	: out	std_logic;
 				stack_value	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
 				da			: out	std_logic;
 				data		: inout std_logic_vector(DATA_WIDTH-1 downto 0)
@@ -90,6 +91,7 @@ architecture simulation of Components_Test_Bench is
 
 	signal complete		: std_logic;
 	signal pc_load		: std_logic		:= '0';
+	signal flags_load	: std_logic		:= '0';
 	signal stack_value	: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal da			: std_logic		:= '0';
 	signal data			: std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -128,6 +130,33 @@ begin
 
 	trigger <= '1' when (complete = '1' or ieu_comp = '1') else '0';
 
+	-- flags process
+	process (reset, flags_load, data)
+	begin
+		if (reset = '1')
+		then
+			flags <= INIT_CPU_FLAGS;
+
+		elsif rising_edge(flags_load)
+		then
+			flags <= vectorToFlags(data);
+		end if;
+	end process;
+	
+	-- flags process
+	process (reset, pc_load, data)
+	begin
+		if (reset = '1')
+		then
+			pc <= (others => '0');
+
+		elsif rising_edge(pc_load)
+		then
+			pc <= data;
+		end if;
+	end process;
+
+	-- main test process
 	process (reset, test, trigger)
 	begin
 		if reset = '1'
@@ -153,23 +182,23 @@ begin
 					sr_bus.address	<= x"0F0F0F0F";
 				
 				when TEST_SR_CALL =>
-					pc				<= x"000000F0";
-					flags			<= vectorToFlags(x"F0F00FFF");
+			--		pc				<= x"000000F0";
+			--		flags			<= vectorToFlags(x"F0F00FFF");
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_CALL;
 					sr_bus.id		<= (others => '0');
 					sr_bus.address	<= x"F0F0F0F0";
 				
 				when TEST_SR_SAVE =>
-					pc				<= x"00000F00";
-					flags			<= vectorToFlags(x"F0F000FF");
+			--		pc				<= x"00000F00";
+			--		flags			<= vectorToFlags(x"F0F000FF");
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_SAVE;
 					sr_bus.id		<= (others => '0');
 					sr_bus.address	<= x"F0F0F0F0";
 
 				when TEST_SR_RESTORE =>
-					flags			<= FREE_CPU_FLAGS;
+			--		flags			<= FREE_CPU_FLAGS;
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_RESTORE;
 					sr_bus.id		<= (others => '0');
@@ -182,7 +211,7 @@ begin
 
 				when TEST_IEU_INT_00 =>
 					sr_bus			<= INIT_STACK_BUS;
-					flags			<= vectorToFlags(x"00000000");
+			--		flags			<= vectorToFlags(x"00000000");
 					ieu_int_id		<= (others => '0');
 					ieu_enable		<= '1';
 				
@@ -252,7 +281,7 @@ begin
 	end process;
 
 	sr: StackRegister port map (reset => reset, clock => clock, sr_bus => sr_bus, flags => flags, pc => pc, mem_bus => mem_bus, mem_data => mem_data, mem_da => mem_da,
-								complete => complete, pc_load => pc_load, stack_value => stack_value, da => da, data => data);
+								complete => complete, pc_load => pc_load, flags_load => flags_load, stack_value => stack_value, da => da, data => data);
 	
 	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, write => set_vector, int_id => ieu_int_id, flags => flags,
 											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, data => data);

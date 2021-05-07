@@ -65,7 +65,7 @@ entity StackRegister is
 			reset		: in	std_logic;
 			clock		: in	std_logic;
 			sr_bus		: in	STACK_BUS;
-			flags		: inout	CPU_FLAGS;
+			flags		: in	CPU_FLAGS;
 			pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
 
 			mem_bus		: out	MEMORY_BUS;
@@ -74,6 +74,7 @@ entity StackRegister is
 
 			complete	: out	std_logic;
 			pc_load		: out	std_logic;
+			flags_load	: out	std_logic;
 			stack_value	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
 			da			: out	std_logic;
 			data		: out	std_logic_vector(DATA_WIDTH-1 downto 0)
@@ -296,9 +297,6 @@ begin
 
 	end process;
 
-	-- flags data
-	flags <= FREE_CPU_FLAGS when sr_bus.en = '0' or state /= SR_FLAGS_READ else vectorToFlags(mem_data);
-
 	-- memory writes
 	mem_bus.address	<= (others => 'Z') when sr_bus.en = '0' else st_reg_current;
 
@@ -310,11 +308,41 @@ begin
 				(others => 'Z');
 
 	-- PC load value
-	pc_load <=	'Z' when sr_bus.en = '0' else
-				'1' when state = SR_PC_READ and mem_da = '1' else
-				'0';
+	process (sr_bus.en, state, mem_da)
+	begin
+		if sr_bus.en = '0'
+		then
+			pc_load <= 'Z';
 
-	data <= mem_data when state = SR_PC_READ or state = SR_DATA_READ else (others => 'Z');
+		elsif state /= SR_PC_READ
+		then
+			pc_load <= '0';
+		
+		elsif state = SR_PC_READ and rising_edge(mem_da)
+		then
+			pc_load <= '1';
+		end if;
+	end process;
+
+	-- Flags load value
+	process (sr_bus.en, state, mem_da)
+	begin
+		if sr_bus.en = '0'
+		then
+			flags_load <= 'Z';
+
+		elsif state /= SR_FLAGS_READ
+		then
+			flags_load <= '0';
+		
+		elsif state = SR_FLAGS_READ and rising_edge(mem_da)
+		then
+			flags_load <= '1';
+		end if;
+	end process;
+
+	-- data bus state
+	data <= mem_data when state = SR_PC_READ or state = SR_DATA_READ or state = SR_FLAGS_READ else (others => 'Z');
 
 	-- stack value should always be available.
 	stack_value <= st_reg;
