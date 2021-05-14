@@ -149,7 +149,6 @@ begin
 			sr_dec		<= '0';
 			sr_load		<= '0';
 			complete	<= '0';
-			da			<= '0';
 			mem_bus		<= FREE_MEMORY_BUS;
 
 		elsif rising_edge(clock)
@@ -238,7 +237,6 @@ begin
 					if mem_da = '1'
 					then
 						sr_inc		<= '0';
-						da			<= '1';		-- the data is available to when it is needed.
 						mem_bus.en	<= '0';
 						state		<= SR_FINISHED;
 					end if;
@@ -265,7 +263,7 @@ begin
 						sr_inc		<= '0';
 						mem_bus.en	<= '0';
 
-						if sr_bus.mode = SR_CALL
+						if sr_bus.mode = SR_RET
 						then
 							state <= SR_FINISHED;
 						else
@@ -307,6 +305,23 @@ begin
 				sr_bus.address			when state = SR_DATA_WRITE	else
 				(others => 'Z');
 
+	-- data available for SR reads (POP's)
+	process (sr_bus.en, state, mem_da)
+	begin
+		if sr_bus.en = '0'
+		then
+			da	<= 'Z';
+
+		elsif state /= SR_DATA_READ
+		then
+			da <= '0';
+		
+		elsif state = SR_DATA_READ and rising_edge(mem_da)
+		then
+			da <= '1';
+		end if;
+	end process;
+	
 	-- PC load value
 	process (sr_bus.en, state, mem_da)
 	begin

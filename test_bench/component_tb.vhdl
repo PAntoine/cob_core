@@ -26,6 +26,7 @@ use std.textio.all;
 use ieee.std_logic_textio.all; 
 
 use work.definitions.all;
+use work.int_except_tb_defines.all;
 
 use work.StackRegister;
 use work.InterruptExceptionUnit;
@@ -77,8 +78,9 @@ architecture simulation of Components_Test_Bench is
 	---------------------------------------------------------------
 	--- the test signals
 	---------------------------------------------------------------
-	signal	reset		: std_logic		:= '1';
-	signal	clock		: std_logic		:= '0';
+	signal	reset			: std_logic		:= '1';
+	signal	clock			: std_logic		:= '0';
+	signal	clock_running	: std_logic		:= '1';
 
 	-- external bus signals - these are to other devices.
 	signal sr_bus		: STACK_BUS;
@@ -103,58 +105,17 @@ architecture simulation of Components_Test_Bench is
 
 	signal trigger		: std_logic;
 
-	---------------------------------------------------------------
-	--- Test cases for testing the stack.
-	---------------------------------------------------------------
-	subtype		TEST_ITEM_TYPE is std_logic_vector(3 downto 0);
-	constant	TEST_SET_VALUE	:	TEST_ITEM_TYPE := "0000";
-	constant	TEST_SR_PUSH	:	TEST_ITEM_TYPE := "0001";
-	constant	TEST_SR_SAVE	:	TEST_ITEM_TYPE := "0010";
-	constant	TEST_SR_CALL	:	TEST_ITEM_TYPE := "0011";
-	constant	TEST_SR_RESTORE	:	TEST_ITEM_TYPE := "0100";
-	constant	TEST_IEU_SET_00	:	TEST_ITEM_TYPE := "0101";
-	constant	TEST_IEU_SET_FF	:	TEST_ITEM_TYPE := "0110";
-	constant	TEST_IEU_INT_00	:	TEST_ITEM_TYPE := "0111";
-	constant	TEST_IEU_INT_FF	:	TEST_ITEM_TYPE := "1000";
-	constant	TEST_FINISH		:	TEST_ITEM_TYPE := "1111";
-
-
-	signal test : TEST_ITEM_TYPE;
-
+	signal test : integer;
+		
 begin
 	-- clock signal
-	clock <= not clock after 50 ps;
+	clock <= not clock and clock_running after 50 ps;
 
 	-- start the test.
 	reset <= '0' after 20 ps;
 
 	trigger <= '1' when (complete = '1' or ieu_comp = '1') else '0';
 
-	-- flags process
-	process (reset, flags_load, data)
-	begin
-		if (reset = '1')
-		then
-			flags <= INIT_CPU_FLAGS;
-
-		elsif rising_edge(flags_load)
-		then
-			flags <= vectorToFlags(data);
-		end if;
-	end process;
-	
-	-- flags process
-	process (reset, pc_load, data)
-	begin
-		if (reset = '1')
-		then
-			pc <= (others => '0');
-
-		elsif rising_edge(pc_load)
-		then
-			pc <= data;
-		end if;
-	end process;
 
 	-- main test process
 	process (reset, test, trigger)
@@ -179,46 +140,37 @@ begin
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_PUSH;
 					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"0F0F0F0F";
+					sr_bus.address	<= x"00000001";
+				
+				when TEST_SR_POP =>
+					sr_bus.en		<= '1';
+					sr_bus.mode		<= SR_POP;
+					sr_bus.id		<= (others => '0');
+					sr_bus.address	<= x"00000002";
 				
 				when TEST_SR_CALL =>
-			--		pc				<= x"000000F0";
-			--		flags			<= vectorToFlags(x"F0F00FFF");
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_CALL;
 					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"F0F0F0F0";
+					sr_bus.address	<= x"00000003";
+				
+				when TEST_SR_RET =>
+					sr_bus.en		<= '1';
+					sr_bus.mode		<= SR_RET;
+					sr_bus.id		<= (others => '0');
+					sr_bus.address	<= x"00000004";
 				
 				when TEST_SR_SAVE =>
-			--		pc				<= x"00000F00";
-			--		flags			<= vectorToFlags(x"F0F000FF");
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_SAVE;
 					sr_bus.id		<= (others => '0');
 					sr_bus.address	<= x"F0F0F0F0";
 
 				when TEST_SR_RESTORE =>
-			--		flags			<= FREE_CPU_FLAGS;
 					sr_bus.en		<= '1';
 					sr_bus.mode		<= SR_RESTORE;
 					sr_bus.id		<= (others => '0');
 					sr_bus.address	<= x"F0F0F0F0";
-				
-				when TEST_IEU_SET_00 =>
-					-- TODO - set the 00 interrupt vector
-				when TEST_IEU_SET_FF =>
-					-- TODO - set the FF interrupt vector
-
-				when TEST_IEU_INT_00 =>
-					sr_bus			<= INIT_STACK_BUS;
-			--		flags			<= vectorToFlags(x"00000000");
-					ieu_int_id		<= (others => '0');
-					ieu_enable		<= '1';
-				
-				when TEST_IEU_INT_FF =>
-					sr_bus			<= INIT_STACK_BUS;
-					ieu_int_id		<= (others => '1');
-					ieu_enable		<= '1';
 				
 				when TEST_FINISH =>
 					sr_bus.en		<= '0';
@@ -232,24 +184,52 @@ begin
 
 		elsif rising_edge(trigger)
 		then
-			case test is
-				when TEST_SET_VALUE		=> test <= TEST_SR_PUSH;
-				when TEST_SR_PUSH		=> test <= TEST_SR_CALL;
-				when TEST_SR_CALL		=> test <= TEST_SR_SAVE;
-				when TEST_SR_SAVE		=> test <= TEST_SR_RESTORE;
-				when TEST_SR_RESTORE	=> test <= TEST_IEU_SET_00;
-				when TEST_IEU_SET_00	=> test <= TEST_IEU_SET_FF;
-				when TEST_IEU_SET_FF	=> test <= TEST_IEU_INT_00;
-				when TEST_IEU_INT_00	=> test <= TEST_IEU_INT_FF;
-				when TEST_IEU_INT_FF	=> test <= TEST_FINISH;
-				when others => null;
-			end case;
+			if test < TEST_FINISH
+			then
+				test <= test + 1;
+			else
+				clock_running <= '0';
+			end if;
 
 			sr_bus.en <= '0';
 			ieu_enable <= '0';
 		end if;
 	end process;
 
+	-- flags process
+	process (reset, flags_load, data, test)
+		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
+	begin
+		if (reset = '1')
+		then
+			flags <= INIT_CPU_FLAGS;
+		
+		elsif trigger = '1'
+		then
+			flags <= GetTestFlagsBefore(test);
+
+		elsif rising_edge(flags_load)
+		then
+			test_value := flagsToVector(GetTestFlagsAfter(test));
+			if data /= test_value
+			then
+				report "failure: test number " & integer'image(test) & " - failed flags mismatch has " & toHString(data) & " and expected " & toHString(test_value);
+			end if;
+		end if;
+	end process;
+	
+	-- program counter process
+	process (reset, pc_load, data)
+	begin
+		if (reset = '1')
+		then
+			pc <= (others => '0');
+
+		elsif rising_edge(pc_load)
+		then
+			pc <= data;
+		end if;
+	end process;
 	process (mem_bus, clock)
 	begin
 		if reset = '1' or mem_bus.en = '0'
@@ -260,7 +240,20 @@ begin
 		then
 			mem_da <= '1';
 		end if;
+	end process;
 
+	process (da, data)
+		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
+
+	begin
+		if rising_edge(da)
+		then
+			test_value := GetTestData(test);
+			if data /= test_value
+			then
+				report "failure: test number " & integer'image(test) & " - failed data mismatch has " & toHString(data) & " and expected " & toHString(test_value);
+			end if;
+		end if;
 	end process;
 
 	process (mem_bus)
@@ -271,12 +264,29 @@ begin
 
 		elsif mem_bus.en = '1'
 		then
+			report "failure: bus read address: " & toHString(mem_bus.address);
+			
 			case mem_bus.address is
 				when x"0000ffec"	=> mem_data <= x"0F0F0F00";
 				when x"0F0F0F00"	=> mem_data <= x"00000004";
 				when x"0F0F0F04"	=> mem_data <= x"0F0F0F0F";
 				when others 		=> mem_data <= x"FFFFFFFF";
 			end case;
+		end if;
+	end process;
+
+	process (mem_bus, mem_data)
+		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
+	begin
+		if mem_bus.en = '1' and mem_bus.rw = RW_WRITE
+		then
+			report "failure: bus write address: " & toHString(mem_bus.address);
+
+			test_value := GetTestValue(test, 0);
+			if mem_data /= test_value
+			then
+				report "failure: test number " & integer'image(test) & " - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(test_value);
+			end if;
 		end if;
 	end process;
 
