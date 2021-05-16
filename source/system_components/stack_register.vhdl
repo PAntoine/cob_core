@@ -23,13 +23,11 @@
 --
 --         Return: POP() -> pc
 --
---         Save:   PUSH(stack)
---                 PUSH(pc)
+--         Save:   PUSH(pc)
 --                 PUSH(flags)
 --
 --         Load:   POP() -> flags
 --                 POP() -> pc
---                 POP() -> stack
 --
 --           Call Stack:
 --               +-----------------------------------+
@@ -41,8 +39,6 @@
 --               |           Flags Register          |   SP
 --               +-----------------------------------+
 --               |         PC (next) Register        |   SP - 4
---               +-----------------------------------+
---               |           Stack Register          |   SP - 8
 --               +-----------------------------------+
 --
 -- Author: Peter Antoine
@@ -165,7 +161,7 @@ begin
 						when SR_SAVE 	=> state <= SR_FLAGS_WRITE;
 						when SR_POP		=> state <= SR_DATA_READ;
 						when SR_RET		=> state <= SR_PC_READ;
-						when SR_RESTORE	=> state <= SR_STACK_READ;
+						when SR_RESTORE	=> state <= SR_PC_READ;
 						when others		=> null;
 					end case;
 
@@ -213,12 +209,7 @@ begin
 						sr_dec		<= '0';
 						mem_bus.en	<= '0';
 
-						if sr_bus.mode = SR_CALL
-						then
-							state <= SR_FINISHED;
-						else
-							state <= SR_STACK_WRITE;
-						end if;
+						state <= SR_FINISHED;
 					end if;
 
 				when SR_STACK_WRITE =>
