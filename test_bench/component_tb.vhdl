@@ -235,10 +235,6 @@ begin
 			then
 				mem_data <= GetTestValue(test, 1);
 
-			elsif mem_bus.address = GetTestAddress(test, 2)
-			then
-				mem_data <= GetTestValue(test, 2);
-
 			else
 				mem_data <= x"FFFFFFFF";
 			end if;
@@ -266,13 +262,6 @@ begin
 					report "failure: test number " & integer'image(test) & " ["& toHString(mem_bus.address) & "] - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(test_value);
 				end if;
 
-			elsif mem_bus.address = GetTestAddress(test, 2)
-			then
-				test_value := GetTestValue(test, 2);
-				if mem_data /= test_value
-				then
-					report "failure: test number " & integer'image(test) & " ["& toHString(mem_bus.address) & "] - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(GetTestValue(test, 2));
-				end if;
 			else
 				report "failure: test number " & integer'image(test) & " - unexpected address " & toHString(mem_bus.address) & " " & toHString(GetTestAddress(test, 0)) & " " & toHString(test_value);
 			end if;
