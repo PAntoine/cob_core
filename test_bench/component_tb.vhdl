@@ -70,7 +70,7 @@ architecture simulation of Components_Test_Bench is
 				complete		: out std_logic;
 				sr_bus			: out STACK_BUS;
 				stack_complete	: in  std_logic;
-				data			: in  std_logic_vector(DATA_WIDTH-1 downto 0)
+				data			: inout  std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component InterruptExceptionUnit;
 
@@ -96,7 +96,7 @@ architecture simulation of Components_Test_Bench is
 	signal flags_load	: std_logic		:= '0';
 	signal stack_value	: std_logic_vector(DATA_WIDTH-1 downto 0);
 	signal da			: std_logic		:= '0';
-	signal data			: std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal data			: std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0');
 
 	signal set_vector	: std_logic		:= '0';
 	signal ieu_enable	: std_logic		:= '0';
@@ -129,62 +129,20 @@ begin
 	
 		elsif trigger = '0'
 		then
-			case test is
-				when TEST_SET_VALUE =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_SET;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"00010000";
-
-				when TEST_SR_PUSH =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_PUSH;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"00000001";
-				
-				when TEST_SR_POP =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_POP;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"00000002";
-				
-				when TEST_SR_CALL =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_CALL;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"00000003";
-				
-				when TEST_SR_RET =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_RET;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"00000004";
-				
-				when TEST_SR_SAVE =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_SAVE;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"F0F0F0F0";
-
-				when TEST_SR_RESTORE =>
-					sr_bus.en		<= '1';
-					sr_bus.mode		<= SR_RESTORE;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= x"F0F0F0F0";
-				
-				when TEST_FINISH =>
-					sr_bus.en		<= '0';
-					sr_bus.mode		<= SR_SET;
-					sr_bus.id		<= (others => '0');
-					sr_bus.address	<= (others => '0');
-
-
-				when others => null;
-			end case;
+			sr_bus.en	<= '1';
+			sr_bus.mode <= GetTestMode(test);
+			
+			if GetTestMode(test) = SR_SET or GetTestMode(test) = SR_PUSH
+			then
+				data <= GetTestData(test);
+			else
+				data <= (others => 'Z');
+			end if;
 
 		elsif rising_edge(trigger)
 		then
-			if test < TEST_FINISH
+			--if test < TEST_FINISH
+			if test < TEST_SR_RESTORE
 			then
 				test <= test + 1;
 			else
@@ -219,17 +177,23 @@ begin
 	end process;
 	
 	-- program counter process
-	process (reset, pc_load, data)
+	pc <= (others => '0') when reset = '1' else GetTestPC(test);
+	
+	process (reset, data)
+		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
 	begin
-		if (reset = '1')
+		if rising_edge(pc_load)
 		then
-			pc <= (others => '0');
+			test_value := GetTestPC(test);
+			
+			if data /= test_value
+			then
+				report "failure: test number " & integer'image(test) & " - failed PC mismatch has " & toHString(data) & " and expected " & toHString(test_value);
+			end if;
 
-		elsif rising_edge(pc_load)
-		then
-			pc <= data;
 		end if;
 	end process;
+	
 	process (mem_bus, clock)
 	begin
 		if reset = '1' or mem_bus.en = '0'
@@ -244,7 +208,6 @@ begin
 
 	process (da, data)
 		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
-
 	begin
 		if rising_edge(da)
 		then
@@ -264,28 +227,54 @@ begin
 
 		elsif mem_bus.en = '1'
 		then
-			report "failure: bus read address: " & toHString(mem_bus.address);
-			
-			case mem_bus.address is
-				when x"0000ffec"	=> mem_data <= x"0F0F0F00";
-				when x"0F0F0F00"	=> mem_data <= x"00000004";
-				when x"0F0F0F04"	=> mem_data <= x"0F0F0F0F";
-				when others 		=> mem_data <= x"FFFFFFFF";
-			end case;
+			if mem_bus.address = GetTestAddress(test, 0)
+			then
+				mem_data <= GetTestValue(test, 0);
+
+			elsif mem_bus.address = GetTestAddress(test, 1)
+			then
+				mem_data <= GetTestValue(test, 1);
+
+			elsif mem_bus.address = GetTestAddress(test, 2)
+			then
+				mem_data <= GetTestValue(test, 2);
+
+			else
+				mem_data <= x"FFFFFFFF";
+			end if;
 		end if;
 	end process;
 
-	process (mem_bus, mem_data)
-		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
+	process (mem_bus, mem_data, test, mem_da)
+		variable test_value : std_logic_vector(ADDR_WIDTH-1 downto 0);
 	begin
-		if mem_bus.en = '1' and mem_bus.rw = RW_WRITE
+		if mem_bus.en = '1' and mem_bus.rw = '1' and rising_edge(mem_da)
 		then
-			report "failure: bus write address: " & toHString(mem_bus.address);
-
-			test_value := GetTestValue(test, 0);
-			if mem_data /= test_value
+			if mem_bus.address = GetTestAddress(test, 0)
 			then
-				report "failure: test number " & integer'image(test) & " - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(test_value);
+				test_value := GetTestValue(test, 0);
+				if mem_data /= test_value
+				then
+					report "failure: test number " & integer'image(test) & " ["& toHString(mem_bus.address) & "] - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(test_value);
+				end if;
+
+			elsif mem_bus.address = GetTestAddress(test, 1)
+			then
+				test_value := GetTestValue(test, 1);
+				if mem_data /= test_value
+				then
+					report "failure: test number " & integer'image(test) & " ["& toHString(mem_bus.address) & "] - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(test_value);
+				end if;
+
+			elsif mem_bus.address = GetTestAddress(test, 2)
+			then
+				test_value := GetTestValue(test, 2);
+				if mem_data /= test_value
+				then
+					report "failure: test number " & integer'image(test) & " ["& toHString(mem_bus.address) & "] - failed memory write mismatch has " & toHString(mem_data) & " and expected " & toHString(GetTestValue(test, 2));
+				end if;
+			else
+				report "failure: test number " & integer'image(test) & " - unexpected address " & toHString(mem_bus.address) & " " & toHString(GetTestAddress(test, 0)) & " " & toHString(test_value);
 			end if;
 		end if;
 	end process;

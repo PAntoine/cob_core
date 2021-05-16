@@ -41,7 +41,7 @@ entity InterruptExceptionUnit is
 			complete		: out std_logic;
 			sr_bus			: out STACK_BUS;
 			stack_complete	: in  std_logic;
-			data			: in  std_logic_vector(DATA_WIDTH-1 downto 0)
+			data			: inout  std_logic_vector(DATA_WIDTH-1 downto 0)
 	);
 end entity InterruptExceptionUnit;
 	
@@ -81,20 +81,21 @@ begin
 			complete	<= '0';
 			state		:= "00";
 			sr_bus		<= FREE_STACK_BUS;
+			data		<= (others => 'Z');
 		
 		else
 			case state is
 				when "00" =>	complete		<= '0';
 					   			sr_bus.en		<= '1';
 					   			state			:= "01";
-								sr_bus.id		<= flags.interrupt_id;
-								sr_bus.address	<= interrupt_vector(to_integer(unsigned(flags.interrupt_id)));
 								sr_bus.mode		<= SR_SAVE;
+								data			<= interrupt_vector(to_integer(unsigned(flags.interrupt_id)));
 
 				when "01" =>	if stack_complete = '1'
 								then
 									state	:= "10";
 									sr_bus	<= INIT_STACK_BUS;
+									data	<= (others => 'Z');
 								end if;
 
 				when "10" =>	complete	<= '1';

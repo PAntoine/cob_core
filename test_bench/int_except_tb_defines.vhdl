@@ -53,7 +53,6 @@ package int_except_tb_defines is
 
 	type TEST_CASE2_TYPE is record
 		mode		:	STACK_MODE_TYPE;
-		id			:	INT_ID_TYPE;
 		address		:	std_logic_vector(ADDR_WIDTH-1 downto 0);
 		flags		:	CPU_FLAGS;
 		flags_after	:	CPU_FLAGS;
@@ -99,13 +98,13 @@ package int_except_tb_defines is
 
 	constant sr_test_cases : TEST_CASE_ARRAY :=
 	(
-		(SR_SET,	"0000", x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"F0F0F0F0", RW_READ,	(x"00000000", x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_PUSH,	"0000", x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"FFFFFFFF", x"FF000000", RW_WRITE,	(x"0000FFFC", x"00000000", x"00000000"), (x"FF000000", x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_POP,	"0000", x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00002000", x"FF000000", RW_READ,	(x"00010000", x"00000000", x"00000000"), (x"FF000000", x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_CALL,	"0000", x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", RW_WRITE,	(x"0000ffec", x"00000000", x"00000000"), (x"00003000", x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_RET,	"0000", x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000ffec", x"00000000", x"00000000"), (x"00003000", x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_SAVE,	"0000", x"00010000", A_CPU_FLAGS,    B_CPU_FLAGS,		x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000ffec", x"00000000", x"00000000"), (x"00003000", x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_RESTORE,"0000", x"00010000", B_CPU_FLAGS,    A_CPU_FLAGS,		x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000ffec", x"00000000", x"00000000"), (flagsToVector(A_CPU_FLAGS), x"FFFFFFFF", x"FFFFFFFF"))
+		(SR_SET,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00010000", RW_WRITE,	(x"00000000", x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF", x"FFFFFFFF")),
+		(SR_PUSH,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"FFFFFFFF", x"FF000000", RW_WRITE,	(x"0000FFFC", x"00000000", x"00000000"), (x"FF000000", x"FFFFFFFF", x"FFFFFFFF")),
+		(SR_POP,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00002000", x"FF000000", RW_READ,	(x"0000FFFC", x"00000000", x"00000000"), (x"FF000000", x"FFFFFFFF", x"FFFFFFFF")),
+		(SR_CALL,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", RW_WRITE,	(x"0000FFfC", x"00000000", x"00000000"), (x"00003000", x"FFFFFFFF", x"FFFFFFFF")),
+		(SR_RET,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000fffc", x"00000000", x"00000000"), (x"00003000", x"FFFFFFFF", x"FFFFFFFF")),
+		(SR_SAVE,	x"00010000", A_CPU_FLAGS,    B_CPU_FLAGS,		x"00004000", x"F0F0F0F0", RW_WRITE,	(x"0000fffc", x"0000FFf8", x"0000FFf4"), (flagsToVector(A_CPU_FLAGS), x"00004000", x"0000FFF4")),
+		(SR_RESTORE,x"00010000", B_CPU_FLAGS,    A_CPU_FLAGS,		x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000fff4", x"0000FFf8", x"0000FFfc"), (x"0000fff4", x"00004000", flagsToVector(A_CPU_FLAGS)))
 	);
 	
 	---------------------------------------------------------------
@@ -114,14 +113,30 @@ package int_except_tb_defines is
 	function toHNibble(a_in: std_logic_vector(3 downto 0)) return character;
 	function toHString(a_in: std_logic_vector(DATA_WIDTH-1 downto 0)) return string;
 
-	function GetTestData (index : integer) return std_logic_vector;
-	function GetTestValue (index : integer; item : integer) return std_logic_vector;
+	function GetTestMode (index : integer) return STACK_MODE_TYPE;
+	function GetTestPC (index : integer) return std_logic_vector;
 	function GetTestFlagsBefore (index : integer) return CPU_FLAGS;
 	function GetTestFlagsAfter	(index : integer) return CPU_FLAGS;
+	function GetTestData (index : integer) return std_logic_vector;
+	function GetTestValue (index : integer; item : integer) return std_logic_vector;
+	function GetTestAddress (index : integer; item : integer) return std_logic_vector;
 
 end package int_except_tb_defines;
 
 package body int_except_tb_defines is
+	
+	function GetTestPC (index : integer) return std_logic_vector is
+		variable test_cases : TEST_CASE_ARRAY(0 to sr_test_cases'length-1) := sr_test_cases;
+	begin
+		return test_cases(index).pc;
+	end function;
+
+	function GetTestMode (index : integer) return STACK_MODE_TYPE is
+		variable test_cases : TEST_CASE_ARRAY(0 to sr_test_cases'length-1) := sr_test_cases;
+	begin
+		return test_cases(index).mode;
+	end function;
+	
 	function GetTestFlagsBefore (index : integer) return CPU_FLAGS is
 		variable test_cases : TEST_CASE_ARRAY(0 to sr_test_cases'length-1) := sr_test_cases;
 	begin
@@ -138,6 +153,12 @@ package body int_except_tb_defines is
 		variable test_cases : TEST_CASE_ARRAY(0 to sr_test_cases'length-1) := sr_test_cases;
 	begin
 		return test_cases(index).data;
+	end function;
+	
+	function GetTestAddress (index : integer; item : integer) return std_logic_vector is
+		variable test_cases : TEST_CASE_ARRAY(0 to sr_test_cases'length-1) := sr_test_cases;
+	begin
+		return test_cases(index).mem_address(item);
 	end function;
 	
 	function GetTestValue (index : integer; item : integer) return std_logic_vector is
@@ -173,16 +194,16 @@ package body int_except_tb_defines is
 	end function;
 
 	function toHString(a_in: std_logic_vector(DATA_WIDTH-1 downto 0)) return string is
-		variable dout : string(1 to 8);
+		variable dout : string(0 to 7);
 	begin
-		dout(1) := toHNibble(a_in(31 downto 28));
-		dout(2) := toHNibble(a_in(27 downto 24));
-		dout(3) := toHNibble(a_in(23 downto 20));
-		dout(4) := toHNibble(a_in(19 downto 16));
-		dout(5) := toHNibble(a_in(15 downto 12));
-		dout(6) := toHNibble(a_in(11 downto  8));
-		dout(7) := toHNibble(a_in( 8 downto  4));
-		dout(8) := toHNibble(a_in( 3 downto  0));
+		dout(0) := toHNibble(a_in(31 downto 28));
+		dout(1) := toHNibble(a_in(27 downto 24));
+		dout(2) := toHNibble(a_in(23 downto 20));
+		dout(3) := toHNibble(a_in(19 downto 16));
+		dout(4) := toHNibble(a_in(15 downto 12));
+		dout(5) := toHNibble(a_in(11 downto  8));
+		dout(6) := toHNibble(a_in( 7 downto  4));
+		dout(7) := toHNibble(a_in( 3 downto  0));
 
 		return dout;
 	end function;

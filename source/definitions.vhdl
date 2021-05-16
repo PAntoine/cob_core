@@ -211,26 +211,20 @@ package definitions is
 	constant	SR_SET		:	STACK_MODE_TYPE := "111";
 
 	type STACK_BUS is record
-		en		:	std_logic;
-		mode	:	STACK_MODE_TYPE;
-		id		:	INT_ID_TYPE;
-		address	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+		en		:	std_logic;			-- enable flag
+		mode	:	STACK_MODE_TYPE;	-- stack register access mode.
 	end record STACK_BUS;  
 
 	constant FREE_STACK_BUS : STACK_BUS :=
 	(
 		en		=> 'Z',
-		mode	=> (others => 'Z'),
-		id		=> (others => 'Z'),
-		address	=> (others => 'Z')
+		mode	=> (others => 'Z')
 	);
 	
 	constant INIT_STACK_BUS : STACK_BUS :=
 	(
 		en		=> '0',
-		mode	=> (others => '0'),
-		id		=> (others => '0'),
-		address	=> (others => '0')
+		mode	=> (others => '0')
 	);
 
 	------------------------------------------------------------
