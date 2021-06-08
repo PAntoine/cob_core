@@ -53,12 +53,10 @@ package int_except_tb_defines is
 
 	type TEST_CASE2_TYPE is record
 		mode		:	STACK_MODE_TYPE;
-		address		:	std_logic_vector(ADDR_WIDTH-1 downto 0);
 		flags		:	CPU_FLAGS;
 		flags_after	:	CPU_FLAGS;
 		pc			:	std_logic_vector(ADDR_WIDTH-1 downto 0);
 		data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
-		bus_rw		:	std_logic;
 		mem_address	:	TEST_ADDRESS_TYPE;
 		values		:	TEST_VALUES_TYPE;
 	end record TEST_CASE2_TYPE;
@@ -98,13 +96,17 @@ package int_except_tb_defines is
 
 	constant sr_test_cases : TEST_CASE_ARRAY :=
 	(
-		(SR_SET,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00010000", RW_WRITE,	(x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF")),
-		(SR_PUSH,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"FFFFFFFF", x"FF000000", RW_WRITE,	(x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF")),
-		(SR_POP,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00002000", x"FF000000", RW_READ,	(x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF")),
-		(SR_CALL,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", RW_WRITE,	(x"0000FFfC", x"00000000"), (x"00003000", x"FFFFFFFF")),
-		(SR_RET,	x"00010000", INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000fffc", x"00000000"), (x"00003000", x"FFFFFFFF")),
-		(SR_SAVE,	x"00010000", A_CPU_FLAGS,    B_CPU_FLAGS,		x"00004000", x"F0F0F0F0", RW_WRITE,	(x"0000fffc", x"0000FFf8"), (flagsToVector(A_CPU_FLAGS), x"00004000")),
-		(SR_RESTORE,x"00010000", B_CPU_FLAGS,    A_CPU_FLAGS,		x"0F0F0F0F", x"F0F0F0F0", RW_READ,	(x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)))
+		(SR_SET,	INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00010000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF")),
+		(SR_PUSH,	INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"FFFFFFFF", x"FF000000", (x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF")),
+		(SR_POP,	INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00002000", x"FF000000", (x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF")),
+		(SR_CALL,	INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", (x"0000FFfC", x"00000000"), (x"00003000", x"FFFFFFFF")),
+		(SR_RET,	INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fffc", x"00000000"), (x"00003000", x"FFFFFFFF")),
+		(SR_SAVE,	A_CPU_FLAGS,    B_CPU_FLAGS,	x"00004000", x"F0F0F0F0", (x"0000fffc", x"0000FFf8"), (flagsToVector(A_CPU_FLAGS), x"00004000")),
+		(SR_RESTORE,B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS))),
+		
+		-- interrupt unit tests.
+		(SR_RESTORE,B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS))),
+		(SR_RESTORE,B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)))
 	);
 	
 	---------------------------------------------------------------

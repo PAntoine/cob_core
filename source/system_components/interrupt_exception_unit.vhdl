@@ -32,16 +32,16 @@ use work.instructions.all;
 
 entity InterruptExceptionUnit is
 	port(
-			reset			: in std_logic;
-			enable			: in std_logic;
-			clock			: in std_logic;
-			write			: in std_logic;
-			int_id			: in INT_ID_TYPE;									-- the interrupt vector to jump/write to.
-			flags			: in CPU_FLAGS;
-			complete		: out std_logic;
-			sr_bus			: out STACK_BUS;
-			stack_complete	: in  std_logic;
-			data			: inout  std_logic_vector(DATA_WIDTH-1 downto 0)
+			reset			: in	std_logic;
+			enable			: in	std_logic;
+			clock			: in	std_logic;
+			load			: in	std_logic;		--- load a interrupt vector.
+			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
+			complete		: out	std_logic;
+			sr_bus			: out	STACK_BUS;
+			stack_complete	: in	std_logic;
+			pc_load			: out	std_logic;
+			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 	);
 end entity InterruptExceptionUnit;
 	
@@ -53,22 +53,32 @@ architecture synth of InterruptExceptionUnit is
 	type INTERRUPT_VECTOR_ARRAY is array(0 to NUM_REGISTERS) of std_logic_vector(ADDR_WIDTH-1 downto 0);
 	signal interrupt_vector : INTERRUPT_VECTOR_ARRAY := (others => (others => '0'));
 
+	-- states
+	subtype STATES is std_logic_vector(1 downto 0);
+	
+	constant	SAVE_STACK				: STATES := "00";
+	constant	JUMP_TO_EXCEPTION		: STATES := "01";
+	constant	PUSH_PC					: STATES := "10";
+	constant	FINISHED				: STATES := "11";
+
+	signal state : STATES;
+
 begin
 	---------------------------------------------------------------
-	--- define the registers.
+	--- manage the interrupt vectors.
 	---------------------------------------------------------------
-	process (reset, clock, write, data, int_id)
+	process (reset, clock, load, data, int_id)
 	begin
 		if reset = '1'
 		then
 			interrupt_vector <= (others => (others => '0'));
 		
-		elsif write = '1' and falling_edge(clock)
+		elsif load = '1' and falling_edge(clock)
 		then
 			interrupt_vector(to_integer(unsigned(int_id))) <= data;
 		end if;
 	end process;
-
+	
 	---------------------------------------------------------------
 	--- handle an exception 
 	---------------------------------------------------------------
@@ -79,27 +89,39 @@ begin
 		if enable = '0'
 		then
 			complete	<= '0';
-			state		:= "00";
+			state		:= SAVE_STACK;
 			sr_bus		<= FREE_STACK_BUS;
-			data		<= (others => 'Z');
 		
 		else
 			case state is
-				when "00" =>	complete		<= '0';
-					   			sr_bus.en		<= '1';
-					   			state			:= "01";
-								sr_bus.mode		<= SR_SAVE;
-								data			<= interrupt_vector(to_integer(unsigned(flags.interrupt_id)));
+				when SAVE_STACK =>
+					complete	<= '0';
+					sr_bus.en	<= '1';
+					sr_bus.mode	<= SR_SAVE;
 
-				when "01" =>	if stack_complete = '1'
-								then
-									state	:= "10";
-									sr_bus	<= INIT_STACK_BUS;
-									data	<= (others => 'Z');
-								end if;
+					if stack_complete = '1'
+					then
+						state 	:= PUSH_PC;
+					end if;
 
-				when "10" =>	complete	<= '1';
-								state		:= "11";
+				when PUSH_PC =>
+					sr_bus.en	<= '1';
+					sr_bus.mode	<= SR_INT_CALL;
+
+					if stack_complete = '1'
+					then
+						state	:= JUMP_TO_EXCEPTION;
+						data	<= interrupt_vector(to_integer(unsigned(int_id)));
+					end if;
+
+				when JUMP_TO_EXCEPTION =>
+					pc_load		<= '1';
+
+					if falling_edge(clock)
+					then
+						complete	<= '1';
+						state		:= FINISHED;
+					end if;
 
 				when others =>	null;
 			end case;

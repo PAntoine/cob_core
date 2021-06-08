@@ -70,7 +70,7 @@ architecture simulation of Components_Test_Bench is
 				complete		: out std_logic;
 				sr_bus			: out STACK_BUS;
 				stack_complete	: in  std_logic;
-				data			: inout  std_logic_vector(DATA_WIDTH-1 downto 0)
+				data			: in  std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component InterruptExceptionUnit;
 
@@ -116,7 +116,6 @@ begin
 
 	trigger <= '1' when (complete = '1' or ieu_comp = '1') else '0';
 
-
 	-- main test process
 	process (reset, test, trigger)
 	begin
@@ -129,9 +128,12 @@ begin
 	
 		elsif trigger = '0'
 		then
-			sr_bus.en	<= '1';
-			sr_bus.mode <= GetTestMode(test);
-			
+			if test <= TEST_SR_RESTORE
+			then
+				sr_bus.en	<= '1';
+				sr_bus.mode <= GetTestMode(test);
+			end if;
+
 			if GetTestMode(test) = SR_SET or GetTestMode(test) = SR_PUSH
 			then
 				data <= GetTestData(test);
@@ -145,6 +147,7 @@ begin
 			if test < TEST_SR_RESTORE
 			then
 				test <= test + 1;
+			
 			else
 				clock_running <= '0';
 			end if;
