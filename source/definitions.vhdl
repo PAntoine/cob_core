@@ -200,17 +200,15 @@ package definitions is
 	subtype		INT_ID_TYPE		is std_logic_vector(3 downto 0);	-- 16 interrupt vectors - 00 and 01.
 	subtype		INT_ID_RANGE	is natural range 3 downto 0;
 	
-	subtype		STACK_MODE_TYPE is std_logic_vector(3 downto 0);
-	constant	SR_READ		:	STACK_MODE_TYPE := "0000";
-	constant	SR_PUSH		:	STACK_MODE_TYPE := "0001";
-	constant	SR_CALL		:	STACK_MODE_TYPE := "0010";
-	constant	SR_SAVE		:	STACK_MODE_TYPE := "0011";
-	constant	SR_POP		:	STACK_MODE_TYPE := "0100";
-	constant	SR_RET		:	STACK_MODE_TYPE := "0101";
-	constant	SR_RESTORE	:	STACK_MODE_TYPE := "0110";
-	constant	SR_INT_CALL	:	STACK_MODE_TYPE := "0111";
-	constant	SR_INT_RET	:	STACK_MODE_TYPE := "1000";
-	constant	SR_SET		:	STACK_MODE_TYPE := "1111";
+	subtype		STACK_MODE_TYPE is std_logic_vector(2 downto 0);
+	constant	SR_READ		:	STACK_MODE_TYPE := "000";
+	constant	SR_PUSH		:	STACK_MODE_TYPE := "001";
+	constant	SR_CALL		:	STACK_MODE_TYPE := "010";
+	constant	SR_INT_CALL	:	STACK_MODE_TYPE := "011";
+	constant	SR_POP		:	STACK_MODE_TYPE := "100";
+	constant	SR_RET		:	STACK_MODE_TYPE := "101";
+	constant	SR_INT_RET	:	STACK_MODE_TYPE := "110";
+	constant	SR_SET		:	STACK_MODE_TYPE := "111";
 
 	type STACK_BUS is record
 		en		:	std_logic;			-- enable flag

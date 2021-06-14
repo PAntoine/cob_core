@@ -40,6 +40,7 @@ entity InterruptExceptionUnit is
 			complete		: out	std_logic;
 			sr_bus			: out	STACK_BUS;
 			stack_complete	: in	std_logic;
+			set_flags_intid	: out	std_logic;
 			pc_load			: out	std_logic;
 			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 	);
@@ -88,23 +89,17 @@ begin
 	begin
 		if enable = '0'
 		then
-			complete	<= '0';
-			state		:= SAVE_STACK;
-			sr_bus		<= FREE_STACK_BUS;
+			complete		<= '0';
+			pc_load			<= 'Z';
+			set_flags_intid	<= '0';
+			state			:= SAVE_STACK;
+			sr_bus			<= FREE_STACK_BUS;
 		
 		else
 			case state is
 				when SAVE_STACK =>
+					pc_load		<= '0';
 					complete	<= '0';
-					sr_bus.en	<= '1';
-					sr_bus.mode	<= SR_SAVE;
-
-					if stack_complete = '1'
-					then
-						state 	:= PUSH_PC;
-					end if;
-
-				when PUSH_PC =>
 					sr_bus.en	<= '1';
 					sr_bus.mode	<= SR_INT_CALL;
 
@@ -115,12 +110,15 @@ begin
 					end if;
 
 				when JUMP_TO_EXCEPTION =>
-					pc_load		<= '1';
+					pc_load			<= '1';
+					set_flags_intid	<= '1';
 
 					if falling_edge(clock)
 					then
-						complete	<= '1';
-						state		:= FINISHED;
+						complete		<= '1';
+						pc_load			<= '0';
+						set_flags_intid	<= '0';
+						state			:= FINISHED;
 					end if;
 
 				when others =>	null;
