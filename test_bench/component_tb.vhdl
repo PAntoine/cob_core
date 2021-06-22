@@ -61,16 +61,17 @@ architecture simulation of Components_Test_Bench is
 
 	component InterruptExceptionUnit is
 		port(
-				reset			: in std_logic;
-				enable			: in std_logic;
-				clock			: in std_logic;
-				write			: in std_logic;
-				int_id			: in INT_ID_TYPE;									-- the interrupt vector to jump/write to.
-				flags			: in CPU_FLAGS;
-				complete		: out std_logic;
-				sr_bus			: out STACK_BUS;
-				stack_complete	: in  std_logic;
-				data			: in  std_logic_vector(DATA_WIDTH-1 downto 0)
+				reset			: in	std_logic;
+				enable			: in	std_logic;
+				clock			: in	std_logic;
+				load			: in	std_logic;		--- load a interrupt vector.
+				int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
+				complete		: out	std_logic;
+				sr_bus			: out	STACK_BUS;
+				stack_complete	: in	std_logic;
+				set_flags_intid	: out	std_logic;
+				pc_load			: out	std_logic;
+				data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component InterruptExceptionUnit;
 
@@ -122,19 +123,19 @@ begin
 		if reset = '1'
 		then
 			sr_bus		<= INIT_STACK_BUS;
- 			test		<= TEST_SET_VALUE;
+			test		<= TEST_SR_SET;
 			ieu_int_id	<= (others => '0');
 			ieu_enable	<= '0';
 	
 		elsif trigger = '0'
 		then
-			if test <= TEST_SR_RESTORE
+			if test < TEST_FINISH
 			then
 				sr_bus.en	<= '1';
 				sr_bus.mode <= GetTestMode(test);
 			end if;
 
-			if GetTestMode(test) = SR_SET or GetTestMode(test) = SR_PUSH
+			if GetTestMode(test) = SR_SET or GetTestMode(test) = SR_SSP or GetTestMode(test) = SR_ISR or GetTestMode(test) = SR_PUSH
 			then
 				data <= GetTestData(test);
 			else
@@ -143,8 +144,7 @@ begin
 
 		elsif rising_edge(trigger)
 		then
-			--if test < TEST_FINISH
-			if test < TEST_SR_RESTORE
+			if test < TEST_FINISH
 			then
 				test <= test + 1;
 			
@@ -179,6 +179,21 @@ begin
 		end if;
 	end process;
 	
+	-- stack value on complete test
+	process (complete, stack_value)
+		variable test_value : std_logic_vector(DATA_WIDTH-1 downto 0);
+	begin
+		if rising_edge(complete)
+		then
+			test_value := GetTestStackValueComplete(test);
+
+			if stack_value  /= test_value
+			then
+				report "failure: test number " & integer'image(test) & " - stack value mismatch has " & toHString(stack_value) & " and expected " & toHString(test_value);
+			end if;
+		end if;
+	end process;
+
 	-- program counter process
 	pc <= (others => '0') when reset = '1' else GetTestPC(test);
 	
@@ -274,8 +289,8 @@ begin
 	sr: StackRegister port map (reset => reset, clock => clock, sr_bus => sr_bus, flags => flags, pc => pc, mem_bus => mem_bus, mem_data => mem_data, mem_da => mem_da,
 								complete => complete, pc_load => pc_load, flags_load => flags_load, stack_value => stack_value, da => da, data => data);
 	
-	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, write => set_vector, int_id => ieu_int_id, flags => flags,
-											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, data => data);
+--	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, load => set_vector, int_id => ieu_int_id,
+--											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, data => data);
 
 end architecture simulation;
 

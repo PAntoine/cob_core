@@ -27,11 +27,11 @@
 --               adjusted but before handing over control so the interrupt has acess
 --               to the values but the user space code does not.
 --
---         PUSH:   SP - 1 -> SP
+--         PUSH:   SP - 4 -> SP
 --                 data -> (SP)
 --
 --         POP:    (SP) -> data
---                 SP + 1 -> SP
+--                 SP + 4 -> SP
 --
 --         Call:   PUSH(pc)
 --
@@ -80,8 +80,6 @@ entity StackRegister is
 			sr_bus		: in	STACK_BUS;
 			flags		: in	CPU_FLAGS;
 			pc			: in	std_logic_vector(ADDR_WIDTH-1 downto 0);
-			load_ssp	: in	std_logic;
-			load_isr	: in	std_logic;
 
 			mem_bus		: out	MEMORY_BUS;
 			mem_data	: inout	std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -102,12 +100,20 @@ architecture synth of StackRegister is
 	signal isr_reg			: std_logic_vector(ADDR_WIDTH-1 downto 0);	--- Interrupt stack pointer.
 	signal ssp_reg			: std_logic_vector(ADDR_WIDTH-1 downto 0);	--- Saved stack pointer.
 
+	-- internal signals
+	signal int_da			: std_logic;
+	signal int_pc_load		: std_logic;
+	signal int_flags_load	: std_logic;
+
 	signal sr_inc		: std_logic;	-- increment the stack register
 	signal sr_dec		: std_logic;	-- decrement the stack register
 	signal sr_load		: std_logic;	-- load the stack register from data
 	signal sr_save_sp	: std_logic;	-- save stack pointer to ssp.
 	signal sr_load_ssp	: std_logic;	-- load the stack register from saved stack pointer
 	signal sr_load_isr	: std_logic;	-- load the stack register from interrupt stack pointer
+	signal load_ssp		: std_logic;	-- load ssr from data
+	signal load_isr		: std_logic;	-- load isr from data
+
 
 	subtype		STACK_STATE_TYPE is std_logic_vector(3 downto 0);
 	constant	SR_START		:	STACK_STATE_TYPE := "0000";
@@ -122,6 +128,9 @@ architecture synth of StackRegister is
 	constant	SR_FLAGS_READ	:	STACK_STATE_TYPE := "1001";
 	constant	SR_INT_STACK	:	STACK_STATE_TYPE := "1010";
 	constant	SR_NORM_STACK	:	STACK_STATE_TYPE := "1011";
+	constant	SR_SSP_VALUE	:	STACK_STATE_TYPE := "1100";
+	constant	SR_ISR_VALUE	:	STACK_STATE_TYPE := "1101";
+	constant	SR_COMPLETE		:	STACK_STATE_TYPE := "1110";
 	constant	SR_FINISHED		:	STACK_STATE_TYPE := "1111";
 
 	signal state : STACK_STATE_TYPE;
@@ -186,13 +195,13 @@ begin
 		then
 			ssp_reg <= (others => '0');
 
-		elsif rising_edge(load_ssp)
-		then
-			ssp_reg <= data;
-
 		elsif sr_save_sp = '1'
 		then
 			ssp_reg <= st_reg;
+
+		elsif sr_save_sp = '0' and rising_edge(load_ssp)
+		then
+			ssp_reg <= data;
 		end if;
 	end process;
 
@@ -204,7 +213,6 @@ begin
 			sr_inc		<= '0';
 			sr_dec		<= '0';
 			sr_load		<= '0';
-			complete	<= '0';
 			mem_bus		<= FREE_MEMORY_BUS;
 
 		elsif rising_edge(clock)
@@ -216,10 +224,12 @@ begin
 				when SR_START =>
 					case sr_bus.mode is
 						when SR_SET			=> state <= SR_SET_VALUE;
-						when SR_PUSH		=> state <= SR_DATA_WRITE;
+						when SR_SSP			=> state <= SR_SSP_VALUE;
+						when SR_ISR			=> state <= SR_ISR_VALUE;
+						when SR_PUSH		=> state <= SR_data_WRITE;
 						when SR_CALL		=> state <= SR_PC_WRITE;
 						when SR_INT_CALL	=> state <= SR_FLAGS_WRITE;
-						when SR_POP			=> state <= SR_DATA_READ;
+						when SR_POP			=> state <= SR_data_READ;
 						when SR_RET			=> state <= SR_PC_READ;
 						when SR_INT_RET		=> state <= LOAD_SP_FROM_SSP;
 						when others			=> null;
@@ -227,9 +237,17 @@ begin
 
 				when SR_SET_VALUE =>
 					sr_load			<= '1';
-					state			<= SR_FINISHED;
+					state			<= SR_COMPLETE;
 
-				when SR_DATA_WRITE =>
+				when SR_SSP_VALUE =>
+					load_ssp		<= '1';
+					state			<= SR_COMPLETE;
+
+				when SR_ISR_VALUE =>
+					load_isr		<= '1';
+					state			<= SR_COMPLETE;
+
+				when SR_data_WRITE =>
 					if sr_dec = '0'
 					then
 						mem_bus.rw		<= '1';
@@ -240,7 +258,7 @@ begin
 					then
 						sr_dec		<= '0';
 						mem_bus.en	<= '0';
-						state		<= SR_FINISHED;
+						state		<= SR_COMPLETE;
 					end if;
 
 				when SR_FLAGS_WRITE =>
@@ -269,22 +287,27 @@ begin
 						sr_dec		<= '0';
 						mem_bus.en	<= '0';
 
-						sr_save_sp <= '1';
-						state 	<= LOAD_SP_FROM_ISR;
+						if sr_bus.mode = SR_CALL
+						then
+							state <= SR_COMPLETE;
+						else
+							sr_save_sp	<= '1';
+							state		<= LOAD_SP_FROM_ISR;
+						end if;
 					end if;
 
 				when LOAD_SP_FROM_ISR =>
-					sr_save_sp		<= '0';
+					sr_save_sp	<= '0';
 					sr_load_isr <= '1';
 
-					state <= SR_FINISHED;
+					state <= SR_COMPLETE;
 
 				when LOAD_SP_FROM_SSP =>
 					sr_load_ssp	<= '1';
 
 					state <= SR_PC_READ;
 
-				when SR_DATA_READ =>
+				when SR_data_READ =>
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en  	<= '1';
 
@@ -292,7 +315,7 @@ begin
 					then
 						sr_inc  	<= '1';
 						mem_bus.en	<= '0';
-						state		<= SR_FINISHED;
+						state		<= SR_COMPLETE;
 					end if;
 
 				when SR_FLAGS_READ =>
@@ -304,13 +327,14 @@ begin
 					then
 						sr_inc		<= '1';
 						mem_bus.en	<= '0';
-						state		<= SR_FINISHED;
+						state		<= SR_COMPLETE;
 					end if;
 
 				when SR_PC_READ =>
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en		<= '1';
 					sr_inc   		<= '0';
+					sr_load_ssp		<= '0';
 
 					if mem_da = '1'
 					then
@@ -319,11 +343,14 @@ begin
 
 						if sr_bus.mode = SR_RET
 						then
-							state <= SR_FINISHED;
+							state <= SR_COMPLETE;
 						else
 							state <= SR_FLAGS_READ;
 						end if;
 					end if;
+
+				when SR_COMPLETE =>
+					state		<= SR_FINISHED;
 
 				when SR_FINISHED =>
 					sr_inc		<= '0';
@@ -332,7 +359,6 @@ begin
 					sr_save_sp	<= '0';
 					sr_load_isr <= '0';
 					mem_bus.en	<= '0';
-					complete	<= '1';
 
 				when others => null;
 			end case;
@@ -352,53 +378,50 @@ begin
 	-- data available for SR reads (POP's)
 	process (sr_bus.en, state, mem_da)
 	begin
-		if sr_bus.en = '0'
+		if state /= SR_data_READ
 		then
-			da	<= 'Z';
+			int_da <= '0';
 
-		elsif state /= SR_DATA_READ
+		elsif state = SR_data_READ and rising_edge(mem_da)
 		then
-			da <= '0';
-
-		elsif state = SR_DATA_READ and rising_edge(mem_da)
-		then
-			da <= '1';
+			int_da <= '1';
 		end if;
 	end process;
 
 	-- PC load value
 	process (sr_bus.en, state, mem_da)
 	begin
-		if sr_bus.en = '0'
+		if state /= SR_PC_READ
 		then
-			pc_load <= 'Z';
-
-		elsif state /= SR_PC_READ
-		then
-			pc_load <= '0';
+			int_pc_load <= '0';
 
 		elsif state = SR_PC_READ and rising_edge(mem_da)
 		then
-			pc_load <= '1';
+			int_pc_load <= '1';
 		end if;
 	end process;
 
 	-- Flags load value
 	process (sr_bus.en, state, mem_da)
 	begin
-		if sr_bus.en = '0'
+		if state /= SR_FLAGS_READ
 		then
-			flags_load <= 'Z';
-
-		elsif state /= SR_FLAGS_READ
-		then
-			flags_load <= '0';
+			int_flags_load <= '0';
 
 		elsif state = SR_FLAGS_READ and rising_edge(mem_da)
 		then
-			flags_load <= '1';
+			int_flags_load <= '1';
 		end if;
 	end process;
+
+	-- output states
+	da			<= 'Z' when sr_bus.en = '0' else int_da;
+	pc_load		<= 'Z' when sr_bus.en = '0' else int_pc_load;
+	flags_load	<= 'Z' when sr_bus.en = '0' else int_flags_load;
+
+
+	-- complete state
+	complete <= '1' when state = SR_FINISHED else '0';
 
 	-- data bus state
 	data <= mem_data when state = SR_PC_READ or state = SR_DATA_READ or state = SR_FLAGS_READ else (others => 'Z');
