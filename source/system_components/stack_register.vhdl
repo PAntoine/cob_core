@@ -213,6 +213,11 @@ begin
 			sr_inc		<= '0';
 			sr_dec		<= '0';
 			sr_load		<= '0';
+			load_isr	<= '0';
+			load_ssp	<= '0';
+			sr_save_sp	<= '0';
+			sr_load_ssp	<= '0';
+			sr_load_isr	<= '0';
 			mem_bus		<= FREE_MEMORY_BUS;
 
 		elsif rising_edge(clock)
@@ -226,10 +231,10 @@ begin
 						when SR_SET			=> state <= SR_SET_VALUE;
 						when SR_SSP			=> state <= SR_SSP_VALUE;
 						when SR_ISR			=> state <= SR_ISR_VALUE;
-						when SR_PUSH		=> state <= SR_data_WRITE;
+						when SR_PUSH		=> state <= SR_DATA_WRITE;
 						when SR_CALL		=> state <= SR_PC_WRITE;
 						when SR_INT_CALL	=> state <= SR_FLAGS_WRITE;
-						when SR_POP			=> state <= SR_data_READ;
+						when SR_POP			=> state <= SR_DATA_READ;
 						when SR_RET			=> state <= SR_PC_READ;
 						when SR_INT_RET		=> state <= LOAD_SP_FROM_SSP;
 						when others			=> null;
@@ -307,7 +312,7 @@ begin
 
 					state <= SR_PC_READ;
 
-				when SR_data_READ =>
+				when SR_DATA_READ =>
 					mem_bus.rw		<= RW_READ;
 					mem_bus.en  	<= '1';
 
@@ -356,7 +361,10 @@ begin
 					sr_inc		<= '0';
 					sr_dec		<= '0';
 					sr_load		<= '0';
+					load_isr	<= '0';
+					load_ssp	<= '0';
 					sr_save_sp	<= '0';
+					sr_load_ssp	<= '0';
 					sr_load_isr <= '0';
 					mem_bus.en	<= '0';
 

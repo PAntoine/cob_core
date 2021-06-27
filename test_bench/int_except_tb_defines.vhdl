@@ -46,22 +46,6 @@ package int_except_tb_defines is
 	type TEST_ADDRESS_TYPE is array(0 to 1) of std_logic_vector(ADDR_WIDTH-1 downto 0);
 	type TEST_VALUES_TYPE  is array(0 to 1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
-	type TEST_CASE2_TYPE is record
-		mode		:	STACK_MODE_TYPE;
-		flags		:	CPU_FLAGS;
-		flags_after	:	CPU_FLAGS;
-		pc			:	std_logic_vector(ADDR_WIDTH-1 downto 0);
-		data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
-		mem_address	:	TEST_ADDRESS_TYPE;
-		values		:	TEST_VALUES_TYPE;
-		stack_value	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
-	end record TEST_CASE2_TYPE;
-
-	type TEST_CASE_ARRAY is array(integer range <>) of TEST_CASE2_TYPE;
-
-	---------------------------------------------------------------
-	--- Test Cases
-	---------------------------------------------------------------
 	constant A_CPU_FLAGS : CPU_FLAGS :=
 	(
 		carry_flag				=> '0',
@@ -89,18 +73,34 @@ package int_except_tb_defines is
 		non_masked_interrupt	=> '1',
 		interrupt_id			=> (others => '0')
 	);
+	---------------------------------------------------------------
+	--- Test Cases
+	---------------------------------------------------------------
+
+	type TEST_CASE2_TYPE is record
+		mode		:	STACK_MODE_TYPE;
+		flags		:	CPU_FLAGS;
+		flags_after	:	CPU_FLAGS;
+		pc			:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+		data		:	std_logic_vector(DATA_WIDTH-1 downto 0);
+		mem_address	:	TEST_ADDRESS_TYPE;
+		values		:	TEST_VALUES_TYPE;
+		stack_value	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
+	end record TEST_CASE2_TYPE;
+
+	type TEST_CASE_ARRAY is array(integer range <>) of TEST_CASE2_TYPE;
 
 	constant sr_test_cases : TEST_CASE_ARRAY :=
 	(
-		(SR_SET,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00010000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF"),x"00000000"),
-		(SR_SSP,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00020000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF"),x"00000000"),
-		(SR_ISR,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00030000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF"),x"00000000"),
-		(SR_PUSH,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"FFFFFFFF", x"FF000000", (x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF"),x"00000000"),
-		(SR_POP,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00002000", x"FF000000", (x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF"),x"00000000"),
-		(SR_CALL,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", (x"0000FFfC", x"00000000"), (x"00003000", x"FFFFFFFF"),x"00000000"),
-		(SR_RET,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fffc", x"00000000"), (x"00003000", x"FFFFFFFF"),x"00000000"),
-		(SR_INT_CALL,	A_CPU_FLAGS,    B_CPU_FLAGS,	x"00004000", x"F0F0F0F0", (x"0000fffc", x"0000FFf8"), (flagsToVector(A_CPU_FLAGS), x"00004000"),x"00000000"),
-		(SR_INT_RET,	B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)),x"00000000"),
+		(SR_SET,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00010000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF"),x"00010000"),
+		(SR_SSP,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00020000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF"),x"00010000"),
+		(SR_ISR,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00001000", x"00030000", (x"00000000", x"00000000"), (x"FFFFFFFF", x"FFFFFFFF"),x"00010000"),
+		(SR_PUSH,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"FFFFFFFF", x"FF000000", (x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF"),x"0000FFFC"),
+		(SR_POP,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00002000", x"FF000000", (x"0000FFFC", x"00000000"), (x"FF000000", x"FFFFFFFF"),x"00010000"),
+		(SR_CALL,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", (x"0000FFfC", x"00000000"), (x"00003000", x"FFFFFFFF"),x"0000FFFC"),
+		(SR_RET,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fffc", x"00000000"), (x"00003000", x"FFFFFFFF"),x"00010000"),
+		(SR_INT_CALL,	A_CPU_FLAGS,    B_CPU_FLAGS,	x"00004000", x"F0F0F0F0", (x"0000fffc", x"0000FFf8"), (flagsToVector(A_CPU_FLAGS), x"00004000"),x"00030000"),
+		(SR_INT_RET,	B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)),x"00010000"),
 		(SR_SET,		B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)),x"00000000")
 
 		-- interrupt unit tests.
