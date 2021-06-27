@@ -289,8 +289,8 @@ begin
 	sr: StackRegister port map (reset => reset, clock => clock, sr_bus => sr_bus, flags => flags, pc => pc, mem_bus => mem_bus, mem_data => mem_data, mem_da => mem_da,
 								complete => complete, pc_load => pc_load, flags_load => flags_load, stack_value => stack_value, da => da, data => data);
 	
---	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, load => set_vector, int_id => ieu_int_id,
---											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, data => data);
+	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, load => set_vector, int_id => ieu_int_id,
+											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, data => data);
 
 end architecture simulation;
 

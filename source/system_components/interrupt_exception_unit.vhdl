@@ -62,8 +62,6 @@ architecture synth of InterruptExceptionUnit is
 	constant	PUSH_PC					: STATES := "10";
 	constant	FINISHED				: STATES := "11";
 
-	signal state : STATES;
-
 begin
 	---------------------------------------------------------------
 	--- manage the interrupt vectors.
@@ -94,7 +92,8 @@ begin
 			set_flags_intid	<= '0';
 			state			:= SAVE_STACK;
 			sr_bus			<= FREE_STACK_BUS;
-		
+			data			<= (others => 'Z');
+
 		else
 			case state is
 				when SAVE_STACK =>
