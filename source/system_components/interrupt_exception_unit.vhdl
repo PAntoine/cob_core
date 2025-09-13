@@ -91,7 +91,7 @@ begin
 			complete		<= '0';
 			pc_load			<= 'Z';
 			set_flags_intid	<= '0';
-			state			:= SAVE_STACK;
+			state			:= SAVE_STACK;			-- this is safe as the bus is free.
 			sr_bus			<= FREE_STACK_BUS;
 			data			<= (others => 'Z');
 

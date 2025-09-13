@@ -96,7 +96,6 @@ end entity StackRegister;
 
 architecture synth of StackRegister is
 	signal st_reg			: std_logic_vector(ADDR_WIDTH-1 downto 0);
-	signal st_reg_current	: std_logic_vector(ADDR_WIDTH-1 downto 0);
 	signal isr_reg			: std_logic_vector(ADDR_WIDTH-1 downto 0);	--- Interrupt stack pointer.
 	signal ssp_reg			: std_logic_vector(ADDR_WIDTH-1 downto 0);	--- Saved stack pointer.
 
@@ -126,11 +125,9 @@ architecture synth of StackRegister is
 	constant	SR_PC_READ		:	STACK_STATE_TYPE := "0111";
 	constant	LOAD_SP_FROM_ISR:	STACK_STATE_TYPE := "1000";
 	constant	SR_FLAGS_READ	:	STACK_STATE_TYPE := "1001";
-	constant	LOAD_IVECT		:	STACK_STATE_TYPE := "1010";
-	constant	JUMP_TO_IVECT	:	STACK_STATE_TYPE := "1011";
-	constant	SR_SSP_VALUE	:	STACK_STATE_TYPE := "1100";
-	constant	SR_ISR_VALUE	:	STACK_STATE_TYPE := "1101";
-	constant	SR_COMPLETE		:	STACK_STATE_TYPE := "1110";
+	constant	SR_SSP_VALUE	:	STACK_STATE_TYPE := "1010";
+	constant	SR_ISR_VALUE	:	STACK_STATE_TYPE := "1011";
+	constant	SR_COMPLETE		:	STACK_STATE_TYPE := "1100";
 	constant	SR_FINISHED		:	STACK_STATE_TYPE := "1111";
 
 	signal state : STACK_STATE_TYPE;
@@ -138,22 +135,6 @@ architecture synth of StackRegister is
 	signal st_event : std_logic;
 
 begin
-
-	---------------------------------------------------------------
-	--- manage the interrupt vectors.
-	---------------------------------------------------------------
-	process (reset, clock, sr_vec_load, data, int_id)
-	begin
-		if reset = '1'
-		then
-			interrupt_vector <= (others => (others => '0'));
-		
-		elsif sr_vec_load = '1' and falling_edge(clock)
-		then
-			interrupt_vector(to_integer(unsigned(int_id))) <= data;
-		end if;
-	end process;
-	stack_value <= st_reg;
 
 	---------------------------------------------------------------
 	--- manage the stack register.
@@ -205,7 +186,7 @@ begin
 	end process;
 
 	-- stack save pointer
-	process (reset, load_ssp, sr_save_sp)
+	process (reset, load_ssp, sr_save_sp, st_reg)
 	begin
 		if reset = '1'
 		then
@@ -239,8 +220,6 @@ begin
 		elsif rising_edge(clock)
 		then
 			-- latch it at start as it may change during the operation.
-			st_reg_current <= st_reg;
-
 			case state is
 				when SR_START =>
 					case sr_bus.mode is
@@ -268,11 +247,7 @@ begin
 					load_isr		<= '1';
 					state			<= SR_COMPLETE;
 				
-				when LOAD_IVECT =>
-					sr_vec_load		<= '1';
-					state			<= SR_COMPLETE;
-
-				when SR_data_WRITE =>
+				when SR_DATA_WRITE =>
 					if sr_dec = '0'
 					then
 						mem_bus.rw		<= '1';
@@ -300,10 +275,6 @@ begin
 						state		<= SR_PC_WRITE;
 					end if;
 
-				when JUMP_TO_IVECT =>
-
-					state <= SR_COMPLETE;
-
 				when SR_PC_WRITE =>
 					if sr_dec = '0'
 					then
@@ -318,7 +289,7 @@ begin
 
 						if sr_bus.mode = SR_CALL
 						then
-							state <= JUMP_TO_IVECT;
+							state <= SR_COMPLETE;
 						else
 							sr_save_sp	<= '1';
 							state		<= LOAD_SP_FROM_ISR;
@@ -385,7 +356,6 @@ begin
 					sr_inc		<= '0';
 					sr_dec		<= '0';
 					sr_load		<= '0';
-					sr_vec_load	<= '0';
 					load_isr	<= '0';
 					load_ssp	<= '0';
 					sr_save_sp	<= '0';
@@ -422,7 +392,17 @@ begin
 	end process;
 
 	-- PC load value
-	int_pc_load <= '1' when (state = SR_PC_LOAD and mem_da = '1') or (state = JUMP_TO_IVECT) else '0';
+	process (sr_bus.en, state, mem_da)
+	begin
+		if state /= SR_PC_READ
+		then
+			int_pc_load <= '0';
+
+		elsif state = SR_PC_READ and rising_edge(mem_da)
+		then
+			int_pc_load <= '1';
+		end if;
+	end process;
 
 	-- Flags load value
 	process (sr_bus.en, state, mem_da)
@@ -448,7 +428,6 @@ begin
 
 	-- data bus state
 	data <= mem_data when state = SR_PC_READ or state = SR_DATA_READ or state = SR_FLAGS_READ else (others => 'Z');
-	data <= interrupt_vector(int_id) when state = SR_PC_WRITE or state = JUMP_TO_IVECT else (others => 'Z');
 
 	-- stack value should always be available.
 	stack_value <= st_reg;

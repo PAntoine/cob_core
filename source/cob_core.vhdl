@@ -136,16 +136,18 @@ architecture synth of COB_Core is
 
 	component InterruptExceptionUnit is
 		port(
-			reset			: in std_logic;
-			enable			: in std_logic;
-			clock			: in std_logic;
-			write			: in std_logic;
-			int_id			: in INT_ID_TYPE;									-- the interrupt vector to jump/write to.
-			flags			: in CPU_FLAGS;
-			complete		: out std_logic;
-			sr_bus			: out STACK_BUS;
-			stack_complete	: in  std_logic;
-			data			: inout std_logic_vector(DATA_WIDTH-1 downto 0)
+			reset			: in	std_logic;
+			enable			: in	std_logic;
+			clock			: in	std_logic;
+			load			: in	std_logic;		--- load a interrupt vector.
+			int				: in	std_logic;		--- start an exception.
+			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
+			complete		: out	std_logic;
+			sr_bus			: out	STACK_BUS;
+			stack_complete	: in	std_logic;
+			set_flags_intid	: out	std_logic;
+			pc_load			: out	std_logic;
+			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component InterruptExceptionUnit;
 			
@@ -165,7 +167,7 @@ architecture synth of COB_Core is
 			pc_load		: out	std_logic;
 			stack_value	: out	std_logic_vector(ADDR_WIDTH-1 downto 0);
 			da			: out	std_logic;
-			data		: out	std_logic_vector(DATA_WIDTH-1 downto 0)
+			data		: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component StackRegister;
 
@@ -396,7 +398,7 @@ begin
 									flags => flags, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	-- interrupt and exceptions
-	ie: InterruptExceptionUnit port map (reset => reset, enable => unit_sel_bus.int_except, clock => clock, write => int_vect_write, int_id => store_data_bus(INT_ID_RANGE), flags => flags, complete => exc, sr_bus => sr_bus, stack_complete => sc, data => store_data_bus);
+--	ie: InterruptExceptionUnit port map (reset => reset, enable => unit_sel_bus.int_except, clock => clock, write => int_vect_write, int_id => store_data_bus(INT_ID_RANGE), flags => flags, complete => exc, sr_bus => sr_bus, stack_complete => sc, data => store_data_bus);
 
 	---------------------------------------------------------------
 	--- Interface Components.
