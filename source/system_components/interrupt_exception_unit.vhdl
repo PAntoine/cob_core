@@ -36,6 +36,7 @@ entity InterruptExceptionUnit is
 			enable			: in	std_logic;
 			clock			: in	std_logic;
 			load			: in	std_logic;		--- load a interrupt vector.
+			int				: in	std_logic;		--- start an exception.
 			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
 			complete		: out	std_logic;
 			sr_bus			: out	STACK_BUS;

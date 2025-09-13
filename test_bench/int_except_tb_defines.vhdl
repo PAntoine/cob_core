@@ -74,10 +74,10 @@ package int_except_tb_defines is
 		interrupt_id			=> (others => '0')
 	);
 	---------------------------------------------------------------
-	--- Test Cases
+	--- Test Cases -- Start Register
 	---------------------------------------------------------------
 
-	type TEST_CASE2_TYPE is record
+	type TEST_CASE_TYPE is record
 		mode		:	STACK_MODE_TYPE;
 		flags		:	CPU_FLAGS;
 		flags_after	:	CPU_FLAGS;
@@ -86,9 +86,9 @@ package int_except_tb_defines is
 		mem_address	:	TEST_ADDRESS_TYPE;
 		values		:	TEST_VALUES_TYPE;
 		stack_value	:	std_logic_vector(ADDR_WIDTH-1 downto 0);
-	end record TEST_CASE2_TYPE;
+	end record TEST_CASE_TYPE;
 
-	type TEST_CASE_ARRAY is array(integer range <>) of TEST_CASE2_TYPE;
+	type TEST_CASE_ARRAY is array(integer range <>) of TEST_CASE_TYPE;
 
 	constant sr_test_cases : TEST_CASE_ARRAY :=
 	(
@@ -100,16 +100,41 @@ package int_except_tb_defines is
 		(SR_CALL,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"00003000", x"F0F0F0F0", (x"0000FFfC", x"00000000"), (x"00003000", x"FFFFFFFF"),x"0000FFFC"),
 		(SR_RET,		INIT_CPU_FLAGS, INIT_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fffc", x"00000000"), (x"00003000", x"FFFFFFFF"),x"00010000"),
 		(SR_INT_CALL,	A_CPU_FLAGS,    B_CPU_FLAGS,	x"00004000", x"F0F0F0F0", (x"0000fffc", x"0000FFf8"), (flagsToVector(A_CPU_FLAGS), x"00004000"),x"00030000"),
-		(SR_INT_RET,	B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)),x"00010000"),
-		(SR_SET,		B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)),x"00000000")
-
-		-- interrupt unit tests.
---		(SR_RESTORE,B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS))),
---		(SR_RESTORE,B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)))
+		(SR_INT_RET,	B_CPU_FLAGS,    A_CPU_FLAGS,	x"0F0F0F0F", x"F0F0F0F0", (x"0000fff8", x"0000FFfc"), (x"00004000", flagsToVector(A_CPU_FLAGS)),x"00010000")
 	);
 
 	---------------------------------------------------------------
-	--- Test Cases
+	--- Interrupt Controller Test
+	---------------------------------------------------------------
+	type INTERRUPT_TEST_CASE_TYPE is record
+		load		: std_logic;
+		int_id		: INT_ID_TYPE;
+		value		: std_logic_vector(DATA_WIDTH-1 downto 0);
+	end record INTERRUPT_TEST_CASE_TYPE;
+
+	constant int_test_cases : INTERRUPT_TEST_CASE_TYPE :=
+	(
+		('1',	x"00",	"00000010"),			--- load the interrupt vectors.
+		('1',	x"01",	"00000020"),
+		('1',	x"02",	"00000030"),
+		('1',	x"03",	"00000040"),
+		('1',	x"04",	"00000050"),
+		('1',	x"05",	"00000060"),
+		('1',	x"06",	"00000070"),
+		('1',	x"07",	"00000080"),
+		('1',	x"08",	"00000090"),
+		('1',	x"09",	"000000a0"),
+		('1',	x"0a",	"000000b0"),
+		('1',	x"0b",	"000000c0"),
+		('1',	x"0c",	"000000d0"),
+		('1',	x"0d",	"000000e0"),
+		('1',	x"0e",	"000000f0"),
+		('1',	x"0f",	"00000100")
+	);
+
+
+	---------------------------------------------------------------
+	--- Test Utility Functions.
 	---------------------------------------------------------------
 	function toHNibble(a_in: std_logic_vector(3 downto 0)) return character;
 	function toHString(a_in: std_logic_vector(DATA_WIDTH-1 downto 0)) return string;
