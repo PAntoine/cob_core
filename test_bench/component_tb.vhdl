@@ -61,17 +61,18 @@ architecture simulation of Components_Test_Bench is
 
 	component InterruptExceptionUnit is
 		port(
-				reset			: in	std_logic;
-				enable			: in	std_logic;
-				clock			: in	std_logic;
-				load			: in	std_logic;		--- load a interrupt vector.
-				int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
-				complete		: out	std_logic;
-				sr_bus			: out	STACK_BUS;
-				stack_complete	: in	std_logic;
-				set_flags_intid	: out	std_logic;
-				pc_load			: out	std_logic;
-				data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
+			reset			: in	std_logic;
+			enable			: in	std_logic;		--- enable interrupts
+			clock			: in	std_logic;
+			load_ivect		: in	std_logic;		--- load a interrupt vector.
+			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load.
+			interrupt		: in	std_logic;		--- start an exception.
+			complete		: out	std_logic;      --- The interrupt is complete.
+			sr_bus			: out	STACK_BUS;
+			stack_complete	: in	std_logic;      --- The stack has finished doing it's thing.
+			set_flags_intid	: out	std_logic;
+			pc_load			: out	std_logic;
+			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 		);
 	end component InterruptExceptionUnit;
 
@@ -87,6 +88,7 @@ architecture simulation of Components_Test_Bench is
 	signal sr_bus		: STACK_BUS;
 	signal flags		: CPU_FLAGS									:= INIT_CPU_FLAGS;
 	signal pc			: std_logic_vector(ADDR_WIDTH-1 downto 0)	:= x"00000001";
+	signal load_pc		: std_logic;
 
 	signal mem_bus		: MEMORY_BUS								:= FREE_MEMORY_BUS;
 	signal mem_data		: std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -103,6 +105,8 @@ architecture simulation of Components_Test_Bench is
 	signal ieu_enable	: std_logic		:= '0';
 	signal ieu_int_id	: INT_ID_TYPE	:= (others => '0');
 	signal ieu_comp		: std_logic		:= '0';
+	signal interrupt	: std_logic		:= '0';
+	signal ieu_setflags	: std_logic		:= '0';
 
 	signal trigger		: std_logic;
 
@@ -289,8 +293,8 @@ begin
 	sr: StackRegister port map (reset => reset, clock => clock, sr_bus => sr_bus, flags => flags, pc => pc, mem_bus => mem_bus, mem_data => mem_data, mem_da => mem_da,
 								complete => complete, pc_load => pc_load, flags_load => flags_load, stack_value => stack_value, da => da, data => data);
 	
-	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, load => set_vector, int_id => ieu_int_id,
-											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, data => data);
+	ie: InterruptExceptionUnit port map ( 	reset => reset, enable => ieu_enable, clock => clock, load_ivect => set_vector, int_id => ieu_int_id, interrupt => interrupt,
+											complete => ieu_comp, sr_bus => sr_bus, stack_complete => complete, set_flags_intid => ieu_setflags, pc_load => load_pc, data => data);
 
 end architecture simulation;
 

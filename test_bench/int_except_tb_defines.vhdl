@@ -112,24 +112,26 @@ package int_except_tb_defines is
 		value		: std_logic_vector(DATA_WIDTH-1 downto 0);
 	end record INTERRUPT_TEST_CASE_TYPE;
 
-	constant int_test_cases : INTERRUPT_TEST_CASE_TYPE :=
+	type INTERRUPT_TEST_CASE_ARRAY is array(integer range <>) of INTERRUPT_TEST_CASE_TYPE;
+
+	constant int_test_cases : INTERRUPT_TEST_CASE_ARRAY :=
 	(
-		('1',	x"00",	"00000010"),			--- load the interrupt vectors.
-		('1',	x"01",	"00000020"),
-		('1',	x"02",	"00000030"),
-		('1',	x"03",	"00000040"),
-		('1',	x"04",	"00000050"),
-		('1',	x"05",	"00000060"),
-		('1',	x"06",	"00000070"),
-		('1',	x"07",	"00000080"),
-		('1',	x"08",	"00000090"),
-		('1',	x"09",	"000000a0"),
-		('1',	x"0a",	"000000b0"),
-		('1',	x"0b",	"000000c0"),
-		('1',	x"0c",	"000000d0"),
-		('1',	x"0d",	"000000e0"),
-		('1',	x"0e",	"000000f0"),
-		('1',	x"0f",	"00000100")
+		('1',	x"00",	x"00000010"),			--- load the interrupt vectors.
+		('1',	x"01",	x"00000020"),
+		('1',	x"02",	x"00000030"),
+		('1',	x"03",	x"00000040"),
+		('1',	x"04",	x"00000050"),
+		('1',	x"05",	x"00000060"),
+		('1',	x"06",	x"00000070"),
+		('1',	x"07",	x"00000080"),
+		('1',	x"08",	x"00000090"),
+		('1',	x"09",	x"000000a0"),
+		('1',	x"0a",	x"000000b0"),
+		('1',	x"0b",	x"000000c0"),
+		('1',	x"0c",	x"000000d0"),
+		('1',	x"0d",	x"000000e0"),
+		('1',	x"0e",	x"000000f0"),
+		('1',	x"0f",	x"00000100")
 	);
 
 

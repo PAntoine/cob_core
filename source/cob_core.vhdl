@@ -139,9 +139,9 @@ architecture synth of COB_Core is
 			reset			: in	std_logic;
 			enable			: in	std_logic;
 			clock			: in	std_logic;
-			load			: in	std_logic;		--- load a interrupt vector.
-			int				: in	std_logic;		--- start an exception.
-			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
+			load_ivect		: in	std_logic;
+			int_id			: in	INT_ID_TYPE;
+			interrupt		: in	std_logic;
 			complete		: out	std_logic;
 			sr_bus			: out	STACK_BUS;
 			stack_complete	: in	std_logic;
@@ -329,7 +329,10 @@ architecture synth of COB_Core is
 	signal op_a_da			: std_logic;
 	signal op_b_da			: std_logic;
 
-	signal int_vect_write	: std_logic;	-- load the interrupt vector.
+	signal interrupt		: std_logic;	-- we have an interrupt
+	signal ivl				: std_logic;	-- interrupt vector load
+	signal int_id			: INT_ID_TYPE;	-- interrupt vector id
+	signal set_int_flag		: std_logic;	-- TODO: this is not correct, but add it for now.
 
 	signal reg_1_bus		: REGISTER_BUS;
 	signal reg_2_bus		: REGISTER_BUS;
@@ -345,7 +348,7 @@ architecture synth of COB_Core is
 	signal wc				: std_logic;	-- write complete	
 	signal ec				: std_logic	:= '0';	-- execution complete (shared signal)
 	signal exc				: std_logic := '0'; -- exception complete
-	signal ic				: std_logic := '0'; -- interrupt compelte
+	signal ic				: std_logic := '0'; -- interrupt complete
 
 	signal pc_load			: std_logic := '0';
 
@@ -398,7 +401,7 @@ begin
 									flags => flags, op_a => op_a_bus, op_b => op_b_bus, op_a_da => op_a_da, op_b_da => op_b_da, op_a_data => op_a_data, op_b_data => op_b_data); 
 
 	-- interrupt and exceptions
---	ie: InterruptExceptionUnit port map (reset => reset, enable => unit_sel_bus.int_except, clock => clock, write => int_vect_write, int_id => store_data_bus(INT_ID_RANGE), flags => flags, complete => exc, sr_bus => sr_bus, stack_complete => sc, data => store_data_bus);
+	ie: InterruptExceptionUnit port map (reset => reset, enable => unit_sel_bus.int_except, clock => clock, load_ivect => ivl, int_id => int_id, interrupt => interrupt, complete => ic, sr_bus => sr_bus, stack_complete => sc, set_flags_intid => set_int_flag, pc_load => pc_load, data => pc_value);
 
 	---------------------------------------------------------------
 	--- Interface Components.

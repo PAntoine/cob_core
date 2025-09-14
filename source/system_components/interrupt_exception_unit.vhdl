@@ -33,20 +33,20 @@ use work.instructions.all;
 entity InterruptExceptionUnit is
 	port(
 			reset			: in	std_logic;
-			enable			: in	std_logic;
+			enable			: in	std_logic;		--- enable interrupts
 			clock			: in	std_logic;
-			load			: in	std_logic;		--- load a interrupt vector.
-			int				: in	std_logic;		--- start an exception.
-			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load. 
-			complete		: out	std_logic;
+			load_ivect		: in	std_logic;		--- load a interrupt vector.
+			int_id			: in	INT_ID_TYPE;	--- the interrupt vector to load.
+			interrupt		: in	std_logic;		--- start an exception.
+			complete		: out	std_logic;      --- The interrupt is complete.
 			sr_bus			: out	STACK_BUS;
-			stack_complete	: in	std_logic;
+			stack_complete	: in	std_logic;      --- The stack has finished doing it's thing.
 			set_flags_intid	: out	std_logic;
 			pc_load			: out	std_logic;
 			data			: inout	std_logic_vector(DATA_WIDTH-1 downto 0)
 	);
 end entity InterruptExceptionUnit;
-	
+
 architecture synth of InterruptExceptionUnit is
 
 	---------------------------------------------------------------
@@ -57,7 +57,7 @@ architecture synth of InterruptExceptionUnit is
 
 	-- states
 	subtype STATES is std_logic_vector(1 downto 0);
-	
+
 	constant	SAVE_STACK				: STATES := "00";
 	constant	JUMP_TO_EXCEPTION		: STATES := "01";
 	constant	PUSH_PC					: STATES := "10";
@@ -67,22 +67,22 @@ begin
 	---------------------------------------------------------------
 	--- manage the interrupt vectors.
 	---------------------------------------------------------------
-	process (reset, clock, load, data, int_id)
+	process (reset, clock, load_ivect, data, int_id)
 	begin
 		if reset = '1'
 		then
 			interrupt_vector <= (others => (others => '0'));
-		
-		elsif load = '1' and falling_edge(clock)
+
+		elsif load_ivect = '1' and falling_edge(clock)
 		then
 			interrupt_vector(to_integer(unsigned(int_id))) <= data;
 		end if;
 	end process;
-	
+
 	---------------------------------------------------------------
-	--- handle an exception 
+	--- handle an exception
 	---------------------------------------------------------------
-	process (reset, enable, interrupt_vector)
+	process (reset, enable, interrupt, interrupt_vector)
 		variable state : std_logic_vector(1 downto 0);
 
 	begin
@@ -95,7 +95,8 @@ begin
 			sr_bus			<= FREE_STACK_BUS;
 			data			<= (others => 'Z');
 
-		else
+		elsif interrupt = '1' and falling_edge(clock)		-- we start handling the interrupt when the int flag goes high.
+		then
 			case state is
 				when SAVE_STACK =>
 					pc_load		<= '0';
@@ -112,14 +113,15 @@ begin
 				when JUMP_TO_EXCEPTION =>
 					pc_load			<= '1';
 					set_flags_intid	<= '1';
+					state			:= FINISHED;
+											-- TODO: what value are we setting to the flags?
+											--       it should have the interrupt id.
+											--       what about the return from interrupt?
 
-					if falling_edge(clock)
-					then
-						complete		<= '1';
-						pc_load			<= '0';
-						set_flags_intid	<= '0';
-						state			:= FINISHED;
-					end if;
+				when FINISHED =>
+					complete		<= '1';
+					pc_load			<= '0';
+					set_flags_intid	<= '0';
 
 				when others =>	null;
 			end case;
